@@ -55,13 +55,14 @@ public:
 
     LogFormatter(const std::string& pattern);
 
-    std::string format(LogLevel::ptr level, LogEvent::prt event);
+    std::string format(LogLevel::ptr level,  Logger::ptr logger, LogEvent::prt event);
 
 public:
     void init();            //初始化解析日志格式            
     //格式items
     class formatterItem{
     public:
+        formatterItem(const string& format = "") {}
         using ptr = std::shared_ptr<formatterItem>;
         virtual ~formatterItem() {}
         virtual void format(std::ostream& os, LogLevel::ptr level , LogEvent::ptr event) = 0; 
@@ -93,7 +94,7 @@ private:
 //日志输出
 class Logger{
 public:
-    typedef std::shared_ptr<Logger> ptr;
+    using ptr = std::shared_ptr<logger>;
 
 
     void log(LogLevel::Level level, LogEvent::ptr event);
@@ -110,6 +111,8 @@ public:
 
     LogLevel::Level getLevel() const{return m_level;}
     void setLevel(LogLevel::Level val) {m_level = val;}
+
+    std::string getName() const {return m_name;}
 private:
     std::string m_name;
     LogLevel::Level m_level;
