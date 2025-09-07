@@ -80,6 +80,7 @@ void Logger::fatal(LogLevel::Level level, LogEvent::ptr event){
 
 FileLogAppender::FileLogAppender(const std::string& file_name)
     : m_file_name(file_name){
+        reopen();
 }
 bool FileLogAppender::reopen(){
     if(m_file_stream){
@@ -89,12 +90,12 @@ bool FileLogAppender::reopen(){
     return !!m_file_stream;
 }
 void FileLogAppender::log(LogLevel::Level level, std::shared_ptr<m_sylar::Logger> logger, LogEvent::ptr event){
-    if(level > m_level){
+    if(level >= m_level){
         m_file_stream << m_formatter->format(level, logger, event);
     } 
 }
 void StdoutLogAppender::log(LogLevel::Level level, std::shared_ptr<m_sylar::Logger> logger, LogEvent::ptr event){
-    if(level > m_level){
+    if(level >= m_level){
         std::cout << m_formatter->format(level, logger, event);
     } 
 }
@@ -327,5 +328,24 @@ void LogFormatter::init(){
         // std::cout << "[" << std::get<0>(it) << "]--[" << std::get<1>(it) << "]--" << "[" << std::get<2>(it) << "]" << std::endl;
     }
 }
+
+LoggerManager::LoggerManager(){
+    m_root.reset(new Logger);
+    m_root->addAppender(StdoutLogAppender::ptr (new StdoutLogAppender));
+}
+Logger::ptr LoggerManager::getLogger(const std::string& name){
+    auto it = m_loggers.find(name);
+    return (it == m_loggers.end()) ? m_root : it->second; 
+}
+bool LoggerManager::addLogger (Logger::ptr logger){
+    if(m_loggers.find(logger->getName()) == m_loggers.end()){
+        m_loggers.insert({logger->getName(), logger});
+        return true;
+    }
+    else{
+        return false;
+    }
+}
+
 
 }

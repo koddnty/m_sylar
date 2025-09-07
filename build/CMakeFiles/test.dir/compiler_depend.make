@@ -3,6 +3,7 @@
 
 CMakeFiles/test.dir/tests/test.cc.o: /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test.cc \
   /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/log.h \
+  /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/singleton.h \
   /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/until.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/errno-base.h \
@@ -282,8 +283,6 @@ CMakeFiles/test.dir/tests/test.cc.o: /home/ls20241009/user/code/project/sylar_cp
 
 /usr/include/x86_64-linux-gnu/bits/types/sigset_t.h:
 
-/usr/include/c++/13/ext/concurrence.h:
-
 /usr/include/c++/13/cctype:
 
 /usr/include/c++/13/debug/assertions.h:
@@ -333,10 +332,6 @@ CMakeFiles/test.dir/tests/test.cc.o: /home/ls20241009/user/code/project/sylar_cp
 /usr/include/x86_64-linux-gnu/bits/types/struct_sched_param.h:
 
 /usr/include/asm-generic/errno.h:
-
-/usr/include/c++/13/bits/functexcept.h:
-
-/usr/include/x86_64-linux-gnu/bits/libc-header-start.h:
 
 /usr/include/c++/13/bits/stl_construct.h:
 
@@ -396,10 +391,6 @@ CMakeFiles/test.dir/tests/test.cc.o: /home/ls20241009/user/code/project/sylar_cp
 
 /usr/include/x86_64-linux-gnu/c++/13/bits/os_defines.h:
 
-/usr/include/c++/13/bits/cxxabi_forced.h:
-
-/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test.cc:
-
 /usr/include/c++/13/bits/streambuf_iterator.h:
 
 /usr/include/c++/13/ostream:
@@ -434,12 +425,6 @@ CMakeFiles/test.dir/tests/test.cc.o: /home/ls20241009/user/code/project/sylar_cp
 
 /usr/include/x86_64-linux-gnu/asm/errno.h:
 
-/usr/include/c++/13/ext/numeric_traits.h:
-
-/usr/include/c++/13/bits/stl_iterator.h:
-
-/usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h:
-
 /usr/include/c++/13/bits/locale_facets.h:
 
 /usr/include/c++/13/bits/stl_vector.h:
@@ -460,25 +445,21 @@ CMakeFiles/test.dir/tests/test.cc.o: /home/ls20241009/user/code/project/sylar_cp
 
 /usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h:
 
-/usr/include/c++/13/bits/move.h:
-
-/usr/include/wchar.h:
-
-/usr/include/c++/13/bits/shared_ptr_base.h:
-
-/usr/include/c++/13/bits/basic_ios.h:
-
-/usr/include/x86_64-linux-gnu/bits/time64.h:
-
-/usr/include/x86_64-linux-gnu/bits/long-double.h:
-
-/usr/include/c++/13/bits/algorithmfwd.h:
-
 /usr/include/c++/13/new:
 
 /usr/include/c++/13/bits/alloc_traits.h:
 
 /usr/include/c++/13/bits/concept_check.h:
+
+/usr/include/x86_64-linux-gnu/bits/long-double.h:
+
+/usr/include/c++/13/bits/algorithmfwd.h:
+
+/usr/include/c++/13/bits/cxxabi_forced.h:
+
+/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test.cc:
+
+/usr/include/c++/13/bits/move.h:
 
 /usr/include/c++/13/ios:
 
@@ -492,7 +473,27 @@ CMakeFiles/test.dir/tests/test.cc.o: /home/ls20241009/user/code/project/sylar_cp
 
 /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h:
 
-/usr/include/c++/13/bits/localefwd.h:
+/usr/include/c++/13/bits/functexcept.h:
+
+/usr/include/c++/13/ext/numeric_traits.h:
+
+/usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h:
+
+/usr/include/c++/13/bits/stl_iterator.h:
+
+/usr/include/x86_64-linux-gnu/bits/libc-header-start.h:
+
+/usr/include/wchar.h:
+
+/usr/include/c++/13/bits/shared_ptr_base.h:
+
+/usr/include/c++/13/bits/basic_ios.h:
+
+/usr/include/x86_64-linux-gnu/bits/time64.h:
+
+/usr/include/c++/13/ext/concurrence.h:
+
+/home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/singleton.h:
 
 /usr/include/c++/13/bits/allocated_ptr.h:
 
@@ -508,7 +509,13 @@ CMakeFiles/test.dir/tests/test.cc.o: /home/ls20241009/user/code/project/sylar_cp
 
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/until.h:
 
-/usr/include/c++/13/bits/cxxabi_init_exception.h:
+/usr/include/c++/13/bits/predefined_ops.h:
+
+/usr/include/c++/13/iosfwd:
+
+/usr/include/x86_64-linux-gnu/sys/select.h:
+
+/usr/include/c++/13/cwchar:
 
 /usr/include/c++/13/bits/exception.h:
 
@@ -520,9 +527,9 @@ CMakeFiles/test.dir/tests/test.cc.o: /home/ls20241009/user/code/project/sylar_cp
 
 /usr/include/x86_64-linux-gnu/bits/uintn-identity.h:
 
-/usr/include/c++/13/bits/predefined_ops.h:
+/usr/include/c++/13/bits/cxxabi_init_exception.h:
 
-/usr/include/c++/13/iosfwd:
+/usr/include/c++/13/bits/localefwd.h:
 
 /usr/include/c++/13/bits/basic_ios.tcc:
 
@@ -655,10 +662,6 @@ CMakeFiles/test.dir/tests/test.cc.o: /home/ls20241009/user/code/project/sylar_cp
 /usr/include/stdlib.h:
 
 /usr/include/unistd.h:
-
-/usr/include/c++/13/cwchar:
-
-/usr/include/x86_64-linux-gnu/sys/select.h:
 
 /usr/include/x86_64-linux-gnu/asm/unistd.h:
 

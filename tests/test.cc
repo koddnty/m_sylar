@@ -9,21 +9,30 @@ using namespace m_sylar;
 using namespace std;
 
 int main(void){
-    Logger::ptr logger(new Logger);
-    logger->addAppender(LogAppender::ptr(new StdoutLogAppender));
-    logger->addAppender(LogAppender::ptr(new StdoutLogAppender));
-    // LogEvent::ptr event(new LogEvent(__FILE__, __LINE__, 0, getThreadId(),  2, time(0), logger, LogLevel::DEBUG));
-    // logger->log(LogLevel::DEBUG, event);
-    // logger->format(LogLevel::DEBUG, logger, event);
-    cout << "Hello_m_sylar" << endl;
+    // Logger::ptr logger(new Logger);
+    // logger->addAppender(LogAppender::ptr(new StdoutLogAppender));
+    // logger->addAppender(LogAppender::ptr(new StdoutLogAppender));
+    // LogAppender::ptr file_appender( new FileLogAppender("/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/log.txt"));
+    // file_appender->setFormatter(LogFormatter::ptr( new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T[%p]偶麻辣买啦卡%n")));
+    // file_appender->setLevel(LogLevel::ERROR);
+    // logger->addAppender(file_appender);
+    // cout << "Hello_m_sylar" << endl;
     
-    M_SYLAR_LOG_UNKNOWN(logger) << "我爱中国1";
-    M_SYLAR_LOG_DEGUB(logger) << "我爱中国2";
-    M_SYLAR_LOG_WARN(logger) << "我爱中国3";
-    M_SYLAR_LOG_ERROR(logger) << "我爱中国4";
-    M_SYLAR_LOG_FATAL(logger) << "我爱中国5";
+    // M_SYLAR_LOG_UNKNOWN(logger) << "我爱中国1";
+    // M_SYLAR_LOG_DEGUB(logger) << "我爱中国2";
+    // M_SYLAR_LOG_WARN(logger) << "我爱中国33";
+    // M_SYLAR_LOG_ERROR(logger) << "我爱中国44";
+    // M_SYLAR_LOG_FATAL(logger) << "我爱中国55";
 
-
+    Logger::ptr logger(new Logger("ali"));
+    LogAppender::ptr file_appender( new FileLogAppender("/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/log.txt"));
+    file_appender->setLevel(LogLevel::ERROR);
+    logger->addAppender(file_appender);
+    if(!LoggerMgr::GetInstance()->addLogger(logger)){
+        std::cout << "插入失败" << std::endl;
+    }
+    auto i = LoggerMgr::GetInstance()->getLogger("ali");
+    M_SYLAR_LOG_ERROR(i) << "instance";
 
 
     return 0;

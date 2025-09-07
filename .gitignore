@@ -5,6 +5,7 @@ tags
 ltmain.sh
 *.la
 *.a
+.so
 .deps
 .dirstamp
 .libs

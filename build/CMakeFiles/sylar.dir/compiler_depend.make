@@ -3,6 +3,7 @@
 
 CMakeFiles/sylar.dir/sylar/log.cc.o: /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/log.cc \
   /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/log.h \
+  /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/singleton.h \
   /usr/include/alloca.h \
   /usr/include/asm-generic/errno-base.h \
   /usr/include/asm-generic/errno.h \
@@ -372,10 +373,6 @@ CMakeFiles/sylar.dir/sylar/until.cc.o: /home/ls20241009/user/code/project/sylar_
 
 /usr/include/x86_64-linux-gnu/bits/getopt_core.h:
 
-/usr/include/c++/13/ostream:
-
-/usr/include/c++/13/bits/streambuf_iterator.h:
-
 /usr/include/x86_64-linux-gnu/bits/confname.h:
 
 /usr/include/c++/13/bits/refwrap.h:
@@ -395,8 +392,6 @@ CMakeFiles/sylar.dir/sylar/until.cc.o: /home/ls20241009/user/code/project/sylar_
 /usr/include/c++/13/ext/string_conversions.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/sigset_t.h:
-
-/usr/include/c++/13/ext/concurrence.h:
 
 /usr/include/c++/13/cctype:
 
@@ -452,10 +447,6 @@ CMakeFiles/sylar.dir/sylar/until.cc.o: /home/ls20241009/user/code/project/sylar_
 
 /usr/include/asm-generic/errno.h:
 
-/usr/include/c++/13/bits/functexcept.h:
-
-/usr/include/x86_64-linux-gnu/bits/libc-header-start.h:
-
 /usr/include/c++/13/new:
 
 /usr/include/c++/13/list:
@@ -502,7 +493,19 @@ CMakeFiles/sylar.dir/sylar/until.cc.o: /home/ls20241009/user/code/project/sylar_
 
 /usr/include/c++/13/bits/locale_facets.tcc:
 
-/usr/include/c++/13/bits/cxxabi_forced.h:
+/usr/include/c++/13/bits/range_access.h:
+
+/usr/include/c++/13/compare:
+
+/usr/include/c++/13/system_error:
+
+/usr/include/c++/13/bits/string_view.tcc:
+
+/usr/include/x86_64-linux-gnu/bits/thread-shared-types.h:
+
+/usr/include/c++/13/bits/streambuf_iterator.h:
+
+/usr/include/c++/13/ostream:
 
 /usr/include/c++/13/bits/cpp_type_traits.h:
 
@@ -522,12 +525,6 @@ CMakeFiles/sylar.dir/sylar/until.cc.o: /home/ls20241009/user/code/project/sylar_
 
 /usr/include/x86_64-linux-gnu/asm/errno.h:
 
-/usr/include/c++/13/ext/numeric_traits.h:
-
-/usr/include/c++/13/bits/stl_iterator.h:
-
-/usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h:
-
 /usr/include/c++/13/bits/stl_vector.h:
 
 /usr/include/c++/13/bits/stl_tempbuf.h:
@@ -538,12 +535,6 @@ CMakeFiles/sylar.dir/sylar/until.cc.o: /home/ls20241009/user/code/project/sylar_
 
 /usr/include/c++/13/backward/binders.h:
 
-/usr/include/c++/13/bits/move.h:
-
-/home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/log.h:
-
-/usr/include/c++/13/bits/this_thread_sleep.h:
-
 /usr/include/c++/13/ext/aligned_buffer.h:
 
 /usr/include/locale.h:
@@ -551,6 +542,12 @@ CMakeFiles/sylar.dir/sylar/until.cc.o: /home/ls20241009/user/code/project/sylar_
 /usr/include/c++/13/bits/utility.h:
 
 /usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h:
+
+/usr/include/c++/13/bits/move.h:
+
+/home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/log.h:
+
+/usr/include/c++/13/bits/this_thread_sleep.h:
 
 /usr/include/wchar.h:
 
@@ -580,13 +577,29 @@ CMakeFiles/sylar.dir/sylar/until.cc.o: /home/ls20241009/user/code/project/sylar_
 
 /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h:
 
-/usr/include/c++/13/bits/enable_special_members.h:
+/usr/include/c++/13/bits/functexcept.h:
+
+/usr/include/c++/13/ext/numeric_traits.h:
+
+/usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h:
+
+/usr/include/c++/13/bits/stl_iterator.h:
+
+/usr/include/x86_64-linux-gnu/bits/libc-header-start.h:
+
+/usr/include/c++/13/bits/cxxabi_forced.h:
+
+/usr/include/c++/13/ext/concurrence.h:
+
+/home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/singleton.h:
 
 /usr/include/c++/13/bits/allocated_ptr.h:
 
 /usr/include/c++/13/bit:
 
 /usr/include/c++/13/bits/basic_string.tcc:
+
+/usr/include/c++/13/bits/enable_special_members.h:
 
 /usr/include/alloca.h:
 
@@ -657,16 +670,6 @@ CMakeFiles/sylar.dir/sylar/until.cc.o: /home/ls20241009/user/code/project/sylar_
 /usr/include/c++/13/bits/invoke.h:
 
 /usr/include/c++/13/bits/memoryfwd.h:
-
-/usr/include/c++/13/bits/range_access.h:
-
-/usr/include/c++/13/compare:
-
-/usr/include/c++/13/system_error:
-
-/usr/include/c++/13/bits/string_view.tcc:
-
-/usr/include/x86_64-linux-gnu/bits/thread-shared-types.h:
 
 /usr/include/c++/13/exception:
 

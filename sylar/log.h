@@ -1,5 +1,5 @@
 #pragma once   
-
+#include "singleton.h"
 #include <string>
 #include <vector>
 #include <memory>
@@ -13,7 +13,7 @@
 #define M_SYLAR_LOG_EVENT(logger, level)\
     if(logger->getLevel() <= level) \
         m_sylar::LogEventWrap(m_sylar::LogEvent::ptr(new LogEvent(__FILE__, __LINE__, 0 \
-                    , getThreadId(),  2, time(0), logger, LogLevel::DEBUG))).getSS()
+                    , getThreadId(),  2, time(0), logger, level))).getSS()
 
 #define M_SYLAR_LOG_UNKNOWN(logger) M_SYLAR_LOG_EVENT(logger, LogLevel::UNKNOWN)
 #define M_SYLAR_LOG_DEGUB(logger)   M_SYLAR_LOG_EVENT(logger, LogLevel::DEBUG)
@@ -24,6 +24,7 @@
 
 
 namespace m_sylar{
+
 
 class Logger;
 
@@ -61,6 +62,7 @@ public:
     std::string getContent () const{ return m_ss.str();}
     LogLevel::Level getLevel () const{ return m_level;}
     std::stringstream& getSS () { return m_ss;}
+    // void format();
 private:
     const char* file_name = nullptr;    //日志名
     int32_t m_line = 0;                 //行号
@@ -68,15 +70,16 @@ private:
     uint32_t m_threadID = 0;             //线程id
     uint32_t m_fiberID = 0;              //协程id
     uint64_t m_timer;                    //时间戳
-    std::stringstream m_ss;
-    std::shared_ptr<Logger> m_logger;
-    LogLevel::Level m_level;
+    std::stringstream m_ss;              //日志格式
+    std::shared_ptr<Logger> m_logger;    //所属日志
+    LogLevel::Level m_level;             //日志等级 
 };
 
 class LogEventWrap{
 public:
     LogEventWrap(std::shared_ptr<LogEvent> event);
     ~LogEventWrap();
+    std::shared_ptr<LogEvent> getEvent() const {return m_event;}
     std::stringstream& getSS ();    
 private: 
     std::shared_ptr<LogEvent> m_event;
@@ -119,6 +122,7 @@ public:
     virtual void log(LogLevel::Level level, std::shared_ptr<m_sylar::Logger> logger, LogEvent::ptr event) = 0;
     //formatter管理
     void setFormatter(LogFormatter::ptr val){m_formatter = val;}
+    void setLevel(LogLevel::Level level){ m_level = level;}
     LogFormatter::ptr getFormatter(){return m_formatter;}
 protected:
     LogLevel::Level m_level = LogLevel::UNKNOWN;
@@ -180,5 +184,16 @@ private:
 };
 
 
+class LoggerManager{
+public:
+    LoggerManager();
+    Logger::ptr getLogger (const std::string& name);
+    bool addLogger (Logger::ptr logger);
+private:
+    std::map<std::string, Logger::ptr> m_loggers;
+    Logger::ptr m_root;
+};
+
+typedef m_sylar::Singleton<LoggerManager> LoggerMgr;
 
 }

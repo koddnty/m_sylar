@@ -4,6 +4,7 @@
 CMakeFiles/sylar.dir/sylar/log.cc.o
  /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/log.cc
  /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/log.h
+ /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/singleton.h
  /usr/include/alloca.h
  /usr/include/asm-generic/errno-base.h
  /usr/include/asm-generic/errno.h
