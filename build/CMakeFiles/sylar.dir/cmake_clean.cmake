@@ -3,6 +3,8 @@ file(REMOVE_RECURSE
   "/home/ls20241009/user/code/project/sylar_cp/m_sylar/lib/libsylar.so"
   "CMakeFiles/sylar.dir/sylar/log.cc.o"
   "CMakeFiles/sylar.dir/sylar/log.cc.o.d"
+  "CMakeFiles/sylar.dir/sylar/until.cc.o"
+  "CMakeFiles/sylar.dir/sylar/until.cc.o.d"
 )
 
 # Per-language clean rules from dependency scanning.

@@ -10,6 +10,19 @@
 #include <fstream>
 #include <iostream>
 
+#define M_SYLAR_LOG_EVENT(logger, level)\
+    if(logger->getLevel() <= level) \
+        m_sylar::LogEventWrap(m_sylar::LogEvent::ptr(new LogEvent(__FILE__, __LINE__, 0 \
+                    , getThreadId(),  2, time(0), logger, LogLevel::DEBUG))).getSS()
+
+#define M_SYLAR_LOG_UNKNOWN(logger) M_SYLAR_LOG_EVENT(logger, LogLevel::UNKNOWN)
+#define M_SYLAR_LOG_DEGUB(logger)   M_SYLAR_LOG_EVENT(logger, LogLevel::DEBUG)
+#define M_SYLAR_LOG_INFO(logger) M_SYLAR_LOG_EVENT(logger, LogLevel::INFO)
+#define M_SYLAR_LOG_WARN(logger) M_SYLAR_LOG_EVENT(logger, LogLevel::WARN)
+#define M_SYLAR_LOG_ERROR(logger) M_SYLAR_LOG_EVENT(logger, LogLevel::ERROR)
+#define M_SYLAR_LOG_FATAL(logger) M_SYLAR_LOG_EVENT(logger, LogLevel::FATAL)
+
+
 namespace m_sylar{
 
 class Logger;
@@ -34,7 +47,8 @@ class LogEvent{
 public:
     typedef std::shared_ptr<LogEvent> ptr;
     LogEvent(const char* file, int32_t m_line, uint32_t elapse, uint32_t threadID,
-                uint32_t fiberID, uint64_t timer);
+            uint32_t fiberID, uint64_t timer, std::shared_ptr<Logger> logger, 
+            LogLevel::Level level);
 
     const char* getFileName() const{ return file_name;}
     
@@ -43,7 +57,10 @@ public:
     uint32_t getFiberId() const{ return m_fiberID;}
     uint32_t getElapse() const{ return m_elapse;}
     uint32_t getTimer() const{ return m_timer;}
-    std::string getContent () const{ return m_content;}
+    std::shared_ptr<Logger> getLogger() const{ return m_logger;}
+    std::string getContent () const{ return m_ss.str();}
+    LogLevel::Level getLevel () const{ return m_level;}
+    std::stringstream& getSS () { return m_ss;}
 private:
     const char* file_name = nullptr;    //日志名
     int32_t m_line = 0;                 //行号
@@ -51,9 +68,19 @@ private:
     uint32_t m_threadID = 0;             //线程id
     uint32_t m_fiberID = 0;              //协程id
     uint64_t m_timer;                    //时间戳
-    std::string m_content;
+    std::stringstream m_ss;
+    std::shared_ptr<Logger> m_logger;
+    LogLevel::Level m_level;
 };
 
+class LogEventWrap{
+public:
+    LogEventWrap(std::shared_ptr<LogEvent> event);
+    ~LogEventWrap();
+    std::stringstream& getSS ();    
+private: 
+    std::shared_ptr<LogEvent> m_event;
+};
 
 //日志格式
 class LogFormatter{
@@ -94,7 +121,7 @@ public:
     void setFormatter(LogFormatter::ptr val){m_formatter = val;}
     LogFormatter::ptr getFormatter(){return m_formatter;}
 protected:
-    LogLevel::Level m_level;
+    LogLevel::Level m_level = LogLevel::UNKNOWN;
     LogFormatter::ptr m_formatter;
 
 };

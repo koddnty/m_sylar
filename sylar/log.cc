@@ -4,7 +4,7 @@ namespace m_sylar{
 
 Logger::Logger(const std::string& name){
     m_name = name;
-    m_formatter.reset(new LogFormatter("{%d{%Y:%m:%d} => [%p] %F:%L %m %n %%}"));
+    m_formatter.reset(new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T[%p]%T[%c]%T[thread:%t fiber:%f]%T%F:%L%T%m%n"));
 }
 
 std::string LogLevel::to_string(LogLevel::Level level){
@@ -37,14 +37,28 @@ void Logger::delAppender(LogAppender::ptr appender){
 }
 
 LogEvent::LogEvent(const char* file, int32_t line, uint32_t elapse, 
-    uint32_t threadID, uint32_t fiberID, uint64_t timer)
+    uint32_t threadID, uint32_t fiberID, uint64_t timer, std::shared_ptr<Logger> logger,
+    LogLevel::Level level)
     : file_name(file), m_line(line), m_elapse(elapse),
-      m_threadID(threadID), m_fiberID(fiberID), m_timer(timer){
-                }
+      m_threadID(threadID), m_fiberID(fiberID),
+      m_timer(timer), m_logger(logger), m_level(level){
+}
+
+LogEventWrap::LogEventWrap(std::shared_ptr<LogEvent> event)
+    : m_event(event){
+}
+LogEventWrap::~LogEventWrap(){
+    if(m_event){
+        m_event->getLogger()->log(m_event->getLevel(), m_event);
+    }
+}
+std::stringstream& LogEventWrap::getSS(){
+    return m_event->getSS();
+}
 
 void Logger::log(LogLevel::Level level, LogEvent::ptr event){
     auto self = shared_from_this();
-    if(level > m_level){
+    if(level >= m_level){
         for(auto& it : m_Appenders){
             it->log(level, self , event);
         }
@@ -87,7 +101,6 @@ void StdoutLogAppender::log(LogLevel::Level level, std::shared_ptr<m_sylar::Logg
 
 LogFormatter::LogFormatter(const std::string& pattern)
     : m_pattern(pattern){
-        std::cout << "inin()..." << std::endl;
         init();
 }
 
@@ -173,7 +186,7 @@ class NewLineFormatItem : public LogFormatter::formatterItem{
 public:
     NewLineFormatItem(const std::string& str = ""){}
     void format(std::ostream& os, Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override{
-        os <<std::endl;
+        os << "\n";
     }
 };
 class stringFormatItem : public LogFormatter::formatterItem{
@@ -183,6 +196,15 @@ public:
     }
     void format(std::ostream& os, Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override{
         os << m_str;
+    }
+private: 
+    std::string m_str;
+};
+class TabFormatItem : public LogFormatter::formatterItem{
+public:
+    TabFormatItem(const std::string& str = ""){}
+    void format(std::ostream& os, Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override{
+        os << "\t";
     }
 private: 
     std::string m_str;
@@ -281,7 +303,9 @@ void LogFormatter::init(){
         XX(d, DateTimeFormatItem),          // %d 时间
         XX(F, FilenameFormatItem),          // %F 输出日志消息产生时所在的文件名称
         XX(L, LineFormatItem),              // %L 输出代码中的行号
-        XX(n, stringFormatItem)            // %n 换行
+        XX(n, NewLineFormatItem),           // %n 换行
+        XX(s, stringFormatItem),            // %s 普通字符串
+        XX(T, TabFormatItem)                // %T tab
 #undef XX
     };
     //添加到formatteritems中
@@ -300,7 +324,7 @@ void LogFormatter::init(){
                 m_items.push_back(itemType->second(std::get<1>(it)));
             }
         }
-        std::cout << "[" << std::get<0>(it) << "]--[" << std::get<1>(it) << "]--" << "[" << std::get<2>(it) << "]" << std::endl;
+        // std::cout << "[" << std::get<0>(it) << "]--[" << std::get<1>(it) << "]--" << "[" << std::get<2>(it) << "]" << std::endl;
     }
 }
 
