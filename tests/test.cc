@@ -25,12 +25,10 @@ int main(void){
     // M_SYLAR_LOG_FATAL(logger) << "我爱中国55";
 
     Logger::ptr logger(new Logger("ali"));
-    LogAppender::ptr file_appender( new FileLogAppender("/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/log.txt"));
+    LogAppender::ptr file_appender( new FileLogAppender("./log.txt"));
     file_appender->setLevel(LogLevel::ERROR);
     logger->addAppender(file_appender);
-    if(!LoggerMgr::GetInstance()->addLogger(logger)){
-        std::cout << "插入失败" << std::endl;
-    }
+    LoggerMgr::GetInstance()->addLogger(logger);
     auto i = LoggerMgr::GetInstance()->getLogger("ali");
     M_SYLAR_LOG_ERROR(i) << "instance";
 
