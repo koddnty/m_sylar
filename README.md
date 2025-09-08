@@ -7,7 +7,12 @@ sylar视频地址:[[C++高级教程]从零开始开发服务器框架(sylar)](ht
 
 ## 日志系统
 
-#### 日志实现
+### 日志功能
+
+实现全局规范化日志管理，便于问题定位。
+通过为`logger`添加`event`来使用`logger`中的所有`appender`输出`formatter`中定义好的日志格式到`appender`对应的文件。
+
+### 日志实现
 
 - 1 . 流式日志风格  
 - 2 . 日志格式自定义
@@ -17,7 +22,7 @@ sylar视频地址:[[C++高级教程]从零开始开发服务器框架(sylar)](ht
 
 [日志结构思维导图（.drawio）](docs/log_moudle)
 
-#### 使用方法
+### 使用方法
 
 ```cpp
     // file_appender->setFormatter(LogFormatter::ptr( new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T[%p]%n")));可以设置formatter的pattern日志输出格式

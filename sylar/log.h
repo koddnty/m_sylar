@@ -12,16 +12,17 @@
 
 #define M_SYLAR_LOG_EVENT(logger, level)\
     if(logger->getLevel() <= level) \
-        m_sylar::LogEventWrap(m_sylar::LogEvent::ptr(new LogEvent(__FILE__, __LINE__, 0 \
-                    , getThreadId(),  2, time(0), logger, level))).getSS()
+        m_sylar::LogEventWrap(m_sylar::LogEvent::ptr(new m_sylar::LogEvent(__FILE__, __LINE__, 0 \
+                    , m_sylar::getThreadId(),  2, time(0), logger, level))).getSS()
+                    
+#define M_SYLAR_LOG_UNKNOWN(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::UNKNOWN)
+#define M_SYLAR_LOG_DEGUB(logger)   M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::DEBUG)
+#define M_SYLAR_LOG_INFO(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::INFO)
+#define M_SYLAR_LOG_WARN(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::WARN)
+#define M_SYLAR_LOG_ERROR(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::ERROR)
+#define M_SYLAR_LOG_FATAL(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::FATAL)
 
-#define M_SYLAR_LOG_UNKNOWN(logger) M_SYLAR_LOG_EVENT(logger, LogLevel::UNKNOWN)
-#define M_SYLAR_LOG_DEGUB(logger)   M_SYLAR_LOG_EVENT(logger, LogLevel::DEBUG)
-#define M_SYLAR_LOG_INFO(logger) M_SYLAR_LOG_EVENT(logger, LogLevel::INFO)
-#define M_SYLAR_LOG_WARN(logger) M_SYLAR_LOG_EVENT(logger, LogLevel::WARN)
-#define M_SYLAR_LOG_ERROR(logger) M_SYLAR_LOG_EVENT(logger, LogLevel::ERROR)
-#define M_SYLAR_LOG_FATAL(logger) M_SYLAR_LOG_EVENT(logger, LogLevel::FATAL)
-
+#define M_SYLAR_GET_LOGGER_ROOT() m_sylar::LoggerMgr::GetInstance()->getRootLogger()
 
 namespace m_sylar{
 
@@ -188,6 +189,7 @@ class LoggerManager{
 public:
     LoggerManager();
     Logger::ptr getLogger (const std::string& name);
+    Logger::ptr getRootLogger () const {return m_root;}
     bool addLogger (Logger::ptr logger);
 private:
     std::map<std::string, Logger::ptr> m_loggers;
