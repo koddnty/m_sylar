@@ -69,6 +69,7 @@ CMAKE_BINARY_DIR = /home/ls20241009/user/code/project/sylar_cp/m_sylar/build
 all: CMakeFiles/sylar.dir/all
 all: CMakeFiles/test.dir/all
 all: CMakeFiles/test_conf.dir/all
+all: CMakeFiles/test_yaml.dir/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
@@ -79,6 +80,7 @@ preinstall:
 clean: CMakeFiles/sylar.dir/clean
 clean: CMakeFiles/test.dir/clean
 clean: CMakeFiles/test_conf.dir/clean
+clean: CMakeFiles/test_yaml.dir/clean
 .PHONY : clean
 
 #=============================================================================
@@ -158,6 +160,32 @@ test_conf: CMakeFiles/test_conf.dir/rule
 CMakeFiles/test_conf.dir/clean:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_conf.dir/build.make CMakeFiles/test_conf.dir/clean
 .PHONY : CMakeFiles/test_conf.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/test_yaml.dir
+
+# All Build rule for target.
+CMakeFiles/test_yaml.dir/all: CMakeFiles/sylar.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_yaml.dir/build.make CMakeFiles/test_yaml.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_yaml.dir/build.make CMakeFiles/test_yaml.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles --progress-num=9,10 "Built target test_yaml"
+.PHONY : CMakeFiles/test_yaml.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/test_yaml.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles 6
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_yaml.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles 0
+.PHONY : CMakeFiles/test_yaml.dir/rule
+
+# Convenience name for target.
+test_yaml: CMakeFiles/test_yaml.dir/rule
+.PHONY : test_yaml
+
+# clean rule for target.
+CMakeFiles/test_yaml.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_yaml.dir/build.make CMakeFiles/test_yaml.dir/clean
+.PHONY : CMakeFiles/test_yaml.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

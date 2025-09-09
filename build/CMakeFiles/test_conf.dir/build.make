@@ -96,6 +96,7 @@ test_conf_EXTERNAL_OBJECTS =
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_conf: CMakeFiles/test_conf.dir/tests/test_config.cc.o
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_conf: CMakeFiles/test_conf.dir/build.make
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_conf: /home/ls20241009/user/code/project/sylar_cp/m_sylar/lib/libsylar.so
+/home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_conf: /usr/local/lib/libyaml-cpp.a
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_conf: CMakeFiles/test_conf.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable /home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_conf"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/test_conf.dir/link.txt --verbose=$(VERBOSE)

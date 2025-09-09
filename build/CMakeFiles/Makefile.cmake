@@ -11,6 +11,10 @@ set(CMAKE_MAKEFILE_DEPENDS
   "CMakeFiles/3.28.3/CMakeCCompiler.cmake"
   "CMakeFiles/3.28.3/CMakeCXXCompiler.cmake"
   "CMakeFiles/3.28.3/CMakeSystem.cmake"
+  "/usr/local/lib/cmake/yaml-cpp/yaml-cpp-config-version.cmake"
+  "/usr/local/lib/cmake/yaml-cpp/yaml-cpp-config.cmake"
+  "/usr/local/lib/cmake/yaml-cpp/yaml-cpp-targets-noconfig.cmake"
+  "/usr/local/lib/cmake/yaml-cpp/yaml-cpp-targets.cmake"
   "/usr/share/cmake-3.28/Modules/CMakeCInformation.cmake"
   "/usr/share/cmake-3.28/Modules/CMakeCXXInformation.cmake"
   "/usr/share/cmake-3.28/Modules/CMakeCommonLanguageInclude.cmake"
@@ -47,4 +51,5 @@ set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/sylar.dir/DependInfo.cmake"
   "CMakeFiles/test.dir/DependInfo.cmake"
   "CMakeFiles/test_conf.dir/DependInfo.cmake"
+  "CMakeFiles/test_yaml.dir/DependInfo.cmake"
   )

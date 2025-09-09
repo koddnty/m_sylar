@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = -Dsylar_EXPORTS
 
-CXX_INCLUDES = 
+CXX_INCLUDES = -I/home/ls20241009/user/code/project/sylar_cp/m_sylar/.
 
 CXX_FLAGS =  -rdynamic  -fPIC -ggdb -std=c++17 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fPIC
 
