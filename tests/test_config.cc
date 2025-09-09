@@ -5,8 +5,8 @@
 
 
 
-m_sylar::ConfigVar<int>::ptr server_port =
-    m_sylar::configManager::Lookup("port", (int)8080, "system port");
+m_sylar::ConfigVar<int>::ptr system_port =
+    m_sylar::configManager::Lookup("system.port", (int)8080, "system port");
 
 void print_yaml(const YAML::Node& node, int level){
     if(node.IsScalar()){
@@ -39,11 +39,22 @@ void test_yaml() {
     print_yaml(root, 0);
 }
 
-int main(void){
-    M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << server_port->getValue() << std::endl;
-    M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << server_port->toString() << std::endl;
+void test_config() {
+    M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "y" << system_port->getValue() << std::endl;
+    M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "y" << system_port->toString() << std::endl;
 
-    test_yaml();
+    YAML::Node root = YAML::LoadFile("/home/ls20241009/user/code/project/sylar_cp/m_sylar/conf/log.yaml");
+    m_sylar::configManager::LoadFromYaml(root);
+
+    M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "o" << system_port->getValue() << std::endl;
+    M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "o" << system_port->toString() << std::endl;
+
+}
+
+int main(void){
+    
+    // test_yaml();
+    test_config();
 
     return 0;   
 }

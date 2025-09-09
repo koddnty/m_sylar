@@ -13,3 +13,7 @@ logs:
       - type: FileLogAppender
         file: log.txt
       - type: StdoutLogAppender
+  
+system:
+  port: 9090
+  value: 15

@@ -1,12 +1,12 @@
 #pragma once
 
 #include <boost/lexical_cast.hpp>
+#include <iostream>
+#include <yaml-cpp/yaml.h>
 #include "log.h"
 #include "singleton.h"
 #include "config.h"
-#include <iostream>
 #include "until.h"
-
 
 namespace m_sylar{
 
@@ -49,8 +49,8 @@ public:
         try{
             m_val = boost::lexical_cast<T> (val);
         } catch (std::exception& e){
-            {M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "ConfigVar::toString"
-                << e.what() << "convert : from string to" << typeid(m_val).name();}
+            M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "ConfigVar::toString"
+                << e.what() << "convert : from string to" << typeid(m_val).name();
         }
         return false;
     }
@@ -84,7 +84,7 @@ public:
             M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name=" << name;
             return tempVal;
         }
-        if(std::string::npos != name.find_first_not_of("qwertyuiopasdfghjklzxcvbnm1234567890._QWERTYUIOPASDFGHJKLZXCVBNM")){
+        if(std::string::npos != name.find_first_not_of("qwertyuiopasdfghjklzxcvbnm1234567890._")){
             M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name invalid " << name;
             throw std::invalid_argument(name);
         }
@@ -92,6 +92,10 @@ public:
         s_datas[name] = v;
         return v;
     }
+
+    static void LoadFromYaml(const YAML::Node& root);
+
+    static ConfigVarBase::ptr LookupBase(const std::string& name);
 private:
     static configValMap s_datas;
 };
