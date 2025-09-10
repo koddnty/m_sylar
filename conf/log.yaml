@@ -17,3 +17,8 @@ logs:
 system:
   port: 9090
   value: 15
+  int_vec1: [10, 20, 30]
+  int_vec: 
+    - 10
+    - 20
+    - 40
