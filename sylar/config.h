@@ -7,6 +7,11 @@
 #include "singleton.h"
 #include "config.h"
 #include "until.h"
+#include <map>
+#include <set>
+#include <unordered_set>
+#include <unordered_map>
+#include <list>
 
 namespace m_sylar{
 
@@ -36,6 +41,7 @@ public:
         return boost::lexical_cast<T>(v);
     }
 };
+
 //vec的偏特化
 template<typename T>
 class LexicalCast<std::string, std::vector<T>>{
@@ -62,6 +68,147 @@ public:
         return ss.str();
     }
 };
+
+//list的偏特化
+template<typename T>
+class LexicalCast<std::string, std::list<T>>{
+public:
+    std::list<T> operator() (const std::string& v){
+        YAML::Node node =  YAML::Load(v);
+        std::list<T> vec; 
+        for(const auto& it : node){
+            vec.push_back(LexicalCast<std::string , T>() (it.Scalar()));
+        }
+        return vec;
+    }
+};
+template<typename T>
+class LexicalCast<std::list<T>, std::string>{
+public:
+    std::string operator() (const std::list<T>& v){
+        YAML::Node node;
+        for(auto& it : v){
+            node.push_back(YAML::Node (LexicalCast<T, std::string>()(it)));
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+
+//set的偏特化
+template<typename T>
+class LexicalCast<std::string, std::set<T>>{
+public:
+    std::set<T> operator() (const std::string& v){
+        YAML::Node node =  YAML::Load(v);
+        std::set<T> vec; 
+        for(const auto& it : node){
+            vec.insert(LexicalCast<std::string , T>() (it.Scalar()));
+        }
+        return vec;
+    }
+};
+template<typename T>
+class LexicalCast<std::set<T>, std::string>{
+public:
+    std::string operator() (const std::set<T>& v){
+        YAML::Node node;
+        for(auto& it : v){
+            node.push_back(YAML::Node (LexicalCast<T, std::string>()(it)));
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+
+//unordered_set的偏特化
+template<typename T>
+class LexicalCast<std::string, std::unordered_set<T>>{
+public:
+    std::unordered_set<T> operator() (const std::string& v){
+        YAML::Node node =  YAML::Load(v);
+        std::unordered_set<T> vec; 
+        for(const auto& it : node){
+            vec.insert(LexicalCast<std::string , T>() (it.Scalar()));
+        }
+        return vec;
+    }
+};
+template<typename T>
+class LexicalCast<std::unordered_set<T>, std::string>{
+public:
+    std::string operator() (const std::unordered_set<T>& v){
+        YAML::Node node;
+        for(auto& it : v){
+            node.push_back(YAML::Node (LexicalCast<T, std::string>()(it)));
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+
+//map的偏特化
+template< typename T>
+class LexicalCast<std::string, std::map<std::string, T>>{
+public:
+    std::map<std::string, T> operator() (const std::string& v){
+        YAML::Node node =  YAML::Load(v);
+        std::map<std::string, T> map; 
+        for(const auto& it : node){
+            map.insert(std::make_pair (it.first.Scalar(), LexicalCast<std::string, T>()(it.second.Scalar())));
+        }
+        return map;
+    }
+};
+template<typename T>
+class LexicalCast<std::map<std::string, T>, std::string>{
+public:
+    std::string operator() (const std::map<std::string, T> & v){
+        YAML::Node node;
+        for(auto& it : v){
+            node[it.first] = YAML::Node (LexicalCast<T, std::string>()(it.second));
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+
+//unordered_map的偏特化
+template< typename T>
+class LexicalCast<std::string, std::unordered_map<std::string, T>>{
+public:
+    std::unordered_map<std::string, T> operator() (const std::string& v){
+        YAML::Node node =  YAML::Load(v);
+        std::unordered_map<std::string, T> map; 
+        for(const auto& it : node){
+            map.insert(std::make_pair (it.first.Scalar(), LexicalCast<std::string, T>()(it.second.Scalar())));
+        }
+        return map;
+    }
+};
+template<typename T>
+class LexicalCast<std::unordered_map<std::string, T>, std::string>{
+public:
+    std::string operator() (const std::unordered_map<std::string, T> & v){
+        YAML::Node node;
+        for(auto& it : v){
+            node[it.first] = YAML::Node (LexicalCast<T, std::string>()(it.second));
+        }
+        std::stringstream ss;
+        ss << node;
+        return ss.str();
+    }
+};
+
+
+
+
+
+
 
 template<typename T , class FromStr = LexicalCast<std::string, T> 
         , class ToStr = LexicalCast<T, std::string> >

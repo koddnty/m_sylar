@@ -10,6 +10,16 @@ m_sylar::ConfigVar<int>::ptr system_port =
 
 m_sylar::ConfigVar<std::vector<int>>::ptr system_int_vec =
     m_sylar::configManager::Lookup("system.int_vec", std::vector<int> {1, 2}, "system port");
+m_sylar::ConfigVar<std::list<int>>::ptr system_int_list =
+    m_sylar::configManager::Lookup("system.int_list", std::list<int> {1, 2}, "system port");
+m_sylar::ConfigVar<std::set<int>>::ptr system_int_set =
+    m_sylar::configManager::Lookup("system.int_set", std::set<int> {1, 2}, "system port");
+m_sylar::ConfigVar<std::unordered_set<int>>::ptr system_int_unordered_set =
+    m_sylar::configManager::Lookup("system.int_unordered_set", std::unordered_set<int> {1, 2}, "system port");
+m_sylar::ConfigVar<std::map<std::string, int>>::ptr system_int_map =
+    m_sylar::configManager::Lookup("system.int_map", std::map<std::string, int> {{"kkxx", 2}, {"ggbb", 666}}, "system port");
+m_sylar::ConfigVar<std::unordered_map<std::string, int>>::ptr system_int_unordered_map =
+    m_sylar::configManager::Lookup("system.int_unordered_map", std::unordered_map<std::string, int> {{"unkkxx", 2}, {"unggbb", 666}}, "system port");
 void print_yaml(const YAML::Node& node, int level){
     if(node.IsScalar()){
         std::cout << node.Scalar();
@@ -43,20 +53,51 @@ void test_yaml() {
 }
 
 void test_config() {
-    M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "y" << system_port->getValue();
-    M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "y" << system_port->toString();
 
+#define XX(g_var, name, prefix) \
+    {   \
+        auto& v = g_var->getValue(); \
+        for(auto& it : v){  \
+            M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << #prefix "  " #name << it; \
+        }   \
+    }   
+
+#define XX_MAP(g_var, name, prefix) \
+    {   \
+        auto& v = g_var->getValue(); \
+        for(auto& it : v){  \
+            M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << #prefix "  " #name << " <===>  key   " << it.first << " |||| value " << it.second; \
+        }   \
+    }   
+
+
+    XX(system_int_vec, vec_int, before);
+    XX(system_int_list, list_int, before);
+    // XX(system_int_set, set_int, before);
+    XX(system_int_unordered_set, unordered_set_int, before);
+    XX_MAP(system_int_map, int_map, before);
+    XX_MAP(system_int_unordered_map, unordered_map, before);
+
+    std::cout << "1" << std::endl; 
     YAML::Node root = YAML::LoadFile("/home/ls20241009/user/code/project/sylar_cp/m_sylar/conf/log.yaml");
+    std::cout << "1" << std::endl; 
     m_sylar::configManager::LoadFromYaml(root);
+    std::cout << "1" << std::endl; 
 
-    M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "o" << system_port->getValue();
-    M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "o" << system_port->toString();
+    XX(system_int_vec, vec_int, after);
+    XX(system_int_list, list_int, after);
+    // XX(system_int_set, set_int, after);
+    XX(system_int_unordered_set, unordered_set_int, after);
+    XX_MAP(system_int_map, int_map, after);
+    XX_MAP(system_int_unordered_map, unordered_map, after);
+
+    // M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "after system_int_set" << system_int_set->toString();
 
 
-    auto& v = system_int_vec->getValue();
-    for(auto& it : v){
-        M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << it;
-    }
+    // auto& v = system_int_vec->getValue();
+    // for(auto& it : v){
+    //     M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << it;
+    // }
 }
 
 int main(void){

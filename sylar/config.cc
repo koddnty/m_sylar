@@ -15,7 +15,7 @@ static void ListAllMember(const std::string& prefix, const YAML::Node& node,
         M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "Config invalid prefix" << prefix << ":" << node; 
         return ;
     }
-    std::cout << prefix << " <==> "<< node << std::endl;
+    // std::cout << prefix << " <==> "<< node << std::endl;
     output.push_back({prefix, node});
     if(node.IsMap()){
         for(auto& it : node){
@@ -52,7 +52,6 @@ void configManager::LoadFromYaml(const YAML::Node& root){
                 var->fromString(ss.str());
             }
         }
-
     }
 } 
 
