@@ -19,12 +19,14 @@ static void ListAllMember(const std::string& prefix, const YAML::Node& node,
     output.push_back({prefix, node});
     if(node.IsMap()){
         for(auto& it : node){
+            // std::cout << "checkout : " << (prefix.empty() ? it.first.Scalar() : prefix + "." + it.first.Scalar() ) << std::endl;
             ListAllMember(prefix.empty() ? it.first.Scalar() : prefix + "." + it.first.Scalar() , it.second, output);
         }
     }
     else if(node.IsSequence()){
         for(size_t i = 0; i < node.size(); i++){
             if(node[i].IsMap()){
+                // std::cout << "checkout : " << (prefix.empty() ? std::to_string(i) : prefix + "." + std::to_string(i))   << std::endl;
                 ListAllMember(prefix.empty() ? std::to_string(i) : prefix + "." + std::to_string(i) , node[i], output);
             }
         }

@@ -253,6 +253,7 @@ public:
     using ptr = std::shared_ptr<configManager>;
     using configValMap = std::map<std::string, std::shared_ptr<ConfigVarBase>>;
 
+    //获取当前名字为name的configVar
     template<class T>
     static typename ConfigVar<T>::ptr Lookup(const std::string& name){
         auto it = s_datas.find(name);
@@ -264,9 +265,22 @@ public:
         }
     }
 
+    // 添加新的configVar
     template<class T>
     static typename ConfigVar<T>::ptr Lookup(const std::string& name
                     , const T& defaultValue, const std::string& description){
+        auto it = s_datas.find(name);
+        if(it != s_datas.end()){
+            auto temp = std::dynamic_pointer_cast<ConfigVar<T>>(it->second);
+            if(temp){
+                M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name=" << name << " exists";
+                return temp;
+            }
+            else{
+                M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name=" << name << "exists but with an unconvertible type";
+                return temp;
+            }
+        }
         auto tempVal = Lookup<T>(name);
         if(tempVal){
             M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name=" << name;
@@ -283,6 +297,11 @@ public:
     static void LoadFromYaml(const YAML::Node& root);
 
     static ConfigVarBase::ptr LookupBase(const std::string& name);
+    static void Print_all_conf(){
+        for(auto& it : s_datas){
+            std::cout << it.first << ">>>" << (it.second)->toString() << std::endl;
+        }        
+    }
 private:
     static configValMap s_datas;
 };
