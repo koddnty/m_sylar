@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <list>
+#include <functional>
 
 namespace m_sylar{
 
@@ -215,10 +216,10 @@ template<typename T , class FromStr = LexicalCast<std::string, T>
 class ConfigVar : public ConfigVarBase {
 public:
     using ptr = std::shared_ptr<ConfigVar>;
+    using on_change_cb = std::function<void (const T& old_val, const T& new_val)>;
     
     ConfigVar (const std::string& name, const std::string& description, const T& default_value)
             : ConfigVarBase(name, description), m_val(default_value){
-
     }
             
     std::string toString() override {
@@ -243,9 +244,41 @@ public:
     }
     
     const T getValue () const {return m_val;}
-    const T setValue (const T& v) {return m_val = v; }
+    const T setValue (const T& v) {
+        if(v == m_val){
+            return v;
+        }
+        for(const auto& f_it : m_cbs){
+            f_it.second(m_val, v);
+        }
+        m_val = v; 
+        return v;
+    }
+
+    //添加监听函数
+    void addListener(uint64_t key, on_change_cb cb){
+        m_cbs[key] = cb;
+    }
+    //删除监听函数
+    void delListener(uint64_t key){
+        m_cbs.erase(key);
+    }
+    //获取监听函数
+    on_change_cb getListener(uint64_t key){
+        const auto& it = m_cbs.find(key);
+        if(it == m_cbs.end()){
+            return nullptr;
+        }
+        else{
+            return it.second;
+        }
+    }
+
 private:
     T m_val;
+    // 变更回调函数 key = uint64_t(唯一hash) on_change_cb回调函数 
+    std::map<uint64_t, on_change_cb> m_cbs;
+
 };
 
 class configManager{

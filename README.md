@@ -1,6 +1,7 @@
 # m_sylar:c++协程库
 
-sylar项目地址:https://github.com/sylar-yin/sylar
+sylar项目地址:[sylar服务器框架原地址](https://github.com/sylar-yin/sylar)
+
 sylar视频地址:[[C++高级教程]从零开始开发服务器框架(sylar)](https://www.bilibili.com/video/BV184411s7qF)
 
 ---
@@ -53,6 +54,44 @@ LogFormatter创建时自定义pattern日志格式支持的格式
     // %T tab
 ```
 
+## config配置模块
 
+模块添加了对各种数据的配置支持如基本变量,STL部分如`list`,`vector`,`unordered_set`,`set`,`unordered_map`,`map`的支持。并支持了yaml的日志导入功能。
 
+- 1 .yaml格式配置导入  
 
+``` cpp
+    YAML::Node root = YAML::LoadFile("<</pathToConfig/*.yaml>>");
+    m_sylar::configManager::LoadFromYaml(root);
+```
+
+- 2 .yaml配置命名规则
+
+导入的配置名示例:
+
+``` yaml
+    logs:           //logs
+    - name: root            //logs.0
+        level: info
+        formatter: "%d%T%m%n"
+        appender:                   //logs.0.appender
+        - type: FileLogAppender             //logs.0.appender.1
+            file: log.txt                   //logs.0.appender.1.file
+        - type: StdoutLogAppender
+```
+
+对应的file配置名则为 `logs.0.appender.0.file`
+
+- 3 .日志变更监听回调功能
+
+支持对日志项的配置变更回调函数
+
+``` cpp
+    m_sylar::ConfigVar<std::string>::ptr test =
+        m_sylar::configManager::Lookup("logs.0.appender.0.file", std::string("HelloWorld"), "system port");
+    test->addListener(10, [test](const std::string& old_val, const std::string& new_val){
+        M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "reload [" << test->getName() << "] from [" << old_val << "] to [" << new_val << "]";
+    });
+```
+
+调用addListener添加变更回调函数,日志改变会自动执行对应函数
