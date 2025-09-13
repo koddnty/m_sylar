@@ -1,4 +1,6 @@
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles/sylar.dir
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles/test.dir
+/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles/test_conf.dir
+/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles/test_yaml.dir
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles/edit_cache.dir
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles/rebuild_cache.dir

@@ -224,6 +224,9 @@ m_sylar_IS_TOP_LEVEL:STATIC=ON
 //Value Computed by CMake
 m_sylar_SOURCE_DIR:STATIC=/home/ls20241009/user/code/project/sylar_cp/m_sylar
 
+//The directory containing a CMake configuration file for yaml-cpp.
+yaml-cpp_DIR:PATH=/usr/local/lib/cmake/yaml-cpp
+
 
 ########################
 # INTERNAL cache entries
