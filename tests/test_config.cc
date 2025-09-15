@@ -48,7 +48,7 @@ void print_yaml(const YAML::Node& node, int level){
 }
 
 void test_yaml() {
-    YAML::Node root = YAML::LoadFile("/home/ls20241009/user/code/project/sylar_cp/m_sylar/conf/log.yaml");
+    YAML::Node root = YAML::LoadFile("/home/ls20241009/user/code/project/sylar_cp/m_sylar/conf/basic.yaml");
     M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "root hello";
 
     
@@ -87,7 +87,7 @@ void test_yaml() {
 //     std::cout << "1" << std::endl; 
 //     std::cout << system_port->getValue() << "before" << std::endl;
 //     std::cout << system_port2->getValue() << "before" << std::endl;
-//     YAML::Node root = YAML::LoadFile("/home/ls20241009/user/code/project/sylar_cp/m_sylar/conf/log.yaml");
+//     YAML::Node root = YAML::LoadFile("/home/ls20241009/user/code/project/sylar_cp/m_sylar/conf/basic.yaml");
 
 //     std::cout << "1" << std::endl; 
 //     m_sylar::configManager::LoadFromYaml(root);
@@ -133,7 +133,7 @@ void test_class(){
         M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "reload [" << test->getName() << "] from [" << old_val << "] to [" << new_val << "]";
     });
     std::cout << test->getValue() << "  before" << std::endl;
-    YAML::Node root = YAML::LoadFile("/home/ls20241009/user/code/project/sylar_cp/m_sylar/conf/log.yaml");
+    YAML::Node root = YAML::LoadFile("/home/ls20241009/user/code/project/sylar_cp/m_sylar/conf/basic.yaml");
     m_sylar::configManager::LoadFromYaml(root);
     std::cout << test->getValue() << "  after" << std::endl;
     m_sylar::configManager::Print_all_conf();

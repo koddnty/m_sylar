@@ -59,9 +59,16 @@ std::stringstream& LogEventWrap::getSS(){
 void Logger::log(LogLevel::Level level, LogEvent::ptr event){
     auto self = shared_from_this();
     if(level >= m_level){
-        for(auto& it : m_Appenders){
-            it->log(level, self , event);
+        if(!m_Appenders.empty()){
+            for(auto& it : m_Appenders){
+                it->log(level, self , event);
+            }
         }
+        else if(m_root){
+            std::cout << "使用默认m_root" << std::endl;
+            m_root->log(level, event);
+        }
+
     }
 }
 void Logger::debug(LogLevel::Level level, LogEvent::ptr event){
@@ -91,12 +98,22 @@ bool FileLogAppender::reopen(){
 }
 void FileLogAppender::log(LogLevel::Level level, std::shared_ptr<m_sylar::Logger> logger, LogEvent::ptr event){
     if(level >= m_level){
-        m_file_stream << m_formatter->format(level, logger, event);
-    } 
+        if(m_formatter){
+            m_file_stream << m_formatter->format(level, logger, event);
+        }
+        else{
+            m_file_stream << logger->m_formatter->format(level, logger, event);
+        }
+    }
 }
 void StdoutLogAppender::log(LogLevel::Level level, std::shared_ptr<m_sylar::Logger> logger, LogEvent::ptr event){
     if(level >= m_level){
-        std::cout << m_formatter->format(level, logger, event);
+        if(m_formatter){
+            std::cout << m_formatter->format(level, logger, event);
+        }
+        else{
+            std::cout << logger->m_formatter->format(level, logger, event);
+        }
     } 
 }
 
@@ -141,7 +158,7 @@ class NameFormatItem : public LogFormatter::formatterItem{
 public:
     NameFormatItem(const std::string& str = ""){}
     void format(std::ostream& os, Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override{
-        os << logger->getName();
+        os << event->getLogger()->getName();
     }
 };
 class threadFormatItem : public LogFormatter::formatterItem{
@@ -336,6 +353,15 @@ LoggerManager::LoggerManager(){
 Logger::ptr LoggerManager::getLogger(const std::string& name){
     auto it = m_loggers.find(name);
     return (it == m_loggers.end()) ? m_root : it->second; 
+    if(it != m_loggers.end()){
+        return it->second;
+    }
+
+    Logger::ptr logger (new Logger(name));
+    std::cout << "供默认logger" << std::endl;
+    logger->m_root = m_root;        // 提供默认logger
+    m_loggers[name] = logger;
+    return logger;
 }
 bool LoggerManager::addLogger (Logger::ptr logger){
     if(m_loggers.find(logger->getName()) == m_loggers.end()){

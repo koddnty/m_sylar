@@ -23,11 +23,16 @@
 #define M_SYLAR_LOG_FATAL(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::FATAL)
 
 #define M_SYLAR_GET_LOGGER_ROOT() m_sylar::LoggerMgr::GetInstance()->getRootLogger()
+#define M_SYLAR_LOG_NAME(name) m_sylar::LoggerManager::GetInstance()->getLogger(name)
+
 
 namespace m_sylar{
 
 
 class Logger;
+class LoggerManager;
+class StdoutLogAppender;
+class FileLogAppender;
 
 class LogLevel{
 public:
@@ -106,7 +111,7 @@ public:
         virtual void format(std::ostream& os, std::shared_ptr<Logger> logger, LogLevel::Level level , LogEvent::ptr event) = 0; 
     };
 private:
-    std::string m_pattern;
+    std::string m_pattern;                  //日志格式
     std::vector<formatterItem::ptr> m_items;
     bool m_error = false;
 };
@@ -127,13 +132,16 @@ public:
     LogFormatter::ptr getFormatter(){return m_formatter;}
 protected:
     LogLevel::Level m_level = LogLevel::UNKNOWN;
-    LogFormatter::ptr m_formatter;
+    LogFormatter::ptr m_formatter = nullptr;
 
 };
 
 
 //日志输出
 class Logger : public std::enable_shared_from_this<Logger>{
+friend class LoggerManager;
+friend class StdoutLogAppender;
+friend class FileLogAppender;
 public:
     using ptr = std::shared_ptr<Logger>;
 
@@ -156,10 +164,11 @@ public:
 
     std::string getName() const {return m_name;}
 private:
-    std::string m_name;
-    LogLevel::Level m_level;
-    std::list<LogAppender::ptr> m_Appenders;
-    LogFormatter::ptr m_formatter;
+    std::string m_name;                         // 日志名
+    LogLevel::Level m_level;                    // 日志级别
+    std::list<LogAppender::ptr> m_Appenders;    // 输出方法
+    LogFormatter::ptr m_formatter;              // 输出格式  
+    Logger::ptr m_root;                         // root输出结构
 };
 
 //控制台日志
@@ -180,7 +189,7 @@ public:
     //文件打开函数，成功返回true
     bool reopen();
 private:
-    std::string  m_file_name;       //文件名
+    std::string  m_file_name;        //文件名
     std::ofstream m_file_stream;     //文件流
 };
 
@@ -189,11 +198,12 @@ class LoggerManager{
 public:
     LoggerManager();
     Logger::ptr getLogger (const std::string& name);
+
     Logger::ptr getRootLogger () const {return m_root;}
     bool addLogger (Logger::ptr logger);
 private:
     std::map<std::string, Logger::ptr> m_loggers;
-    Logger::ptr m_root;
+    Logger::ptr m_root;             // 初始默认logger,有初始的StdoutAppender，formatter为默认值
 };
 
 typedef m_sylar::Singleton<LoggerManager> LoggerMgr;
