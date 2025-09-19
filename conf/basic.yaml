@@ -1,18 +1,33 @@
 logs:
-  - name: root
-    level: info
-    formatter: "%d%T%m%n"
-    appender:
+  - name: config
+    level: DEBUG
+    formatter: " logger 默认格式 %d%T%m%n"
+    appenders:
       - type: FileLogAppender
-        file: log.txt
+        file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/log.txt
+        level : DEBUG
+      - type: FileLogAppender
+        file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/log2.txt
+        level : DEBUG
       - type: StdoutLogAppender
+        formatter : "testFormatter : [appender 自定义 %d%T%m%n   ]"
+        level : INFO
+      # - type: StdoutLogAppender
+      #   formatter : "testFormatter : [appender 自定义 %d%T%m%n   ]"
+      #   level : DEBUG
+      # - type: StdoutLogAppender
+      #   formatter : "testFormatter : [appender 自定义 %d%T%m%n   ]"
+      #   level : ERROR
   - name: system
-    level: debug
-    formatter: "%d%T%m%n"
-    appender:
+    level: DEBUG
+    formatter: " system 默认格式 %d%T%m%n"
+    appenders:
       - type: FileLogAppender
-        file: log.txt
-      - type: StdoutLogAppender
+        file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/log.txt
+        level: INFO 
+  #     - type: StdoutLogAppender
+  #       level: ERROR
+
   
 
 system:

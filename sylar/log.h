@@ -5,6 +5,7 @@
 #include <memory>
 #include <list>
 #include <map>
+#include <set>
 #include <functional>
 #include <sstream>
 #include <fstream>
@@ -23,7 +24,7 @@
 #define M_SYLAR_LOG_FATAL(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::FATAL)
 
 #define M_SYLAR_GET_LOGGER_ROOT() m_sylar::LoggerMgr::GetInstance()->getRootLogger()
-#define M_SYLAR_LOG_NAME(name) m_sylar::LoggerManager::GetInstance()->getLogger(name)
+#define M_SYLAR_LOG_NAME(name) m_sylar::LoggerMgr::GetInstance()->getLogger(name)
 
 
 namespace m_sylar{
@@ -47,6 +48,7 @@ public:
     };
 
     static std::string to_string(LogLevel::Level level);
+    static LogLevel::Level Level_FromString(const std::string& level_str);
 };
 
 //日志事件
@@ -70,15 +72,15 @@ public:
     std::stringstream& getSS () { return m_ss;}
     // void format();
 private:
-    const char* file_name = nullptr;    //日志名
-    int32_t m_line = 0;                 //行号
-    uint32_t m_elapse = 0;               //程序启动时间（ms）
-    uint32_t m_threadID = 0;             //线程id
-    uint32_t m_fiberID = 0;              //协程id
-    uint64_t m_timer;                    //时间戳
-    std::stringstream m_ss;              //日志格式
-    std::shared_ptr<Logger> m_logger;    //所属日志
-    LogLevel::Level m_level;             //日志等级 
+    const char* file_name = nullptr;     // 日志名
+    int32_t m_line = 0;                  // 行号
+    uint32_t m_elapse = 0;               // 程序启动时间（ms）
+    uint32_t m_threadID = 0;             // 线程id
+    uint32_t m_fiberID = 0;              // 协程id
+    uint64_t m_timer;                    // 时间戳
+    std::stringstream m_ss;              // 日志格式
+    std::shared_ptr<Logger> m_logger;    // 所属日志
+    LogLevel::Level m_level;             // 日志等级 
 };
 
 class LogEventWrap{
@@ -99,7 +101,8 @@ public:
     LogFormatter(const std::string& pattern);
 
     std::string format(LogLevel::Level level,  std::shared_ptr<Logger> logger, LogEvent::ptr event);
-
+    std::string getPattern() {return m_pattern;}
+    bool isError() {return m_error; }
 public:
     void init();            //初始化解析日志格式            
     //格式items
@@ -131,8 +134,8 @@ public:
     void setLevel(LogLevel::Level level){ m_level = level;}
     LogFormatter::ptr getFormatter(){return m_formatter;}
 protected:
-    LogLevel::Level m_level = LogLevel::UNKNOWN;
-    LogFormatter::ptr m_formatter = nullptr;
+    LogLevel::Level m_level = LogLevel::UNKNOWN;        // appender独有日志级别
+    LogFormatter::ptr m_formatter = nullptr;            // appender独有输出格式
 
 };
 
@@ -147,7 +150,7 @@ public:
 
     Logger(const std::string& name = "root");
 
-    void log(LogLevel::Level level, LogEvent::ptr event);
+    void log(LogLevel::Level level, LogEvent::ptr event);           // 使用类内的logger级别和event来输出级别低于level的日志
 
     //日志输出
     void debug(LogLevel::Level level, LogEvent::ptr event);
@@ -158,16 +161,24 @@ public:
 
     void addAppender(LogAppender::ptr appender);            //添加appender
     void delAppender(LogAppender::ptr appender);            //删除appender
+    void clearAppenders();            //清除appender
+
+    // void to_define(LogDefine& define);
 
     LogLevel::Level getLevel() const{return m_level;}
     void setLevel(LogLevel::Level val) {m_level = val;}
 
     std::string getName() const {return m_name;}
+
+    // 重设formatter
+    void setFormatter(LogFormatter::ptr formatter) {m_formatter = formatter;}
+    void setFormatter(const std::string& pattern);
+    LogFormatter::ptr getFormatter() {return m_formatter;}
 private:
     std::string m_name;                         // 日志名
-    LogLevel::Level m_level;                    // 日志级别
+    LogLevel::Level m_level;                    // 日志输出最高级别
     std::list<LogAppender::ptr> m_Appenders;    // 输出方法
-    LogFormatter::ptr m_formatter;              // 输出格式  
+    LogFormatter::ptr m_formatter;              // 日志默认输出格式  
     Logger::ptr m_root;                         // root输出结构
 };
 
@@ -196,11 +207,12 @@ private:
 
 class LoggerManager{
 public:
+    void init () ;
     LoggerManager();
-    Logger::ptr getLogger (const std::string& name);
+    Logger::ptr getLogger (const std::string& name);            // 获取一个名为 name 的 logger, 若不存在则会创建(并加入manager)一个新的logger
 
-    Logger::ptr getRootLogger () const {return m_root;}
-    bool addLogger (Logger::ptr logger);
+    Logger::ptr getRootLogger () const {return m_root;}         // 获取root logger(默认logger)
+    bool addLogger (Logger::ptr logger);                        // 添加logger(日志器)
 private:
     std::map<std::string, Logger::ptr> m_loggers;
     Logger::ptr m_root;             // 初始默认logger,有初始的StdoutAppender，formatter为默认值

@@ -35,6 +35,7 @@ protected:
 
 };
 
+// 模板函数用来做数据的类型转换
 template<typename F, typename T>
 class LexicalCast{
 public:
@@ -208,9 +209,7 @@ public:
 
 
 
-
-
-
+//一个配置量
 template<typename T , class FromStr = LexicalCast<std::string, T> 
         , class ToStr = LexicalCast<T, std::string> >
 class ConfigVar : public ConfigVarBase {
@@ -289,21 +288,21 @@ public:
     //获取当前名字为name的configVar
     template<class T>
     static typename ConfigVar<T>::ptr Lookup(const std::string& name){
-        auto it = s_datas.find(name);
-        if(it == s_datas.end()){
+        auto it = Get_Datas().find(name);
+        if(it == Get_Datas().end()){
             return nullptr;
         }
         else{
             return std::dynamic_pointer_cast<ConfigVar<T> > (it->second);
         }
     }
-
+    
     // 添加新的configVar
     template<class T>
     static typename ConfigVar<T>::ptr Lookup(const std::string& name
                     , const T& defaultValue, const std::string& description){
-        auto it = s_datas.find(name);
-        if(it != s_datas.end()){
+        auto it = Get_Datas().find(name);
+        if(it != Get_Datas().end()){
             auto temp = std::dynamic_pointer_cast<ConfigVar<T>>(it->second);
             if(temp){
                 M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name=" << name << " exists";
@@ -324,19 +323,23 @@ public:
             throw std::invalid_argument(name);
         }
         typename ConfigVar<T>::ptr v(new ConfigVar<T>(name, description, defaultValue));
-        s_datas[name] = v;
+        Get_Datas()[name] = v;
         return v;
     }
     static void LoadFromYaml(const YAML::Node& root);
 
     static ConfigVarBase::ptr LookupBase(const std::string& name);
     static void Print_all_conf(){
-        for(auto& it : s_datas){
+        for(auto& it : Get_Datas()){
             std::cout << it.first << ">>>" << (it.second)->toString() << std::endl;
         }        
     }
 private:
-    static configValMap s_datas;
+    // 使用静态函数返回静态成员变量，避免静态变量初始化顺序问题
+    static configValMap& Get_Datas(){
+        static configValMap s_datas;
+        return s_datas;
+    }
 };
 
 

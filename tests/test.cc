@@ -31,7 +31,9 @@ int main(void){
     LoggerMgr::GetInstance()->addLogger(logger);
     auto i = LoggerMgr::GetInstance()->getLogger("ali");
     M_SYLAR_LOG_ERROR(i) << "instance";
-
+    M_SYLAR_LOG_ERROR(i) << "instance";
+    M_SYLAR_LOG_ERROR(i) << "instance";
+    M_SYLAR_LOG_ERROR(i) << "instance";
     // Logger::ptr logger2(new Logger("alii"));
     // LogAppender::ptr file_appender( new FileLogAppender("./log.txt"));
     // file_appender->setLevel(LogLevel::ERROR);
@@ -39,6 +41,7 @@ int main(void){
     // LoggerMgr::GetInstance()->addLogger(logger2);
     i = LoggerMgr::GetInstance()->getLogger("alii");
     M_SYLAR_LOG_ERROR(i) << "instance222";
-
+    i = LoggerMgr::GetInstance()->getLogger("alii");
+    M_SYLAR_LOG_ERROR(i) << "instance222";
     return 0;
 }

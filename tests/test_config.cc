@@ -139,12 +139,49 @@ void test_class(){
     m_sylar::configManager::Print_all_conf();
 }
 
+void test_config_log () {
+    // Logger::ptr logger(new Logger("ali"));
+    // LogAppender::ptr file_appender( new FileLogAppender("./log.txt"));
+    // file_appender->setLevel(LogLevel::ERROR);
+    // logger->addAppender(file_appender);
+    // LoggerMgr::GetInstance()->addLogger(logger);
+    // auto i = LoggerMgr::GetInstance()->getLogger("ali");
+    // M_SYLAR_LOG_ERROR(i) << "instance";
+    // M_SYLAR_LOG_ERROR(i) << "instance";
+    // M_SYLAR_LOG_ERROR(i) << "instance";
+    // M_SYLAR_LOG_ERROR(i) << "instance";
+    // i = LoggerMgr::GetInstance()->getLogger("alii");
+    // M_SYLAR_LOG_ERROR(i) << "instance222";
+    // i = LoggerMgr::GetInstance()->getLogger("alii");
+    // M_SYLAR_LOG_ERROR(i) << "instance222";
+
+    // auto i = m_sylar::LoggerMgr::GetInstance()->getLogger("config");
+    // auto i2 = m_sylar::LoggerMgr::GetInstance()->getLogger("system");
+    // M_SYLAR_LOG_ERROR(i) << "instance1";
+    // M_SYLAR_LOG_ERROR(i2) << "system1";
+    YAML::Node loadYaml = YAML::LoadFile("/home/ls20241009/user/code/project/sylar_cp/m_sylar/conf/basic.yaml");
+    // auto i = m_sylar::LoggerMgr::GetInstance()->getLogger("config");
+    // auto i2 = m_sylar::LoggerMgr::GetInstance()->getLogger("system");
+    m_sylar::configManager::LoadFromYaml(loadYaml);
+    std::cout << "准备打印" << std::endl;
+    auto i = m_sylar::LoggerMgr::GetInstance()->getLogger("config");
+    // auto i2 = m_sylar::LoggerMgr::GetInstance()->getLogger("system");
+    // m_sylar::configManager::LoadFromYaml(loadYaml);
+    M_SYLAR_LOG_ERROR(i) << "instance2_error";
+    M_SYLAR_LOG_DEGUB(i) << "instance2_debug";
+    // M_SYLAR_LOG_DEGUB(i2) << "system2_debug";
+    m_sylar::configManager::Print_all_conf();
+
+}
+
 int main(void){
     
     // test_yaml();
     // test_config();
-    std::cout << "11" << std::endl;
-    test_class();
+    // std::cout << "11" << std::endl;
+    // test_class();
     std::cout << "111" << std::endl;
+    test_config_log ();
+
     return 0;   
 }

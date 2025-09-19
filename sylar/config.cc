@@ -1,17 +1,17 @@
 #include "config.h"
 
 namespace m_sylar{
-configManager::configValMap configManager::s_datas;
+configManager::configValMap Get_Datas();
 
 
 ConfigVarBase::ptr configManager::LookupBase(const std::string& name){
-    auto it = s_datas.find(name);
-    return it == s_datas.end() ? nullptr : it->second;
+    auto it = Get_Datas().find(name);
+    return it == Get_Datas().end() ? nullptr : it->second;
 }
 
 // 获取yaml所有节点输入到output
 static void ListAllMember(const std::string& prefix, const YAML::Node& node,
-        std::list<std::pair<std::string , const YAML::Node> >& output){
+    std::list<std::pair<std::string , const YAML::Node> >& output){
     if(std::string::npos != prefix.find_first_not_of("qwertyuiopasdfghjklzxcvbnm._0123456789")){
         M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "Config invalid prefix" << prefix << ":" << node; 
         return ;
