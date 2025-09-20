@@ -35,6 +35,7 @@ sylar视频地址:[[C++高级教程]从零开始开发服务器框架(sylar)](ht
     LoggerMgr::GetInstance()->addLogger(logger);     \\将logger添加到全局manager
     auto i = LoggerMgr::GetInstance()->getLogger("ali");    \\获取名为ali的logger
     M_SYLAR_LOG_ERROR(i) << "instance";             \\流式输出日志
+    // 输出日志级别要同时大于logger级别和appender的级别
 ```
 
 LogFormatter创建时自定义pattern日志格式支持的格式

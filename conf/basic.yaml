@@ -3,15 +3,15 @@ logs:
     level: DEBUG
     formatter: " logger 默认格式 %d%T%m%n"
     appenders:
-      - type: FileLogAppender
-        file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/log.txt
-        level : DEBUG
-      - type: FileLogAppender
-        file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/log2.txt
-        level : DEBUG
+      # - type: FileLogAppender
+      #   file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/log.txt
+      #   level : DEBUG
+      # - type: FileLogAppender
+      #   file: /home/ls20241009/user/code/proj ect/sylar_cp/m_sylar/build/log2.txt
+      #   level : DEBUG
       - type: StdoutLogAppender
         formatter : "testFormatter : [appender 自定义 %d%T%m%n   ]"
-        level : INFO
+        level : DEBUG
       # - type: StdoutLogAppender
       #   formatter : "testFormatter : [appender 自定义 %d%T%m%n   ]"
       #   level : DEBUG

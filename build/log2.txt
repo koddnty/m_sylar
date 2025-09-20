@@ -1,2 +1,0 @@
- logger 默认格式 1758288883	instance2_error
- logger 默认格式 1758288883	instance2_debug
