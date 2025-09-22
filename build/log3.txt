@@ -1,8 +1,8 @@
-1758356139	[INFO]	[system]	[thread:10320 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc:180	M_SYLAR_LOG_INFO
-1758356139	[WARN]	[system]	[thread:10320 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc:181	M_SYLAR_LOG_WARN
-1758356139	[ERROR]	[system]	[thread:10320 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc:182	M_SYLAR_LOG_ERROR
-1758356139	[FATAL]	[system]	[thread:10320 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc:183	M_SYLAR_LOG_FATAL
-system 默认格式 1758356139	M_SYLAR_LOG_INFO
-system 默认格式 1758356139	M_SYLAR_LOG_WARN
-system 默认格式 1758356139	M_SYLAR_LOG_ERROR
-system 默认格式 1758356139	M_SYLAR_LOG_FATAL
+1758358217	[INFO]	[system]	[thread:12207 fiber:2]	compiler_depend.ts:180	M_SYLAR_LOG_INFO
+1758358217	[WARN]	[system]	[thread:12207 fiber:2]	compiler_depend.ts:181	M_SYLAR_LOG_WARN
+1758358217	[ERROR]	[system]	[thread:12207 fiber:2]	compiler_depend.ts:182	M_SYLAR_LOG_ERROR
+1758358217	[FATAL]	[system]	[thread:12207 fiber:2]	compiler_depend.ts:183	M_SYLAR_LOG_FATAL
+system 默认格式 1758358217	M_SYLAR_LOG_INFO
+system 默认格式 1758358217	M_SYLAR_LOG_WARN
+system 默认格式 1758358217	M_SYLAR_LOG_ERROR
+system 默认格式 1758358217	M_SYLAR_LOG_FATAL

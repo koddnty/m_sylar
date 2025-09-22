@@ -43,9 +43,9 @@ LogLevel::Level Level_FromString(const std::string& level_str){
 
 
 void Logger::addAppender(LogAppender::ptr appender){
-    if(!appender->getFormatter()){
-        appender->setFormatter(m_formatter);
-    }
+    // if(!appender->getFormatter()){
+    //     appender->setFormatter(m_formatter);
+    // }
     m_Appenders.push_back(appender);
 }
 void Logger::delAppender(LogAppender::ptr appender){
@@ -558,6 +558,9 @@ struct LogIniter
                     // std::cout << "logger->setLevel(it.level)  " << LogLevel::to_string(it.level) << std::endl;
                     if(it.formatter){
                         logger->setFormatter(it.formatter);
+                    }
+                    else{
+
                     }
                     // std::cout << "it.appenders.size() = " << it.appenders.size() << std::endl;
                     for(auto& appender : it.appenders){
