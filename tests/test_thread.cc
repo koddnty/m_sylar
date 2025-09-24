@@ -7,7 +7,6 @@
 m_sylar::Logger::ptr g_logger = M_SYLAR_GET_LOGGER_ROOT();
 
 void func1(){
-    
     M_SYLAR_LOG_INFO(g_logger) << " func1 开始"
          << "  name =  "  << m_sylar::Thread::getName()
          << " id: " << m_sylar::getThreadId()

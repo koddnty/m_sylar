@@ -23,9 +23,9 @@ public:
     void join();                                    // 等待线程执行结束 
     static void* run (void* args);                  // 运行线程函数
     
-    static Thread* getThis();                       // 获取当前线程的
-    static const std::string& getName();            //获取当前线程名称
-    static void setName(std::string& name );        // 设置线程名称
+    static Thread* getThis();                       // 获取当前线程的控制类
+    static const std::string& getName();            // 获取当前线程名称
+    static void setName(const std::string& name );        // 设置线程名称
 
 
 

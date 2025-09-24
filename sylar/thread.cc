@@ -16,7 +16,7 @@ Thread* Thread::getThis(){
 const std::string& Thread::getName(){
     return t_thread_name;
 }
-void Thread::setName(std::string& name){
+void Thread::setName(const std::string& name){
     if(t_thread){
         t_thread->setName(name);
     }
@@ -27,7 +27,6 @@ void Thread::setName(std::string& name){
 Thread::Thread(std::function<void()> cb, const std::string& name = "UNKNOWN"){
     m_cb = cb;
     m_name = name;
-    t_thread_name = name;
     int rt = pthread_create(&m_thread, nullptr, &Thread::run, this);
     if(rt){
         M_SYLAR_LOG_ERROR(g_logger) << "pthread_create failed"
@@ -58,6 +57,7 @@ void Thread::join(){
 void* Thread::run(void* args){
     Thread* thread = (Thread*) args;
     t_thread = thread;
+    t_thread_name = thread->m_name;
     thread->m_id = m_sylar::getThreadId();
     pthread_setname_np (pthread_self(), thread->m_name.substr(0, 15).c_str());          // 为线程命名
     std::function<void()> cb;
