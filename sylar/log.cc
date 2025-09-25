@@ -46,12 +46,15 @@ void Logger::addAppender(LogAppender::ptr appender){
     // if(!appender->getFormatter()){
     //     appender->setFormatter(m_formatter);
     // }
+    std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
     m_Appenders.push_back(appender);
 }
 void Logger::delAppender(LogAppender::ptr appender){
+    std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
     m_Appenders.remove(appender);
 }
 void Logger::clearAppenders(){
+    std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
     m_Appenders.clear();
 }
 
@@ -84,24 +87,24 @@ void Logger::log(LogLevel::Level level, LogEvent::ptr event){
             }
         }
         else if(m_root){
-            // std::cout << "使用默认m_root" << std::endl;
+            std::cout << "没有appender,使用m_root" << std::endl;
             m_root->log(level, event);
         }
-
     }
 }
-void Logger::debug(LogLevel::Level level, LogEvent::ptr event){
-}
-void Logger::info(LogLevel::Level level, LogEvent::ptr event){
-}
-void Logger::warn(LogLevel::Level level, LogEvent::ptr event){
-}
-void Logger::error(LogLevel::Level level, LogEvent::ptr event){
-}
-void Logger::fatal(LogLevel::Level level, LogEvent::ptr event){
-}
+// void Logger::debug(LogLevel::Level level, LogEvent::ptr event){
+// }
+// void Logger::info(LogLevel::Level level, LogEvent::ptr event){
+// }
+// void Logger::warn(LogLevel::Level level, LogEvent::ptr event){
+// }
+// void Logger::error(LogLevel::Level level, LogEvent::ptr event){
+// }
+// void Logger::fatal(LogLevel::Level level, LogEvent::ptr event){
+// }
 
 void Logger::setFormatter(const std::string& pattern) {
+    std::unique_lock<std::shared_mutex> w_lock (m_rwMutex); 
     LogFormatter::ptr new_formatter(new LogFormatter(pattern));
     if(m_formatter->isError()){
         std::cout << "Logger LogFormatter name=" << m_name 
@@ -124,6 +127,7 @@ bool FileLogAppender::reopen(){
     return !!m_file_stream;
 }
 void FileLogAppender::log(LogLevel::Level level, std::shared_ptr<m_sylar::Logger> logger, LogEvent::ptr event){
+    std::shared_lock<std::shared_mutex> r_lock (m_rwMutex);
     if(level >= m_level){
         if(m_formatter){
             m_file_stream << m_formatter->format(level, logger, event);
@@ -134,6 +138,7 @@ void FileLogAppender::log(LogLevel::Level level, std::shared_ptr<m_sylar::Logger
     }
 }
 void StdoutLogAppender::log(LogLevel::Level level, std::shared_ptr<m_sylar::Logger> logger, LogEvent::ptr event){
+    std::shared_lock<std::shared_mutex> r_lock (m_rwMutex);
     if(level >= m_level){
         if(m_formatter){
             std::cout << m_formatter->format(level, logger, event);
@@ -146,10 +151,12 @@ void StdoutLogAppender::log(LogLevel::Level level, std::shared_ptr<m_sylar::Logg
 
 LogFormatter::LogFormatter(const std::string& pattern)
     : m_pattern(pattern){
+        std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
         init();
 }
 
 std::string LogFormatter::format(LogLevel::Level level , std::shared_ptr<Logger> logger, LogEvent::ptr event){
+    std::shared_lock<std::shared_mutex> r_lock (m_rwMutex);
     std::stringstream ss;
     for(auto& i : m_items){
         i->format(ss, logger, level, event);
@@ -378,19 +385,35 @@ LoggerManager::LoggerManager(){
     m_root->addAppender(StdoutLogAppender::ptr (new StdoutLogAppender));
 }
 Logger::ptr LoggerManager::getLogger(const std::string& name){
-    auto it = m_loggers.find(name);
-    // return (it == m_loggers.end()) ? m_root : it->second; 
-    if(it != m_loggers.end()){
-        return it->second;
+    {    
+        std::unique_lock<std::shared_mutex> ulock(m_rwMutex);             
+        const auto& it = m_loggers.find(name);
+        // std::cout << "naem = " << name  << std::endl;
+        // for(auto& it : m_loggers){
+        //     std::cout << "m_loggers = " << it.first  << std::endl;
+        // }
+        // return (it == m_loggers.end()) ? m_root : it->second; 
+        if(it != m_loggers.end()){
+            return it->second;
+        }
     }
-
-    Logger::ptr logger (new Logger(name));
-    std::cout << "供默认logger" << std::endl;
-    logger->m_root = m_root;        // 提供默认logger
-    m_loggers[name] = logger;       // 添加到manager
-    return logger;
+    {
+        std::lock_guard<std::shared_mutex> guard(m_rwMutex);            
+        // 检查数据
+        const auto& it = m_loggers.find(name);
+        if(it != m_loggers.end()){
+            return it->second;
+        } 
+        Logger::ptr logger (new Logger(name));
+        std::cout << "供默认logger" << std::endl;
+        // task ： 增添define。
+        logger->m_root = m_root;        // 提供默认logger
+        m_loggers[name] = logger;       // 添加到manager
+        return logger;
+    }
 }
 bool LoggerManager::addLogger (Logger::ptr logger){
+    std::lock_guard<std::shared_mutex> guard(m_rwMutex);             
     if(m_loggers.find(logger->getName()) == m_loggers.end()){
         m_loggers.insert({logger->getName(), logger});
         return true;
@@ -552,7 +575,7 @@ struct LogIniter
                 auto jt = old_val.find(it);
                 if(jt == old_val.end()){
                     //添加
-                    // std::cout << "添加" << std::endl;
+                    std::cout << "添加" << std::endl;
                     Logger::ptr logger(new Logger(it.name));
                     logger->setLevel(it.level);
                     // std::cout << "logger->setLevel(it.level)  " << LogLevel::to_string(it.level) << std::endl;
@@ -567,11 +590,11 @@ struct LogIniter
                         LogAppender::ptr appender_cast;
                         // 设置appender类型
                         if(appender.type == 0){
-                            // std::cout << "StdoutLogAppender" << std::endl;
+                            std::cout << "StdoutLogAppender" << std::endl;
                             appender_cast.reset(new StdoutLogAppender());
                         }
                         else if(appender.type == 1){
-                            // std::cout << "FileLogAppender" << std::endl;
+                            std::cout << "FileLogAppender " << "appender.file : " << appender.file << std::endl;
                             appender_cast.reset(new FileLogAppender(appender.file));
                         }
                         // 设置appender 自定义formatter
@@ -586,23 +609,24 @@ struct LogIniter
                     LoggerMgr::GetInstance()->addLogger(logger);        // 添加日志到manager
                 }
                 else if(!(*jt == it)){
-                    // std::cout  << "new_val  " << it.name << std::endl;
-                    //修改
-                    // std::cout << "修改" << std::endl;
+                    std::cout  << "new_val  " << it.name << std::endl;
+                    // 修改
+                    std::cout << "修改" << std::endl;
                     Logger::ptr logger = M_SYLAR_LOG_NAME(it.name);
                     logger->setLevel(it.level);
                     // std::cout << "logger->setLevel(it.level)  " << LogLevel::to_string(it.level) << std::endl;
                     if(it.formatter){
                         logger->setFormatter(it.formatter);
                     }
+                    logger->clearAppenders();
                     for(auto& appender : it.appenders){
                         LogAppender::ptr appender_cast;
                         if(appender.type == 0){
-                            // std::cout << "StdoutLogAppender" << std::endl;
+                            std::cout << "StdoutLogAppender" << std::endl;
                             appender_cast.reset(new StdoutLogAppender());
                         }
                         else if(appender.type == 1){
-                            // std::cout << "FileLogAppender" << std::endl;
+                            std::cout << "FileLogAppender " << "appender.file : " << appender.file << std::endl;
                             appender_cast.reset(new FileLogAppender(appender.file));
                         }
                         // 设置appender 自定义formatter
@@ -616,7 +640,6 @@ struct LogIniter
 
                     }
                 }
-
             } 
             for (auto& it : old_val){
                 const auto& jt = new_val.find(it);

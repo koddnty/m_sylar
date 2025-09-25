@@ -164,15 +164,15 @@ void test_config_log () {
     // auto i2 = m_sylar::LoggerMgr::GetInstance()->getLogger("system");
     m_sylar::configManager::LoadFromYaml(loadYaml);
     std::cout << "准备打印" << std::endl;
-    auto i = m_sylar::LoggerMgr::GetInstance()->getLogger("config");
-    auto i2 = m_sylar::LoggerMgr::GetInstance()->getLogger("system");
+    // auto i = m_sylar::LoggerMgr::GetInstance()->getLogger("config");
+    auto i2 = m_sylar::LoggerMgr::GetInstance()->getLogger("system2");
     // m_sylar::configManager::LoadFromYaml(loadYaml);
-    M_SYLAR_LOG_UNKNOWN(i) << "M_SYLAR_LOG_UNKNOWN";
-    M_SYLAR_LOG_DEGUB(i) << "M_SYLAR_LOG_DEGUB";
-    M_SYLAR_LOG_INFO(i) << "M_SYLAR_LOG_INFO";
-    M_SYLAR_LOG_WARN(i) << "M_SYLAR_LOG_WARN";
-    M_SYLAR_LOG_ERROR(i) << "M_SYLAR_LOG_ERROR";
-    M_SYLAR_LOG_FATAL(i) << "M_SYLAR_LOG_FATAL";
+    // M_SYLAR_LOG_UNKNOWN(i) << "M_SYLAR_LOG_UNKNOWN";
+    // M_SYLAR_LOG_DEGUB(i)   << "M_SYLAR_LOG_DEGUB";
+    // M_SYLAR_LOG_INFO(i)    << "M_SYLAR_LOG_INFO";
+    // M_SYLAR_LOG_WARN(i)    << "M_SYLAR_LOG_WARN";
+    // M_SYLAR_LOG_ERROR(i)   << "M_SYLAR_LOG_ERROR";
+    // M_SYLAR_LOG_FATAL(i)   << "M_SYLAR_LOG_FATAL";
 
 
     M_SYLAR_LOG_UNKNOWN(i2) << "M_SYLAR_LOG_UNKNOWN";
@@ -182,13 +182,15 @@ void test_config_log () {
     M_SYLAR_LOG_ERROR(i2) << "M_SYLAR_LOG_ERROR";
     M_SYLAR_LOG_FATAL(i2) << "M_SYLAR_LOG_FATAL";
 
-    i2->setFormatter("system 默认格式 %d%T%m%n");
-    M_SYLAR_LOG_UNKNOWN(i2) << "M_SYLAR_LOG_UNKNOWN";
-    M_SYLAR_LOG_DEGUB(i2) << "M_SYLAR_LOG_DEGUB";
-    M_SYLAR_LOG_INFO(i2) << "M_SYLAR_LOG_INFO";
-    M_SYLAR_LOG_WARN(i2) << "M_SYLAR_LOG_WARN";
-    M_SYLAR_LOG_ERROR(i2) << "M_SYLAR_LOG_ERROR";
-    M_SYLAR_LOG_FATAL(i2) << "M_SYLAR_LOG_FATAL";
+    // i2->setFormatter("system 默认格式 %d%T%m%n");
+    // M_SYLAR_LOG_UNKNOWN(i2) << "M_SYLAR_LOG_UNKNOWN";
+    // M_SYLAR_LOG_DEGUB(i2) << "M_SYLAR_LOG_DEGUB";
+    // M_SYLAR_LOG_INFO(i2) << "M_SYLAR_LOG_INFO";
+    // M_SYLAR_LOG_WARN(i2) << "M_SYLAR_LOG_WARN";
+    // M_SYLAR_LOG_ERROR(i2) << "M_SYLAR_LOG_ERROR";
+    // M_SYLAR_LOG_FATAL(i2) << "M_SYLAR_LOG_FATAL";
+
+    
     // M_SYLAR_LOG_DEGUB(i2) << "system2_debug";
     // m_sylar::configManager::Print_all_conf();
 

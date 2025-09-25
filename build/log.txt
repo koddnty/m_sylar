@@ -1,4 +1,0 @@
-1758358217	[INFO]	[config]	[thread:12207 fiber:2]	compiler_depend.ts:172	M_SYLAR_LOG_INFO
-1758358217	[WARN]	[config]	[thread:12207 fiber:2]	compiler_depend.ts:173	M_SYLAR_LOG_WARN
-1758358217	[ERROR]	[config]	[thread:12207 fiber:2]	compiler_depend.ts:174	M_SYLAR_LOG_ERROR
-1758358217	[FATAL]	[config]	[thread:12207 fiber:2]	compiler_depend.ts:175	M_SYLAR_LOG_FATAL

@@ -1,0 +1,5 @@
+1758811146	[INFO]	[system2]	[thread:15785 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc:180	M_SYLAR_LOG_INFO
+1758811146	[WARN]	[system2]	[thread:15785 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc:181	M_SYLAR_LOG_WARN
+1758811146	[ERROR]	[system2]	[thread:15785 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc:182	M_SYLAR_LOG_ERROR
+1758811146	[FATAL]	[system2]	[thread:15785 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc:183	M_SYLAR_LOG_FATAL
+1758811146	[FATAL]	[system2]	[thread:15785 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc:183	M_SYLAR_LOG_FATAL

@@ -1,4 +1,4 @@
-#pragma once   
+#pragma once
 #include "singleton.h"
 #include <string>
 #include <vector>
@@ -10,12 +10,14 @@
 #include <sstream>
 #include <fstream>
 #include <iostream>
+#include <mutex>
+#include <shared_mutex>
 
 #define M_SYLAR_LOG_EVENT(logger, level)\
     if(logger->getLevel() <= level) \
         m_sylar::LogEventWrap(m_sylar::LogEvent::ptr(new m_sylar::LogEvent(__FILE__, __LINE__, 0 \
                     , m_sylar::getThreadId(),  2, time(0), logger, level))).getSS()
-                    
+
 #define M_SYLAR_LOG_UNKNOWN(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::UNKNOWN)
 #define M_SYLAR_LOG_DEGUB(logger)   M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::DEBUG)
 #define M_SYLAR_LOG_INFO(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::INFO)
@@ -56,11 +58,11 @@ class LogEvent{
 public:
     typedef std::shared_ptr<LogEvent> ptr;
     LogEvent(const char* file, int32_t m_line, uint32_t elapse, uint32_t threadID,
-            uint32_t fiberID, uint64_t timer, std::shared_ptr<Logger> logger, 
+            uint32_t fiberID, uint64_t timer, std::shared_ptr<Logger> logger,
             LogLevel::Level level);
 
     const char* getFileName() const{ return file_name;}
-    
+
     int32_t getLine() const{ return m_line;}
     uint32_t getThreadId() const{ return m_threadID;}
     uint32_t getFiberId() const{ return m_fiberID;}
@@ -80,7 +82,7 @@ private:
     uint64_t m_timer;                    // 时间戳
     std::stringstream m_ss;              // 日志格式
     std::shared_ptr<Logger> m_logger;    // 所属日志
-    LogLevel::Level m_level;             // 日志等级 
+    LogLevel::Level m_level;             // 日志等级
 };
 
 class LogEventWrap{
@@ -88,8 +90,8 @@ public:
     LogEventWrap(std::shared_ptr<LogEvent> event);
     ~LogEventWrap();
     std::shared_ptr<LogEvent> getEvent() const {return m_event;}
-    std::stringstream& getSS ();    
-private: 
+    std::stringstream& getSS ();
+private:
     std::shared_ptr<LogEvent> m_event;
 };
 
@@ -101,19 +103,20 @@ public:
     LogFormatter(const std::string& pattern);
 
     std::string format(LogLevel::Level level,  std::shared_ptr<Logger> logger, LogEvent::ptr event);
-    std::string getPattern() {return m_pattern;}
-    bool isError() {return m_error; }
+    std::string getPattern() {std::shared_lock<std::shared_mutex> r_lock (m_rwMutex); return m_pattern;}
+    bool isError() {std::shared_lock<std::shared_mutex> r_lock (m_rwMutex); return m_error;}
 public:
-    void init();            //初始化解析日志格式            
+    void init();            //初始化解析日志格式
     //格式items
     class formatterItem{
     public:
         formatterItem(const std::string& format = "") {}
         using ptr = std::shared_ptr<formatterItem>;
         virtual ~formatterItem() {}
-        virtual void format(std::ostream& os, std::shared_ptr<Logger> logger, LogLevel::Level level , LogEvent::ptr event) = 0; 
+        virtual void format(std::ostream& os, std::shared_ptr<Logger> logger, LogLevel::Level level , LogEvent::ptr event) = 0;
     };
 private:
+    std::shared_mutex m_rwMutex;
     std::string m_pattern;                  //日志格式
     std::vector<formatterItem::ptr> m_items;
     bool m_error = false;
@@ -127,13 +130,14 @@ public:
 
     virtual ~LogAppender() {}
 
-    
+
     virtual void log(LogLevel::Level level, std::shared_ptr<m_sylar::Logger> logger, LogEvent::ptr event) = 0;
     //formatter管理
     void setFormatter(LogFormatter::ptr val){m_formatter = val;}
     void setLevel(LogLevel::Level level){ m_level = level;}
     LogFormatter::ptr getFormatter(){return m_formatter;}
 protected:
+    std::shared_mutex m_rwMutex;           // 读写锁
     LogLevel::Level m_level = LogLevel::UNKNOWN;        // appender独有日志级别
     LogFormatter::ptr m_formatter = nullptr;            // appender独有输出格式
 
@@ -153,32 +157,34 @@ public:
     void log(LogLevel::Level level, LogEvent::ptr event);           // 使用类内的logger级别和event来输出级别低于level的日志
 
     //日志输出
-    void debug(LogLevel::Level level, LogEvent::ptr event);
-    void info(LogLevel::Level level, LogEvent::ptr event);
-    void warn(LogLevel::Level level, LogEvent::ptr event);
-    void error(LogLevel::Level level, LogEvent::ptr event);
-    void fatal(LogLevel::Level level, LogEvent::ptr event);
+
+        // void debug(LogLevel::Level level, LogEvent::ptr event);
+        // void info(LogLevel::Level level, LogEvent::ptr event);
+        // void warn(LogLevel::Level level, LogEvent::ptr event);
+        // void error(LogLevel::Level level, LogEvent::ptr event);
+        // void fatal(LogLevel::Level level, LogEvent::ptr event);
 
     void addAppender(LogAppender::ptr appender);            //添加appender
     void delAppender(LogAppender::ptr appender);            //删除appender
-    void clearAppenders();            //清除appender
+    void clearAppenders();                                  //清除appender
 
     // void to_define(LogDefine& define);
 
-    LogLevel::Level getLevel() const{return m_level;}
-    void setLevel(LogLevel::Level val) {m_level = val;}
+    LogLevel::Level getLevel() const{std::shared_lock<std::shared_mutex> r_lock (m_rwMutex); return m_level;}
+    void setLevel(LogLevel::Level val) {std::unique_lock<std::shared_mutex> w_lock (m_rwMutex); m_level = val;}
 
     std::string getName() const {return m_name;}
 
     // 重设formatter
-    void setFormatter(LogFormatter::ptr formatter) {m_formatter = formatter;}
+    void setFormatter(LogFormatter::ptr formatter) {std::unique_lock<std::shared_mutex> w_lock (m_rwMutex); m_formatter = formatter;}
     void setFormatter(const std::string& pattern);
-    LogFormatter::ptr getFormatter() {return m_formatter;}
+    LogFormatter::ptr getFormatter() {std::shared_lock<std::shared_mutex> r_lock (m_rwMutex); return m_formatter;}
 private:
+    mutable std::shared_mutex m_rwMutex;
     std::string m_name;                         // 日志名
     LogLevel::Level m_level;                    // 日志输出最高级别
     std::list<LogAppender::ptr> m_Appenders;    // 输出方法
-    LogFormatter::ptr m_formatter;              // 日志默认输出格式  
+    LogFormatter::ptr m_formatter;              // 日志默认输出格式
     Logger::ptr m_root;                         // root输出结构
 };
 
@@ -194,7 +200,7 @@ public:
 class FileLogAppender : public LogAppender{
 public:
     FileLogAppender(const std::string& file_name);
-    using ptr = std::shared_ptr<FileLogAppender>; 
+    using ptr = std::shared_ptr<FileLogAppender>;
     void log(LogLevel::Level level, std::shared_ptr<Logger> logger, LogEvent::ptr event) override;
 
     //文件打开函数，成功返回true
@@ -209,11 +215,12 @@ class LoggerManager{
 public:
     void init () ;
     LoggerManager();
-    Logger::ptr getLogger (const std::string& name);            // 获取一个名为 name 的 logger, 若不存在则会创建(并加入manager)一个新的logger
+    Logger::ptr getLogger (const std::string& name);            // 获取一个名为 name 的 logger, 若不存在则会创建(并加入manager)一个新的logger (已加锁)
 
     Logger::ptr getRootLogger () const {return m_root;}         // 获取root logger(默认logger)
     bool addLogger (Logger::ptr logger);                        // 添加logger(日志器)
 private:
+    std::shared_mutex m_rwMutex;        //锁
     std::map<std::string, Logger::ptr> m_loggers;
     Logger::ptr m_root;             // 初始默认logger,有初始的StdoutAppender，formatter为默认值
 };
