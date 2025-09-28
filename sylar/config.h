@@ -5,7 +5,6 @@
 #include <yaml-cpp/yaml.h>
 #include "log.h"
 #include "singleton.h"
-#include "config.h"
 #include "until.h"
 #include <map>
 #include <set>
@@ -13,6 +12,8 @@
 #include <unordered_map>
 #include <list>
 #include <functional>
+#include <mutex>
+#include <shared_mutex>
 
 namespace m_sylar{
 
@@ -222,6 +223,7 @@ public:
     }
             
     std::string toString() override {
+        // std::shared_lock<std::shared_mutex> r_lock (m_rwMutex);
         try{
             // return boost::lexical_cast<std::string> (m_val);
             return ToStr()(m_val);
@@ -242,8 +244,12 @@ public:
         return false;
     }
     
-    const T getValue () const {return m_val;}
+    const T getValue () {
+        std::shared_lock<std::shared_mutex> r_lock (m_rwMutex);
+        return m_val;
+    }
     const T setValue (const T& v) {
+        std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
         if(v == m_val){
             return v;
         }
@@ -256,14 +262,17 @@ public:
 
     //添加监听函数
     void addListener(uint64_t key, on_change_cb cb){
+        std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
         m_cbs[key] = cb;
     }
     //删除监听函数
     void delListener(uint64_t key){
+        std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
         m_cbs.erase(key);
     }
     //获取监听函数
     on_change_cb getListener(uint64_t key){
+        std::shared_lock<std::shared_mutex> r_lock (m_rwMutex);
         const auto& it = m_cbs.find(key);
         if(it == m_cbs.end()){
             return nullptr;
@@ -277,7 +286,7 @@ private:
     T m_val;
     // 变更回调函数 key = uint64_t(唯一hash) on_change_cb回调函数 
     std::map<uint64_t, on_change_cb> m_cbs;
-
+    std::shared_mutex m_rwMutex;
 };
 
 class configManager{
@@ -288,6 +297,7 @@ public:
     //获取当前名字为name的configVar
     template<class T>
     static typename ConfigVar<T>::ptr Lookup(const std::string& name){
+        std::shared_lock<std::shared_mutex> r_lock (get_config_rwMutex());  // //此处不能加锁，涉及递归获取锁问题
         auto it = Get_Datas().find(name);
         if(it == Get_Datas().end()){
             return nullptr;
@@ -301,35 +311,42 @@ public:
     template<class T>
     static typename ConfigVar<T>::ptr Lookup(const std::string& name
                     , const T& defaultValue, const std::string& description){
-        auto it = Get_Datas().find(name);
-        if(it != Get_Datas().end()){
-            auto temp = std::dynamic_pointer_cast<ConfigVar<T>>(it->second);
-            if(temp){
-                M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name=" << name << " exists";
-                return temp;
+        {
+            std::shared_lock<std::shared_mutex> r_lock (get_config_rwMutex());
+            auto it = Get_Datas().find(name);
+            if(it != Get_Datas().end()){
+                auto temp = std::dynamic_pointer_cast<ConfigVar<T>>(it->second);
+                if(temp){
+                    M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name=" << name << " exists";
+                    return temp;
+                }
+                else{
+                    M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name=" << name << "exists but with an unconvertible type";
+                    return temp;
+                }
             }
-            else{
-                M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name=" << name << "exists but with an unconvertible type";
-                return temp;
+            auto tempVal = Lookup<T>(name);
+            if(tempVal){
+                M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name=" << name;
+                return tempVal;
             }
         }
-        auto tempVal = Lookup<T>(name);
-        if(tempVal){
-            M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name=" << name;
-            return tempVal;
+        {
+            std::unique_lock<std::shared_mutex> w_lock (get_config_rwMutex());
+            if(std::string::npos != name.find_first_not_of("qwertyuiopasdfghjklzxcvbnm1234567890._")){
+                M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name invalid " << name;
+                throw std::invalid_argument(name);
+            }
+            typename ConfigVar<T>::ptr v(new ConfigVar<T>(name, description, defaultValue));
+            Get_Datas()[name] = v;
+            return v;
         }
-        if(std::string::npos != name.find_first_not_of("qwertyuiopasdfghjklzxcvbnm1234567890._")){
-            M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name invalid " << name;
-            throw std::invalid_argument(name);
-        }
-        typename ConfigVar<T>::ptr v(new ConfigVar<T>(name, description, defaultValue));
-        Get_Datas()[name] = v;
-        return v;
     }
     static void LoadFromYaml(const YAML::Node& root);
 
     static ConfigVarBase::ptr LookupBase(const std::string& name);
     static void Print_all_conf(){
+        std::shared_lock<std::shared_mutex> r_lock (get_config_rwMutex());
         for(auto& it : Get_Datas()){
             std::cout << it.first << ">>>" << (it.second)->toString() << std::endl;
         }        
@@ -339,6 +356,11 @@ private:
     static configValMap& Get_Datas(){
         static configValMap s_datas;
         return s_datas;
+    }
+    static std::shared_mutex& get_config_rwMutex () {
+        std::cout << "config_rwMutex 初始化完成" << std::endl;
+        static std::shared_mutex config_rwMutex;
+        return config_rwMutex;
     }
 };
 

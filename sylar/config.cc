@@ -33,9 +33,10 @@ static void ListAllMember(const std::string& prefix, const YAML::Node& node,
 
 //将每个节点创建为conf并注册到confManager
 void configManager::LoadFromYaml(const YAML::Node& root){
+    std::unique_lock<std::shared_mutex> w_lock (get_config_rwMutex());
+    
     std::list<std::pair<std::string, const YAML::Node>> allNodes;
     ListAllMember("", root, allNodes);
-
     for(auto& it : allNodes){
         std::string key = it.first;
         if(key.empty()){
