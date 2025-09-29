@@ -1,4 +1,12 @@
 logs:
+  - name: system
+    level: DEBUG
+    appenders:
+      - type: FileLogAppender
+        file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/log/system_log.txt
+        level : DEBUG
+      - type: StdoutLogAppender
+        level: DEBUG
   - name: config
     level: DEBUG
     # formatter: " logger 默认格式 %d%T%m%n"
@@ -18,18 +26,7 @@ logs:
       - type: StdoutLogAppender
         formatter : "testFormatter : [appender 自定义 %d%T%m]%n"
         level : ERROR
-  - name: system2
-    level: DEBUG
-    # formatter: " system 默认格式 %d%T%m%n"
-    appenders:
-      - type: FileLogAppender
-        file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/log/test_thread.txt
-        level : DEBUG
-      - type: FileLogAppender
-        file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/log/test_thread.txt
-        level : INFO
-      # - type: StdoutLogAppender
-      #   level: ERROR
+
 
   
 

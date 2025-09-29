@@ -5,6 +5,7 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
   /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/allHeader.h \
   /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/config.h \
   /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/log.h \
+  /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/macro.h \
   /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/singleton.h \
   /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/thread.h \
   /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/until.h \
@@ -614,6 +615,7 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
   /usr/include/ctype.h \
   /usr/include/endian.h \
   /usr/include/errno.h \
+  /usr/include/execinfo.h \
   /usr/include/features-time64.h \
   /usr/include/features.h \
   /usr/include/libintl.h \
@@ -953,6 +955,8 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 
 /usr/include/libintl.h:
 
+/usr/include/execinfo.h:
+
 /usr/include/errno.h:
 
 /usr/include/endian.h:
@@ -1231,6 +1235,10 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 
 /usr/include/boost/type_traits/is_function.hpp:
 
+/usr/include/c++/13/compare:
+
+/usr/include/boost/mpl/aux_/na_assert.hpp:
+
 /usr/include/boost/mpl/aux_/na.hpp:
 
 /usr/include/boost/type_traits/conjunction.hpp:
@@ -1267,19 +1275,17 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 
 /usr/include/boost/mpl/aux_/has_apply.hpp:
 
-/usr/local/include/yaml-cpp/node/parse.h:
+/usr/include/boost/mpl/aux_/config/workaround.hpp:
 
-/usr/include/boost/mpl/aux_/config/gcc.hpp:
+/usr/include/boost/core/addressof.hpp:
 
-/usr/include/boost/mpl/aux_/config/ttp.hpp:
+/usr/include/boost/mpl/aux_/common_name_wknd.hpp:
+
+/usr/include/boost/mpl/int.hpp:
+
+/usr/include/boost/preprocessor/seq/limits/enum_256.hpp:
 
 /usr/include/boost/integer_traits.hpp:
-
-/usr/include/boost/type_traits/is_complete.hpp:
-
-/usr/include/boost/preprocessor/detail/auto_rec.hpp:
-
-/usr/include/boost/range/distance.hpp:
 
 /usr/include/boost/preprocessor/comparison/less_equal.hpp:
 
@@ -1328,8 +1334,6 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 /usr/include/c++/13/cstdlib:
 
 /usr/include/boost/mpl/aux_/config/has_apply.hpp:
-
-/usr/include/boost/config/stdlib/libstdcpp3.hpp:
 
 /usr/include/boost/numeric/conversion/detail/conversion_traits.hpp:
 
@@ -1391,16 +1395,6 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 
 /usr/include/boost/preprocessor/control/deduce_d.hpp:
 
-/usr/include/boost/mpl/aux_/config/workaround.hpp:
-
-/usr/include/boost/core/addressof.hpp:
-
-/usr/include/boost/mpl/aux_/common_name_wknd.hpp:
-
-/usr/include/boost/mpl/int.hpp:
-
-/usr/include/boost/preprocessor/seq/limits/enum_256.hpp:
-
 /usr/include/asm-generic/errno-base.h:
 
 /usr/include/c++/13/bits/stl_iterator_base_funcs.h:
@@ -1412,6 +1406,10 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 /usr/include/boost/mpl/aux_/template_arity.hpp:
 
 /usr/include/boost/preprocessor/variadic/size.hpp:
+
+/usr/include/boost/config/stdlib/libstdcpp3.hpp:
+
+/home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/macro.h:
 
 /usr/include/boost/preprocessor/arithmetic/add.hpp:
 
@@ -1477,6 +1475,28 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 
 /usr/include/boost/mpl/apply_fwd.hpp:
 
+/usr/local/include/yaml-cpp/binary.h:
+
+/usr/include/x86_64-linux-gnu/bits/libc-header-start.h:
+
+/usr/include/boost/mpl/aux_/yes_no.hpp:
+
+/usr/include/boost/preprocessor/logical/limits/bool_256.hpp:
+
+/usr/include/boost/preprocessor/arithmetic/detail/maximum_number.hpp:
+
+/usr/include/c++/13/bits/parse_numbers.h:
+
+/usr/include/linux/errno.h:
+
+/usr/include/boost/mpl/aux_/preprocessed/gcc/quote.hpp:
+
+/usr/include/c++/13/bits/std_abs.h:
+
+/usr/include/boost/concept/detail/has_constraints.hpp:
+
+/usr/include/boost/mpl/aux_/config/compiler.hpp:
+
 /usr/local/include/yaml-cpp/node/detail/node_iterator.h:
 
 /usr/include/x86_64-linux-gnu/gnu/stubs-64.h:
@@ -1488,8 +1508,6 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 /usr/include/boost/mpl/next_prior.hpp:
 
 /usr/include/boost/mpl/aux_/config/eti.hpp:
-
-/usr/include/boost/lexical_cast.hpp:
 
 /usr/include/boost/mpl/aux_/value_wknd.hpp:
 
@@ -1517,6 +1535,8 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_thread.cc:
 
+/usr/include/boost/lexical_cast.hpp:
+
 /usr/include/boost/config.hpp:
 
 /usr/include/boost/core/use_default.hpp:
@@ -1542,6 +1562,12 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 /usr/include/boost/assert/source_location.hpp:
 
 /usr/include/boost/preprocessor/debug/error.hpp:
+
+/usr/local/include/yaml-cpp/node/node.h:
+
+/usr/include/boost/config/detail/select_stdlib_config.hpp:
+
+/usr/include/boost/mpl/equal_to.hpp:
 
 /usr/local/include/yaml-cpp/node/emit.h:
 
@@ -1589,34 +1615,6 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 
 /usr/include/boost/preprocessor/seq/size.hpp:
 
-/usr/include/boost/preprocessor/arithmetic/detail/maximum_number.hpp:
-
-/usr/include/c++/13/bits/parse_numbers.h:
-
-/usr/include/linux/errno.h:
-
-/usr/include/boost/mpl/aux_/preprocessed/gcc/quote.hpp:
-
-/usr/include/c++/13/bits/std_abs.h:
-
-/usr/include/boost/concept/detail/has_constraints.hpp:
-
-/usr/local/include/yaml-cpp/node/node.h:
-
-/usr/include/boost/mpl/equal_to.hpp:
-
-/usr/include/boost/config/detail/select_stdlib_config.hpp:
-
-/usr/local/include/yaml-cpp/binary.h:
-
-/usr/include/x86_64-linux-gnu/bits/libc-header-start.h:
-
-/usr/include/boost/mpl/aux_/yes_no.hpp:
-
-/usr/include/boost/preprocessor/logical/limits/bool_256.hpp:
-
-/usr/include/boost/mpl/aux_/config/compiler.hpp:
-
 /usr/include/boost/concept/detail/backward_compatibility.hpp:
 
 /usr/include/c++/13/algorithm:
@@ -1634,6 +1632,12 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 /usr/include/boost/next_prior.hpp:
 
 /usr/include/boost/type_traits/add_lvalue_reference.hpp:
+
+/usr/include/boost/mpl/aux_/config/ttp.hpp:
+
+/usr/local/include/yaml-cpp/node/parse.h:
+
+/usr/include/boost/mpl/aux_/config/gcc.hpp:
 
 /usr/include/boost/config/compiler/gcc.hpp:
 
@@ -1812,6 +1816,12 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 /usr/include/boost/preprocessor/seq/transform.hpp:
 
 /usr/include/c++/13/bits/valarray_before.h:
+
+/usr/include/boost/type_traits/is_complete.hpp:
+
+/usr/include/boost/preprocessor/detail/auto_rec.hpp:
+
+/usr/include/boost/range/distance.hpp:
 
 /usr/include/boost/preprocessor/detail/check.hpp:
 
@@ -2332,7 +2342,3 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: /home/ls20241009/user/code/pr
 /usr/include/c++/13/cerrno:
 
 /usr/include/c++/13/climits:
-
-/usr/include/boost/mpl/aux_/na_assert.hpp:
-
-/usr/include/c++/13/compare:

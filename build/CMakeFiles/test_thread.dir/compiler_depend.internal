@@ -6,6 +6,7 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o
  /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/allHeader.h
  /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/config.h
  /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/log.h
+ /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/macro.h
  /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/singleton.h
  /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/thread.h
  /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/until.h
@@ -615,6 +616,7 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o
  /usr/include/ctype.h
  /usr/include/endian.h
  /usr/include/errno.h
+ /usr/include/execinfo.h
  /usr/include/features-time64.h
  /usr/include/features.h
  /usr/include/libintl.h

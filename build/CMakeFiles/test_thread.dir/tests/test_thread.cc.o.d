@@ -685,7 +685,8 @@ CMakeFiles/test_thread.dir/tests/test_thread.cc.o: \
  /usr/include/x86_64-linux-gnu/sys/syscall.h \
  /usr/include/x86_64-linux-gnu/asm/unistd.h \
  /usr/include/x86_64-linux-gnu/asm/unistd_64.h \
- /usr/include/x86_64-linux-gnu/bits/syscall.h \
+ /usr/include/x86_64-linux-gnu/bits/syscall.h /usr/include/execinfo.h \
  /usr/include/c++/13/unordered_set \
  /usr/include/c++/13/bits/unordered_set.h \
- /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/../sylar/thread.h
+ /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/../sylar/thread.h \
+ /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/../sylar/macro.h

@@ -1,6 +1,7 @@
-CMakeFiles/test_conf.dir/tests/test_config.cc.o: \
- /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc \
+CMakeFiles/test_util.dir/tests/test_thread.cc.o: \
+ /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_thread.cc \
  /usr/include/stdc-predef.h \
+ /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/../sylar/allHeader.h \
  /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/../sylar/config.h \
  /usr/include/boost/lexical_cast.hpp /usr/include/boost/config.hpp \
  /usr/include/boost/config/user.hpp \
@@ -684,6 +685,8 @@ CMakeFiles/test_conf.dir/tests/test_config.cc.o: \
  /usr/include/x86_64-linux-gnu/sys/syscall.h \
  /usr/include/x86_64-linux-gnu/asm/unistd.h \
  /usr/include/x86_64-linux-gnu/asm/unistd_64.h \
- /usr/include/x86_64-linux-gnu/bits/syscall.h /usr/include/execinfo.h \
+ /usr/include/x86_64-linux-gnu/bits/syscall.h \
  /usr/include/c++/13/unordered_set \
- /usr/include/c++/13/bits/unordered_set.h
+ /usr/include/c++/13/bits/unordered_set.h \
+ /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/../sylar/thread.h \
+ /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/../sylar/macro.h

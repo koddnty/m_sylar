@@ -575,7 +575,7 @@ struct LogIniter
                 auto jt = old_val.find(it);
                 if(jt == old_val.end()){
                     //添加
-                    std::cout << "添加" << std::endl;
+                    // std::cout << "添加" << std::endl;
                     Logger::ptr logger(new Logger(it.name));
                     logger->setLevel(it.level);
                     // std::cout << "logger->setLevel(it.level)  " << LogLevel::to_string(it.level) << std::endl;
@@ -611,7 +611,7 @@ struct LogIniter
                 else if(!(*jt == it)){
                     std::cout  << "new_val  " << it.name << std::endl;
                     // 修改
-                    std::cout << "修改" << std::endl;
+                    // std::cout << "修改" << std::endl;
                     Logger::ptr logger = M_SYLAR_LOG_NAME(it.name);
                     logger->setLevel(it.level);
                     // std::cout << "logger->setLevel(it.level)  " << LogLevel::to_string(it.level) << std::endl;
