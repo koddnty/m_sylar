@@ -127,8 +127,7 @@ public:
 
 void test_class(){
     std::cout << "11" << std::endl;
-    m_sylar::ConfigVar<std::string>::ptr test =
-        m_sylar::configManager::Lookup("logs.0.appender.0.file", std::string("HelloWorld"), "system port");
+1
     test->addListener(10, [test](const std::string& old_val, const std::string& new_val){
         M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "reload [" << test->getName() << "] from [" << old_val << "] to [" << new_val << "]";
     });
