@@ -125,18 +125,18 @@ public:
     };
 };
 
-void test_class(){
-    std::cout << "11" << std::endl;
-1
-    test->addListener(10, [test](const std::string& old_val, const std::string& new_val){
-        M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "reload [" << test->getName() << "] from [" << old_val << "] to [" << new_val << "]";
-    });
-    std::cout << test->getValue() << "  before" << std::endl;
-    YAML::Node root = YAML::LoadFile("/home/ls20241009/user/code/project/sylar_cp/m_sylar/conf/basic.yaml");
-    m_sylar::configManager::LoadFromYaml(root);
-    std::cout << test->getValue() << "  after" << std::endl;
-    m_sylar::configManager::Print_all_conf();
-}
+// void test_class(){
+//     std::cout << "11" << std::endl;
+
+//     test->addListener(10, [test](const std::string& old_val, const std::string& new_val){
+//         M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "reload [" << test->getName() << "] from [" << old_val << "] to [" << new_val << "]";
+//     });
+//     std::cout << test->getValue() << "  before" << std::endl;
+//     YAML::Node root = YAML::LoadFile("/home/ls20241009/user/code/project/sylar_cp/m_sylar/conf/basic.yaml");
+//     m_sylar::configManager::LoadFromYaml(root);
+//     std::cout << test->getValue() << "  after" << std::endl;
+//     m_sylar::configManager::Print_all_conf();
+// }
 
 void test_config_log () {
     // Logger::ptr logger(new Logger("ali"));

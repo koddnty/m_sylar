@@ -15,6 +15,7 @@ set(LIB_SRC
     sylar/until.cc
     sylar/config.cc
     sylar/thread.cc
+    sylar/fiber.cc
     )
 
 set ( LIB_LIB
