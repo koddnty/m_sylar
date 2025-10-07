@@ -7,7 +7,7 @@ static std::atomic<uint64_t> s_fiber_count {0};
 static thread_local Fiber* t_fiber = nullptr;                   // 线程内 正在执行的子fiber指针
 static thread_local Fiber::ptr t_threadFiber = nullptr;         // 线程内 主fiber智能指针
 m_sylar::ConfigVar<uint64_t>::ptr g_fiber_stack_size =
-    m_sylar::configManager::Lookup("fiber.stackSize", (uint64_t)(512 * 1024), "fiber default stack size");
+    m_sylar::configManager::Lookup("fiber.stacksize", (uint64_t)(512 * 1024), "fiber default stack size");
 
 class MallocStackAllocator {
 public: 
@@ -112,6 +112,7 @@ Fiber::ptr Fiber::GetThisFiber(){                  // 获取当前协程 (若线
     if(t_fiber) {
         return t_fiber->shared_from_this();
     }
+    // M_SYLAR_LOG_INFO(g_logger) << "just test g_logger";
     Fiber::ptr main_fiber(new Fiber);
     M_SYLAR_ASSERT(t_fiber == main_fiber.get());
     t_threadFiber = main_fiber;

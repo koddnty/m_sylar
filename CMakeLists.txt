@@ -7,6 +7,8 @@ project(m_sylar)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic  -fPIC -ggdb -std=c++17 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
 
+# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+
 include_directories(.)
 
 # -O2
@@ -31,6 +33,7 @@ set ( LIB_LIB
 find_package(yaml-cpp REQUIRED)
 
 add_library(sylar SHARED ${LIB_SRC})
+
 # force_redefine_macro_for_sources(sylar)
 add_executable(test tests/test.cc)
 add_dependencies(test sylar)
@@ -55,6 +58,11 @@ add_executable(test_util tests/test_util.cc)
 # force_redefine_macro_for_sources(test_yaml)
 add_dependencies(test_util sylar )
 target_link_libraries(test_util sylar ${LIB_LIB})
+
+add_executable(test_fiber tests/test_fiber.cc)
+# force_redefine_macro_for_sources(test_yaml)
+add_dependencies(test_fiber sylar )
+target_link_libraries(test_fiber sylar ${LIB_LIB})
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

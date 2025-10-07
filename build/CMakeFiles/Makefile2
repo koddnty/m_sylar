@@ -72,6 +72,7 @@ all: CMakeFiles/test_conf.dir/all
 all: CMakeFiles/test_yaml.dir/all
 all: CMakeFiles/test_thread.dir/all
 all: CMakeFiles/test_util.dir/all
+all: CMakeFiles/test_fiber.dir/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
@@ -85,6 +86,7 @@ clean: CMakeFiles/test_conf.dir/clean
 clean: CMakeFiles/test_yaml.dir/clean
 clean: CMakeFiles/test_thread.dir/clean
 clean: CMakeFiles/test_util.dir/clean
+clean: CMakeFiles/test_fiber.dir/clean
 .PHONY : clean
 
 #=============================================================================
@@ -172,7 +174,7 @@ CMakeFiles/test_conf.dir/clean:
 CMakeFiles/test_yaml.dir/all: CMakeFiles/sylar.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_yaml.dir/build.make CMakeFiles/test_yaml.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_yaml.dir/build.make CMakeFiles/test_yaml.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles --progress-num=15,16 "Built target test_yaml"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles --progress-num=17,18 "Built target test_yaml"
 .PHONY : CMakeFiles/test_yaml.dir/all
 
 # Build rule for subdir invocation for target.
@@ -198,7 +200,7 @@ CMakeFiles/test_yaml.dir/clean:
 CMakeFiles/test_thread.dir/all: CMakeFiles/sylar.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_thread.dir/build.make CMakeFiles/test_thread.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_thread.dir/build.make CMakeFiles/test_thread.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles --progress-num=11,12 "Built target test_thread"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles --progress-num=13,14 "Built target test_thread"
 .PHONY : CMakeFiles/test_thread.dir/all
 
 # Build rule for subdir invocation for target.
@@ -224,7 +226,7 @@ CMakeFiles/test_thread.dir/clean:
 CMakeFiles/test_util.dir/all: CMakeFiles/sylar.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_util.dir/build.make CMakeFiles/test_util.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_util.dir/build.make CMakeFiles/test_util.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles --progress-num=13,14 "Built target test_util"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles --progress-num=15,16 "Built target test_util"
 .PHONY : CMakeFiles/test_util.dir/all
 
 # Build rule for subdir invocation for target.
@@ -242,6 +244,32 @@ test_util: CMakeFiles/test_util.dir/rule
 CMakeFiles/test_util.dir/clean:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_util.dir/build.make CMakeFiles/test_util.dir/clean
 .PHONY : CMakeFiles/test_util.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/test_fiber.dir
+
+# All Build rule for target.
+CMakeFiles/test_fiber.dir/all: CMakeFiles/sylar.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_fiber.dir/build.make CMakeFiles/test_fiber.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_fiber.dir/build.make CMakeFiles/test_fiber.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles --progress-num=11,12 "Built target test_fiber"
+.PHONY : CMakeFiles/test_fiber.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/test_fiber.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles 8
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/test_fiber.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles 0
+.PHONY : CMakeFiles/test_fiber.dir/rule
+
+# Convenience name for target.
+test_fiber: CMakeFiles/test_fiber.dir/rule
+.PHONY : test_fiber
+
+# clean rule for target.
+CMakeFiles/test_fiber.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_fiber.dir/build.make CMakeFiles/test_fiber.dir/clean
+.PHONY : CMakeFiles/test_fiber.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

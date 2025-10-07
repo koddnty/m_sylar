@@ -8,7 +8,7 @@
 #include <ucontext.h>
 #include <functional>
 
-static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 namespace m_sylar {
 

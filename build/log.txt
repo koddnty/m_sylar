@@ -1,0 +1,2 @@
+1759834097	[INFO]	[system]	[thread:29268 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:12	runner_fiber begin
+1759834097	[INFO]	[system]	[thread:29268 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:14	runner_fiber end

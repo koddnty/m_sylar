@@ -203,6 +203,10 @@ public:
     using ptr = std::shared_ptr<FileLogAppender>;
     void log(LogLevel::Level level, std::shared_ptr<Logger> logger, LogEvent::ptr event) override;
 
+    ~FileLogAppender() {
+        std::cout << "调用析构函数" << std::endl;
+        m_file_stream << std::flush;
+    }
     //文件打开函数，成功返回true
     bool reopen();
 private:
@@ -223,6 +227,7 @@ private:
     std::shared_mutex m_rwMutex;        //锁
     std::map<std::string, Logger::ptr> m_loggers;
     Logger::ptr m_root;             // 初始默认logger,有初始的StdoutAppender，formatter为默认值
+    Logger::ptr m_system;
 };
 
 typedef m_sylar::Singleton<LoggerManager> LoggerMgr;

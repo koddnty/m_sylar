@@ -44,6 +44,7 @@ LogLevel::Level Level_FromString(const std::string& level_str){
 
 void Logger::addAppender(LogAppender::ptr appender){
     // if(!appender->getFormatter()){
+    //     std::cout << "appender dose not have formatter " << std::endl;
     //     appender->setFormatter(m_formatter);
     // }
     std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
@@ -80,6 +81,7 @@ std::stringstream& LogEventWrap::getSS(){
 
 void Logger::log(LogLevel::Level level, LogEvent::ptr event){
     auto self = shared_from_this();
+    // std::cout << level << "<<>>" << m_level << std::endl;
     if(level >= m_level){
         if(!m_Appenders.empty()){
             for(auto& it : m_Appenders){
@@ -118,9 +120,11 @@ void Logger::setFormatter(const std::string& pattern) {
 FileLogAppender::FileLogAppender(const std::string& file_name)
     : m_file_name(file_name){
         reopen();
+    // std::cout << "will be written in " << m_file_name  << std::endl;
 }
 bool FileLogAppender::reopen(){
     if(m_file_stream){
+        m_file_stream << std::flush;
         m_file_stream.close();  
     }
     m_file_stream.open(m_file_name);
@@ -128,12 +132,15 @@ bool FileLogAppender::reopen(){
 }
 void FileLogAppender::log(LogLevel::Level level, std::shared_ptr<m_sylar::Logger> logger, LogEvent::ptr event){
     std::shared_lock<std::shared_mutex> r_lock (m_rwMutex);
+    // std::cout << "FileLogAppender" << level << "<<>>" << m_level << std::endl;
     if(level >= m_level){
         if(m_formatter){
-            m_file_stream << m_formatter->format(level, logger, event);
+            m_file_stream << m_formatter->format(level, logger, event) << std::flush;
         }
         else{
-            m_file_stream << logger->m_formatter->format(level, logger, event);
+            // std::cout << "logger formatter (default)" << std::endl;
+            // m_file_stream << "logger->m_formatter->format(level, logger, event)" << std::flush;
+            m_file_stream << logger->m_formatter->format(level, logger, event) << std::flush;
         }
     }
 }
@@ -383,6 +390,17 @@ void LogFormatter::init(){
 LoggerManager::LoggerManager(){
     m_root.reset(new Logger);
     m_root->addAppender(StdoutLogAppender::ptr (new StdoutLogAppender));
+
+    Logger::ptr system (new Logger ("system"));
+    LogAppender::ptr file_appender( new FileLogAppender("/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/log.txt"));
+    file_appender->setLevel(LogLevel::DEBUG);
+    // file_appender->setFormatter()
+    system->addAppender(file_appender);
+    system->addAppender(StdoutLogAppender::ptr (new StdoutLogAppender));
+
+    m_system = system;
+    // LoggerMgr::GetInstance()->addLogger(m_root);
+    // LoggerMgr::GetInstance()->addLogger(m_system);
 }
 Logger::ptr LoggerManager::getLogger(const std::string& name){
     {    
@@ -404,6 +422,10 @@ Logger::ptr LoggerManager::getLogger(const std::string& name){
         if(it != m_loggers.end()){
             return it->second;
         } 
+        // 为system提供初始化logger
+        if(name == "system"){
+            return m_system;
+        }
         Logger::ptr logger (new Logger(name));
         std::cout << "供默认logger" << std::endl;
         // task ： 增添define。
