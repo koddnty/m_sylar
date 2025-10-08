@@ -35,6 +35,8 @@ logs:
         formatter : "testFormatter : [appender 自定义 %d%T%m]%n"
         level : ERROR
 
+settings:
+  runningPath : "/home/ls20241009/user/code/project/sylar_cp/m_sylar"
 
   
 

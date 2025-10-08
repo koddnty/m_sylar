@@ -8,7 +8,7 @@
 #include <ucontext.h>
 #include <functional>
 
-m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 namespace m_sylar {
 
@@ -33,6 +33,7 @@ public:
     // 协程切换
     void swapIn();              // 切入
     void swapOut();             // 切出
+    uint64_t getFiberId() const {return m_fiberId;}
 
 public:
     static void SetThisFiber(Fiber* fiber);                     // 设置当前线程的协程 (t_threadFiber)

@@ -54,6 +54,7 @@ Fiber::Fiber(std::function<void()> cb, uint64_t stackSize)
 }
 Fiber::~Fiber(){
     --s_fiber_count;
+    std::cout << "~Fiber : " << m_fiberId << std::endl; 
     if(m_stack) {
         // 协程有栈 子协程
         M_SYLAR_ASSERT(m_state == TERM || m_state == INIT);
@@ -121,11 +122,13 @@ Fiber::ptr Fiber::GetThisFiber(){                  // 获取当前协程 (若线
 void Fiber::YieldToReady(){                     // 协程切换为后台并切换为状态Ready
     Fiber::ptr cur_fiber = GetThisFiber();
     cur_fiber->m_state = READY;
+    M_SYLAR_ASSERT2(cur_fiber->getFiberId() != 0, "fiber 0 can not be yield to ready");
     cur_fiber->swapOut();
 }                 
 void Fiber::YieldToHold(){                      // ^^^^^^^^^^^^^^^^^^^^^^^^Hold
     Fiber::ptr cur_fiber = GetThisFiber();
     cur_fiber->m_state = HOLD;
+    M_SYLAR_ASSERT2(cur_fiber->getFiberId() != 0, "fiber 0 can not be yield to hold");
     cur_fiber->swapOut();
 }
 unsigned int Fiber::TotalFiberNum(){ // 获取总协程数
@@ -148,6 +151,11 @@ void Fiber::MainFunc() {
         M_SYLAR_LOG_ERROR(g_logger) << "Fiber except";
     }
 
+    auto raw_ptr = cur_fiber.get();
+    cur_fiber.reset();
+    raw_ptr->swapOut();
+
+    M_SYLAR_ASSERT2(false, "fiber has already been destoried, but still swaped in.");
 }
 
 

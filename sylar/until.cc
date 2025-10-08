@@ -1,5 +1,6 @@
 #include "until.h"
 #include "log.h"
+#include "fiber.h"
 
 
 namespace m_sylar{
@@ -9,7 +10,7 @@ pid_t getThreadId (){
 }
 
 uint32_t getFiberId(){
-    return 2;
+    return Fiber::GetThisFiber()->getFiberId();
 }
    
 
