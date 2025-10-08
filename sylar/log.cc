@@ -60,10 +60,10 @@ void Logger::clearAppenders(){
 }
 
 LogEvent::LogEvent(const char* file, int32_t line, uint32_t elapse,
-    uint32_t threadID, uint32_t fiberID, uint64_t timer, std::shared_ptr<Logger> logger,
+    uint32_t threadID, const std::string& threadName, uint32_t fiberID, uint64_t timer, std::shared_ptr<Logger> logger,
     LogLevel::Level level)
     : file_name(file), m_line(line), m_elapse(elapse),
-      m_threadID(threadID), m_fiberID(fiberID),
+      m_threadID(threadID), m_threadName(threadName), m_fiberID(fiberID),
       m_timer(timer), m_logger(logger), m_level(level){
 }
 
@@ -206,7 +206,7 @@ class threadFormatItem : public LogFormatter::formatterItem{
 public:
     threadFormatItem(const std::string& str = ""){}
     void format(std::ostream& os, Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override{
-        os << event->getThreadId();
+        os << event->getThreadId() << ":" << event->getThreadName();
     }
 };
 class fiberFormatItem : public LogFormatter::formatterItem{
@@ -365,6 +365,7 @@ void LogFormatter::init(){
         XX(n, NewLineFormatItem),           // %n 换行
         XX(s, stringFormatItem),            // %s 普通字符串
         XX(T, TabFormatItem)                // %T tab
+        
 #undef XX
     };
     //添加到formatteritems中

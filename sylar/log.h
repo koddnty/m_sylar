@@ -17,7 +17,7 @@
 #define M_SYLAR_LOG_EVENT(logger, level)\
     if(logger->getLevel() <= level) \
         m_sylar::LogEventWrap(m_sylar::LogEvent::ptr(new m_sylar::LogEvent(__FILE__, __LINE__, 0 \
-                    , m_sylar::getThreadId(), m_sylar::getFiberId() , time(0), logger, level))).getSS()
+                    , m_sylar::getThreadId(), m_sylar::getThreadName(), m_sylar::getFiberId() , time(0), logger, level))).getSS()
 
 #define M_SYLAR_LOG_UNKNOWN(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::UNKNOWN)
 #define M_SYLAR_LOG_DEGUB(logger)   M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::DEBUG)
@@ -59,6 +59,7 @@ class LogEvent{
 public:
     typedef std::shared_ptr<LogEvent> ptr;
     LogEvent(const char* file, int32_t m_line, uint32_t elapse, uint32_t threadID,
+            const std::string& threadName,
             uint32_t fiberID, uint64_t timer, std::shared_ptr<Logger> logger,
             LogLevel::Level level);
 
@@ -69,6 +70,7 @@ public:
     uint32_t getFiberId() const{ return m_fiberID;}
     uint32_t getElapse() const{ return m_elapse;}
     uint32_t getTimer() const{ return m_timer;}
+    std::string getThreadName() const {return m_threadName;}
     std::shared_ptr<Logger> getLogger() const{ return m_logger;}
     std::string getContent () const{ return m_ss.str();}
     LogLevel::Level getLevel () const{ return m_level;}
@@ -79,6 +81,7 @@ private:
     int32_t m_line = 0;                  // 行号
     uint32_t m_elapse = 0;               // 程序启动时间（ms）
     uint32_t m_threadID = 0;             // 线程id
+    std::string m_threadName = "default";// 线程名称
     uint32_t m_fiberID = 0;              // 协程id
     uint64_t m_timer;                    // 时间戳
     std::stringstream m_ss;              // 日志格式

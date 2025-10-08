@@ -9,6 +9,11 @@ pid_t getThreadId (){
     return syscall(SYS_gettid);
 }
 
+std::string getThreadName (){
+    // 获取当前线程，获取当前的threadName
+    return Thread::getThis()->getName();
+}
+
 uint32_t getFiberId(){
     return Fiber::GetThisFiber()->getFiberId();
 }
