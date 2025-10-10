@@ -5,7 +5,7 @@ project(m_sylar)
 # add_definitions(-D__FILE__="\"$(notdir $(abspath $<))\"")
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic  -fPIC -ggdb -std=c++17 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++17 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
 
 # set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
@@ -32,7 +32,14 @@ set ( LIB_LIB
 
 find_package(yaml-cpp REQUIRED)
 
-add_library(sylar SHARED ${LIB_SRC})
+# add_library(sylar SHARED ${LIB_SRC})
+add_library(sylar STATIC 
+    sylar/log.cc
+    sylar/until.cc
+    sylar/config.cc
+    sylar/thread.cc
+    sylar/fiber.cc
+)
 
 # force_redefine_macro_for_sources(sylar)
 add_executable(test tests/test.cc)

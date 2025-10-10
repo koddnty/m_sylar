@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
+  "/home/ls20241009/user/code/project/sylar_cp/m_sylar/lib/libsylar.a"
   "/home/ls20241009/user/code/project/sylar_cp/m_sylar/lib/libsylar.pdb"
-  "/home/ls20241009/user/code/project/sylar_cp/m_sylar/lib/libsylar.so"
   "CMakeFiles/sylar.dir/sylar/config.cc.o"
   "CMakeFiles/sylar.dir/sylar/config.cc.o.d"
   "CMakeFiles/sylar.dir/sylar/fiber.cc.o"

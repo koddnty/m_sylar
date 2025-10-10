@@ -1,10 +1,6 @@
-1759832467	[INFO]	[system2]	[thread:25091 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_thread.cc:20	222222222222222222222222222222222222222
-1759832467	[INFO]	[system2]	[thread:25092 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_thread.cc:27	333333333333333333333333333333333333333
-1759832467	[INFO]	[system2]	[thread:25094 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_thread.cc:27	333333333333333333333333333333333333333
-1759832467	[INFO]	[system2]	[thread:25095 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_thread.cc:20	222222222222222222222222222222222222222
-1759832467	[INFO]	[system2]	[thread:25093 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_thread.cc:20	222222222222222222222222222222222222222
-1759832467	[INFO]	[system2]	[thread:25096 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_thread.cc:27	333333333333333333333333333333333333333
-1759832467	[INFO]	[system2]	[thread:25097 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_thread.cc:20	222222222222222222222222222222222222222
-1759832467	[INFO]	[system2]	[thread:25098 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_thread.cc:27	333333333333333333333333333333333333333
-1759832467	[INFO]	[system2]	[thread:25099 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_thread.cc:20	222222222222222222222222222222222222222
-1759832467	[INFO]	[system2]	[thread:25100 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_thread.cc:27	333333333333333333333333333333333333333
+1760014165	[INFO]	[system]	[thread:21404:func_0 fiber:1]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:12	runner_fiber begin
+1760014165	[INFO]	[system]	[thread:21404:func_0 fiber:1]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:14	runner_fiber end
+1760014165	[INFO]	[system]	[thread:21405:func_1 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:12	runner_fiber begin
+1760014169	[INFO]	[system]	[thread:21405:func_1 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:14	runner_fiber end
+1760014169	[INFO]	[system]	[thread:21406:func_2 fiber:3]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:12	runner_fiber begin
+1760014169	[INFO]	[system]	[thread:21406:func_2 fiber:3]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:14	runner_fiber end

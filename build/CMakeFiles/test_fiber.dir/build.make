@@ -95,7 +95,7 @@ test_fiber_EXTERNAL_OBJECTS =
 
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_fiber: CMakeFiles/test_fiber.dir/tests/test_fiber.cc.o
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_fiber: CMakeFiles/test_fiber.dir/build.make
-/home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_fiber: /home/ls20241009/user/code/project/sylar_cp/m_sylar/lib/libsylar.so
+/home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_fiber: /home/ls20241009/user/code/project/sylar_cp/m_sylar/lib/libsylar.a
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_fiber: /usr/local/lib/libyaml-cpp.a
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_fiber: CMakeFiles/test_fiber.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable /home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_fiber"
