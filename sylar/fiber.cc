@@ -29,7 +29,6 @@ Fiber::Fiber() {
         M_SYLAR_ASSERT2(false, "getcontext Failed");
     }
     ++s_fiber_count;
-
 }
 
 // 特殊函数

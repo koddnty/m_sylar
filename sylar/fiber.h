@@ -33,6 +33,7 @@ public:
     // 协程切换
     void swapIn();              // 切入
     void swapOut();             // 切出
+    State& getState() {return m_state;}      // 获取协程状态
     uint64_t getFiberId() const {return m_fiberId;}
 
 public:

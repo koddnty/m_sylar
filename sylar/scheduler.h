@@ -11,42 +11,44 @@ namespace m_sylar {
 static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 
-class Schedular {
+class Scheduler {
 
 // 支持协程的线程间切换
 public:
-    using ptr = std::shared_ptr<Schedular>;
+    using ptr = std::shared_ptr<Scheduler>;
 
-    Schedular (size_t thread_num = 1, bool use_caller = true, const std::string& name);
-    virtual ~Schedular ();
+    // use_caller 代表是否把当前线程加入scheduler
+    Scheduler (size_t thread_num = 1, bool use_caller = true, const std::string& name);
+    virtual ~Scheduler ();
 
     std::string getName () {return m_name;}
 
-    static Schedular* GetThis();        // 获取当前调度器
+    static Scheduler* GetThis();        // 获取当前调度器
     static Fiber* GetMainFiber();       // 获取主协程
     // 线程池开始/停止
     void start ();
     void stop ();
 
     template <typename Fiber_or_Func>
-    void schedular (Fiber_or_Func f, int threadId = -1) {
+    // 为shedular添加协程或者func
+    void scheduler (Fiber_or_Func f, int threadId = -1) {
         bool need_tickle = false;
         {
             std::unique_lock<std::mutex> m_mutex;
-            need_tickle = schedularNoLock(f, threadId);
+            need_tickle = schedulerNoLock(f, threadId);
         }
         if (need_tickle) {
             tickle();   
         }
     }
-
+    // 批量添加协程或func
     template <typename InputOperator>
-    void schedular(InputOperator begin, InputOperator end){
+    void scheduler(InputOperator begin, InputOperator end){
         bool need_tickle = false;
         {
             std::unique_lock<std::mutex> m_mutex;
             while (begin != end) {
-                need_tickle = schedularNoLock((&*begin), threadId) || need_tickle;       // 第一次学到，新写法，get了
+                need_tickle = schedulerNoLock((&*begin), threadId) || need_tickle;       // 第一次学到，新写法，get了
                 begin++;
             }
         }
@@ -56,8 +58,9 @@ public:
     }
 
 private:
+    // 单例添加函数，同时检测判断是否需要唤醒线程。
     template <typename Fiber_or_Func>
-    bool schedularNoLock (Fiber_or_Func f, int threadId) {
+    bool schedulerNoLock (Fiber_or_Func f, int threadId) {
         bool need_tickle = m_fibers.empty();
         FiberAndThread ft (f, threadId);
         if(ft.fiber || ft.func){
@@ -68,7 +71,7 @@ private:
 
 protect:
     virtual void tickle();
-
+    void run();
 private: 
     // 线程与任务   
     struct FiberAndThread {
@@ -105,13 +108,27 @@ private:
             func = nullptr;
             thread = -1;
         }
+        // 
+        void Scheduler::setThis() {
+            tl_scheduler = this;
+        }
+
     };
 
 private:
     std::mutex m_mutex;                         // 资源互斥锁
     std::vector<Thread::ptr> m_threads;         // 管理的线程
     std::list<Fiber::ptr>;                      // 管理的协程
-    std::string m_name;
+    Fiber::ptr m_rootFiber;                     // 主协程
+    std::string m_name;                         // 线程名称
+protect:
+    std::vector<int> m_threadIds;               // 线程id数组
+    int m_rootThreadId = 0;                     // 主线程
+    size_t m_threadCount;                       // 总线程数
+    size_t m_activeThreadCount;                 // 活跃线程数
+    size_t m_idleThreadCount;                   // 空闲线程数
+    bool m_stopping = true;                        // 主动停止
+    bool m_autoStop = false;                        // 自动停止 
 };
 
 }
