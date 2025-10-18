@@ -50,6 +50,7 @@ namespace m_sylar {
         }
 
     }
+    // 线程池停止
     void Scheduler::stop(){
         m_autoStop = true;
         if (m_rootFiber && m_threadCount == 0 
@@ -59,7 +60,7 @@ namespace m_sylar {
             m_stoppig = true;
             
             if (stopping()) {
-                return;
+                return
             }
         }
 
@@ -87,15 +88,102 @@ namespace m_sylar {
         if(stopping()) {
             return;
         }
-    }
 
-        void Scheduler::run() {
-            setThis();
-            if(m_sylar::getThreadId != m_rootThread) {
-                tl_fiber = Fiber::GetThis().get();          // 设置线程主协程
-            }
-
-            Fiber::ptr idle_fiber (new Fiber());
+    void Scheduler::run() {
+        setThis();
+        if(m_sylar::getThreadId != m_rootThread) {
+            tl_fiber = Fiber::GetThis().get();          // 设置线程主协程
         }
+        Fiber::ptr idle_fiber (new Fiber(std::bind(&Scheduler::idle, this)));
+        Fiber::ptr cb_fiber;        // 函数任务协程
+        
+        FiberAndThread ft;
+        while(true) {
+            ft.reset();
+            bool tickle_me = false;
+            std::unique_lock<std::mutex> lock (m_mutex);
+            auto it = m_fibers.begin();
+            while (it != m_fibers.end()) {
+                // 任务获取
+                if (it->thread != -1 && it->thread != m_sylar::getThreadId()) {
+                    // 任务线程被指定，通知其他线程
+                    ++it;
+                    tickle_me = true;
+                    continue;
+                }
+                
+                M_SYLAR_ASSERT(it->fiber || it->cb);
+                if(it->fiber && it->fiber->getState() == Fiber::EXEC) {
+                    // 任务结束 
+                    ++it;
+                    continue;
+                }
+                ft = *it;
+                m_fibers.erase(it++);
+
+                if(tickle_me()) {
+                    tickle();
+                }
+                
+                if(ft.fiber && (ft.fiber->getState() != Fiber::TERM
+                            || ft.fiber->getState() != Fiber::EXCEPT)) {
+                    // 行协程任务
+                    ++m_activeThreadCount;
+                    ft.fiber->swapIn();
+                    --m_activeThreadCount;
+                    
+                    // 结束单词运行后处理
+                    if(ft.fiber->getState() == Fiber::READY) {
+                        // 运行未完成
+                        schedule(ft.fiber);
+                    }
+                    else if (ft.fiber->getState() != Fiber::TERM 
+                            && ft.fiber->getState() != Fiber::EXCEPT){
+                        // 协程暂停
+                        ft.fiber->m_state = Fiber::HOLD;
+                    }
+                    ft.reset();
+                } else if(ft.cb) {
+                    // 函数任务
+                    if (cb_fiber) {
+                        cb_fiber->reset(&ft.cb);
+                    } 
+                    else {
+                        cb_fiber->reset(new Fiber(ft.cb));
+                    }
+                    ft.reset();
+                    ++m_activeThreadCount;
+                    cb_fiber->swapIn();
+                    --m_activeThreadCount();
+                    if(cb_fiber->getState() = Fiber::READY) {
+                        schedule(cb_fiber);
+                        cb_fiber.reset();
+                    }
+                    else if (cb_fiber->getState() == Fiber::EXCEPT 
+                            || cb_fiber->getState() == Fiber::TERM) {
+                        cb_fiber->reset(nullptr);
+                    }
+                    else {
+                        cb_fiber->m_state = Fiber::HOLD;
+                        cb_fiber.reset();
+                    }
+                }
+                else {
+                    if(idle_fiber->getState() == Fiber::TERM) {
+                        break;
+                    }
+
+                    ++m_idleThreadCount;
+                    idle_fiber->swapIn();
+                    --m_idleThreadCount;
+                    if (idle_fiber->getState() != Fiber::EXCEPT 
+                        || idle_fiber->getState() != Fiber::TERM) {
+                        idle_fiber->m_state = Fiber::HOLD;
+                    }
+                }
+            }
+        }
+        
+    }
 
 }

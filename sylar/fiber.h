@@ -17,12 +17,12 @@ public:
     using ptr = std::shared_ptr<Fiber>;
     // 协程状态
     enum State {
-        INIT,
-        HOLD,
-        EXEC,
-        TERM,
-        READY,
-        EXCEPT
+        INIT,    // 初始化
+        HOLD,    // 挂起/暂停
+        EXEC,    // 执行中
+        TERM,    // 终止/结束
+        READY,   // 就绪/准备执行
+        EXCEPT   // 异常
     };  
 
     // 特殊函数

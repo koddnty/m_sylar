@@ -18,6 +18,7 @@ set(LIB_SRC
     sylar/config.cc
     sylar/thread.cc
     sylar/fiber.cc
+    sylar/scheduler.cc
     )
 
 set ( LIB_LIB
@@ -39,6 +40,7 @@ add_library(sylar STATIC
     sylar/config.cc
     sylar/thread.cc
     sylar/fiber.cc
+    sylar/scheduler.cc
 )
 
 # force_redefine_macro_for_sources(sylar)
@@ -66,10 +68,18 @@ add_executable(test_util tests/test_util.cc)
 add_dependencies(test_util sylar )
 target_link_libraries(test_util sylar ${LIB_LIB})
 
+# test_fiber
 add_executable(test_fiber tests/test_fiber.cc)
 # force_redefine_macro_for_sources(test_yaml)
 add_dependencies(test_fiber sylar )
 target_link_libraries(test_fiber sylar ${LIB_LIB})
+
+#/ test_scheduler
+#add_executable(test_scheduler tests/test_scheduler.cc)
+# force_redefine_macro_for_sources(test_yaml)
+#add_dependencies(test_scheduler sylar )
+#target_link_libraries(test_scheduler sylar ${LIB_LIB})
+
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

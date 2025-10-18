@@ -7,6 +7,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/sylar.dir/sylar/fiber.cc.o.d"
   "CMakeFiles/sylar.dir/sylar/log.cc.o"
   "CMakeFiles/sylar.dir/sylar/log.cc.o.d"
+  "CMakeFiles/sylar.dir/sylar/scheduler.cc.o"
+  "CMakeFiles/sylar.dir/sylar/scheduler.cc.o.d"
   "CMakeFiles/sylar.dir/sylar/thread.cc.o"
   "CMakeFiles/sylar.dir/sylar/thread.cc.o.d"
   "CMakeFiles/sylar.dir/sylar/until.cc.o"

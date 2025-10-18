@@ -31,10 +31,10 @@ public:
 
     template <typename Fiber_or_Func>
     // 为shedular添加协程或者func
-    void scheduler (Fiber_or_Func f, int threadId = -1) {
+    void schedule (Fiber_or_Func f, int threadId = -1) {
         bool need_tickle = false;
         {
-            std::unique_lock<std::mutex> m_mutex;
+            std::mutex m_mutex;
             need_tickle = schedulerNoLock(f, threadId);
         }
         if (need_tickle) {
@@ -43,7 +43,7 @@ public:
     }
     // 批量添加协程或func
     template <typename InputOperator>
-    void scheduler(InputOperator begin, InputOperator end){
+    void schedule(InputOperator begin, InputOperator end){
         bool need_tickle = false;
         {
             std::unique_lock<std::mutex> m_mutex;
@@ -72,6 +72,7 @@ private:
 protect:
     virtual void tickle();
     void run();
+    virtual void idle();
 private: 
     // 线程与任务   
     struct FiberAndThread {
@@ -108,7 +109,7 @@ private:
             func = nullptr;
             thread = -1;
         }
-        // 
+        // 设置当前线程调度器 
         void Scheduler::setThis() {
             tl_scheduler = this;
         }
@@ -118,7 +119,7 @@ private:
 private:
     std::mutex m_mutex;                         // 资源互斥锁
     std::vector<Thread::ptr> m_threads;         // 管理的线程
-    std::list<Fiber::ptr>;                      // 管理的协程
+    std::list<FiberAndThread> m_fibers;                      // 管理的协程
     Fiber::ptr m_rootFiber;                     // 主协程
     std::string m_name;                         // 线程名称
 protect:
