@@ -108,7 +108,7 @@ void Fiber::swapOut(){             // 当前协程->主协程
 void Fiber::SetThisFiber(Fiber* fiber){          // 设置当前线程的协程 (t_threadFiber)
     t_fiber = fiber;
 }
-Fiber::ptr Fiber::GetThisFiber(){                  // 获取当前协程 (若线程无主协程将自动创建子协程)
+Fiber::ptr Fiber::GetThisFiber(){                  // 获取当前协程 (若线程无主协程将自动创建主协程)
     if(t_fiber) {
         return t_fiber->shared_from_this();
     }

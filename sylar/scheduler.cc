@@ -5,18 +5,18 @@ namespace m_sylar {
     static thread_local Scheduler* tl_scheduler = nullptr;       // 线程内 调度器指针
     static thread_local Fiber* tl_fiber = nullptr;               // 线程内 主协程指针
 
-    Scheduler::Scheduler (size_t thread_num = 1, bool use_caller = true, const std::string& name)
+    Scheduler::Scheduler (const std::string& name, size_t thread_num = 1, bool use_caller = true)
     : m_idleThreadCount(thread_num), m_name(name) {
         M_SYLAR_ASSERT2(m_threadCount > 0, "Thread pool must have at least one thread\n");
         if(use_caller){
             m_sylar::Fiber::GetThisFiber();     
             --thread_num;  
-            M_SYLAR_ASSERT(GetThis()) == nullptr;
+            M_SYLAR_ASSERT(GetThis() == nullptr);
             tl_scheduler = this;
             m_rootFiber.reset(new Fiber(std::bind(&Scheduler::run, this)));
             m_sylar::Thread::setName(m_name); 
             tl_fiber = m_rootFiber.get();
-            m_rootThreadId = m_sylar::Thread::getId();
+            m_rootThreadId = m_sylar::getThreadId();
             m_threadIds.push_back(m_rootThreadId);
         }
         else{
@@ -25,53 +25,60 @@ namespace m_sylar {
         m_threadCount = thread_num; 
     }
 
-    virtual Scheduler::~Scheduler (){
-        M_SYLAR_ASSErt(m_stopping);
+    Scheduler::~Scheduler (){
+        M_SYLAR_ASSERT(m_stopping);
         if(GetThis() == this){
             tl_scheduler = nullptr;
         }
         
     }   
-  
-    std::string Scheduler::getName () {return m_name;}
 
-    static Scheduler::Scheduler* GetThis();        // 获取当前调度器
-    static Scheduler::Fiber* GetMainFiber();       // 获取主协程
-    // 线程池开始/停止
-    void Scheduler::start (){
-        std::unique_lock()
+
+    void Scheduler::setThis(){
+        tl_scheduler = this;
+    }
+    // 获取当前调度器
+    Scheduler* Scheduler::GetThis(){
+        return tl_scheduler;
+    }        
+    // 获取主协程
+    Fiber* Scheduler::GetMainFiber(){
+        return tl_fiber;
+    }    
+    // 线程池开始，新创建线程运行scheduler::run
+    void Scheduler::start() {
+        // std::unique_lock();
         m_stopping = false;
         M_SYLAR_ASSERT(m_threadIds.empty());
-
+        m_threads.resize(m_threadCount);
         m_threadIds.resize(m_threadCount);
         for (size_t i = 0; i < m_threadCount; i++){
-            m_threadIds[i].reset(new Thread(std::bind(&Scheduler::run. this), m_name + "_" + std::to_string(i)));
-            m_threadIds.push_back(m_threadIds[i]->getId());
+            m_threads[i].reset(new Thread(std::bind(&Scheduler::run, this), m_name + "_" + std::to_string(i)));
+            m_threadIds[i] = m_threads[i]->getId();
         }
-
     }
     // 线程池停止
-    void Scheduler::stop(){
+    void Scheduler::stop() {
         m_autoStop = true;
         if (m_rootFiber && m_threadCount == 0 
             && (m_rootFiber->getState() == Fiber::TERM 
             ||  m_rootFiber->getState() == Fiber::INIT )){
-            M_SYLAR_LOG_INFO(m_logger) << this << "stopped"; 
-            m_stoppig = true;
+            M_SYLAR_LOG_INFO(g_logger) << this << "stopped"; 
+            m_stopping = true;
             
             if (stopping()) {
-                return
+                return;
             }
         }
 
         bool return_on_this_fiber = false;
-        if(m_rootThread != -1){
+        if(m_rootThreadId != -1){
             // 线程是useCaller线程
-            M_SYLAR_ASSERT(getThis() == this);
+            M_SYLAR_ASSERT(Thread::getThis() == this);
             return_on_this_fiber = true;
         } 
         else {
-            M_SYLAR_ASSERT(getThis() == this);
+            M_SYLAR_ASSERT(Thread::getThis() == this);
         }
 
         m_stopping = true;
@@ -88,102 +95,108 @@ namespace m_sylar {
         if(stopping()) {
             return;
         }
-
+    }
+    // 线程运行函数
     void Scheduler::run() {
-        setThis();
-        if(m_sylar::getThreadId != m_rootThread) {
-            tl_fiber = Fiber::GetThis().get();          // 设置线程主协程
+        setThis();              // 设置线程调度器
+        if(m_sylar::getThreadId() != m_rootThreadId) {
+            tl_fiber = Fiber::GetThisFiber().get();          // 设置线程主协程
         }
         Fiber::ptr idle_fiber (new Fiber(std::bind(&Scheduler::idle, this)));
         Fiber::ptr cb_fiber;        // 函数任务协程
-        
-        FiberAndThread ft;
+        FiberAndThread ft;          
         while(true) {
             ft.reset();
             bool tickle_me = false;
-            std::unique_lock<std::mutex> lock (m_mutex);
-            auto it = m_fibers.begin();
-            while (it != m_fibers.end()) {
-                // 任务获取
-                if (it->thread != -1 && it->thread != m_sylar::getThreadId()) {
-                    // 任务线程被指定，通知其他线程
-                    ++it;
-                    tickle_me = true;
-                    continue;
-                }
-                
-                M_SYLAR_ASSERT(it->fiber || it->cb);
-                if(it->fiber && it->fiber->getState() == Fiber::EXEC) {
-                    // 任务结束 
-                    ++it;
-                    continue;
-                }
-                ft = *it;
-                m_fibers.erase(it++);
-
-                if(tickle_me()) {
-                    tickle();
-                }
-                
-                if(ft.fiber && (ft.fiber->getState() != Fiber::TERM
-                            || ft.fiber->getState() != Fiber::EXCEPT)) {
-                    // 行协程任务
-                    ++m_activeThreadCount;
-                    ft.fiber->swapIn();
-                    --m_activeThreadCount;
+            {
+                std::unique_lock<std::mutex> lock (m_mutex);
+                auto it = m_tasks.begin();
+                while (it != m_tasks.end()) {
+                    // 任务获取
+                    if (it->thread != -1 && it->thread != m_sylar::getThreadId()) {
+                        // 任务线程被指定，通知其他线程
+                        ++it;
+                        tickle_me = true;
+                        continue;
+                    }
                     
-                    // 结束单词运行后处理
-                    if(ft.fiber->getState() == Fiber::READY) {
-                        // 运行未完成
-                        schedule(ft.fiber);
+                    M_SYLAR_ASSERT2(it->fiber || it->cb, 
+                                    "the task is NULL");
+                    if(it->fiber && it->fiber->getState() == Fiber::EXEC) {
+                        // 结束的任务，跳过
+                        ++it;
+                        continue;
                     }
-                    else if (ft.fiber->getState() != Fiber::TERM 
-                            && ft.fiber->getState() != Fiber::EXCEPT){
-                        // 协程暂停
-                        ft.fiber->m_state = Fiber::HOLD;
-                    }
-                    ft.reset();
-                } else if(ft.cb) {
-                    // 函数任务
-                    if (cb_fiber) {
-                        cb_fiber->reset(&ft.cb);
-                    } 
-                    else {
-                        cb_fiber->reset(new Fiber(ft.cb));
-                    }
-                    ft.reset();
-                    ++m_activeThreadCount;
-                    cb_fiber->swapIn();
-                    --m_activeThreadCount();
-                    if(cb_fiber->getState() = Fiber::READY) {
+                    ft = *it;
+                    m_tasks.erase(it++);
+                    break;
+                }
+            }
+
+            if(tickle_me) {
+                tickle();
+            }
+            
+            if(ft.fiber && (ft.fiber->getState() != Fiber::TERM
+                        || ft.fiber->getState() != Fiber::EXCEPT)) {
+                // 协程任务
+                ++m_activeThreadCount;
+                ft.fiber->swapIn();
+                --m_activeThreadCount;
+                
+                // 结束单次运行后处理
+                if(ft.fiber->getState() == Fiber::READY) {
+                    // 运行未完成
+                    schedule(ft.fiber);
+                }
+                else if (ft.fiber->getState() != Fiber::TERM 
+                        && ft.fiber->getState() != Fiber::EXCEPT){
+                    // 协程暂停
+                    ft.fiber->m_state = Fiber::HOLD;
+                }
+                ft.reset();
+            } else if(ft.cb) {
+                // 函数任务
+                if (cb_fiber) {
+                    cb_fiber.reset(&ft.cb);
+                } 
+                else {
+                    cb_fiber.reset(new Fiber(ft.cb));
+                }
+                ft.reset();
+                ++m_activeThreadCount;
+                cb_fiber->swapIn();
+                --m_activeThreadCount();
+                if(cb_fiber->getState() == Fiber::READY) {
+                    while(cb_fiber->getState() == Fiber::READY){
                         schedule(cb_fiber);
-                        cb_fiber.reset();
                     }
-                    else if (cb_fiber->getState() == Fiber::EXCEPT 
-                            || cb_fiber->getState() == Fiber::TERM) {
-                        cb_fiber->reset(nullptr);
-                    }
-                    else {
-                        cb_fiber->m_state = Fiber::HOLD;
-                        cb_fiber.reset();
-                    }
+                    cb_fiber.reset();
+                }
+                else if (cb_fiber->getState() == Fiber::EXCEPT 
+                        || cb_fiber->getState() == Fiber::TERM) {
+                    cb_fiber->resetFunc(nullptr);
                 }
                 else {
-                    if(idle_fiber->getState() == Fiber::TERM) {
-                        break;
-                    }
-
-                    ++m_idleThreadCount;
-                    idle_fiber->swapIn();
-                    --m_idleThreadCount;
-                    if (idle_fiber->getState() != Fiber::EXCEPT 
-                        || idle_fiber->getState() != Fiber::TERM) {
-                        idle_fiber->m_state = Fiber::HOLD;
-                    }
+                    cb_fiber->m_state = Fiber::HOLD;
+                    cb_fiber.reset();
+                }
+            }
+            else {
+                // 当前线程空闲
+                if(idle_fiber->getState() == Fiber::TERM) {
+                    break;
+                }
+                ++m_idleThreadCount;
+                idle_fiber->swapIn();
+                --m_idleThreadCount;
+                if (idle_fiber->getState() != Fiber::EXCEPT 
+                    || idle_fiber->getState() != Fiber::TERM) {
+                    idle_fiber->m_state = Fiber::HOLD;
                 }
             }
         }
-        
+        // 线程池终止
+        // ...
     }
-
 }

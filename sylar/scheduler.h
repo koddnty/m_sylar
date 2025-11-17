@@ -18,17 +18,18 @@ public:
     using ptr = std::shared_ptr<Scheduler>;
 
     // use_caller 代表是否把当前线程加入scheduler
-    Scheduler (size_t thread_num = 1, bool use_caller = true, const std::string& name);
+    Scheduler (const std::string& name, size_t thread_num, bool use_caller);
     virtual ~Scheduler ();
 
     std::string getName () {return m_name;}
 
-    static Scheduler* GetThis();        // 获取当前调度器
+    static Scheduler* GetThis();        // 获取当前线程
     static Fiber* GetMainFiber();       // 获取主协程
     // 线程池开始/停止
     void start ();
     void stop ();
-
+    // 设置当前线程调度器 
+    void setThis();
     template <typename Fiber_or_Func>
     // 为shedular添加协程或者func
     void schedule (Fiber_or_Func f, int threadId = -1) {
@@ -48,7 +49,7 @@ public:
         {
             std::unique_lock<std::mutex> m_mutex;
             while (begin != end) {
-                need_tickle = schedulerNoLock((&*begin), threadId) || need_tickle;       // 第一次学到，新写法，get了
+                need_tickle = schedulerNoLock((&*begin), -1) || need_tickle;       // 第一次学到，新写法，get了
                 begin++;
             }
         }
@@ -61,44 +62,44 @@ private:
     // 单例添加函数，同时检测判断是否需要唤醒线程。
     template <typename Fiber_or_Func>
     bool schedulerNoLock (Fiber_or_Func f, int threadId) {
-        bool need_tickle = m_fibers.empty();
+        bool need_tickle = m_tasks.empty();
         FiberAndThread ft (f, threadId);
         if(ft.fiber || ft.func){
-            m_fibers.push_back(ft);
+            m_tasks.push_back(ft);
         }
         return need_tickle;
     }
 
-protect:
+protected:
     virtual void tickle();
     void run();
     virtual void idle();
 private: 
     // 线程与任务   
     struct FiberAndThread {
-        Fiber::ptr fiber;           // 任务协程
+        Fiber::ptr fiber;               // 任务协程
         std::function<void()> func;     // 任务函数 
-        int thread;             // 运行线程Id
+        int thread;                     // 运行线程Id
 
         FiberAndThread (Fiber::ptr f_ptr, int threadId) 
-            : fiber(f_ptr), threadId(thread) {
+            : fiber(f_ptr), thread(threadId) {
             
         }
             
         // 传入智能指针的地址，约定swap使其引用计数减一。
         FiberAndThread (Fiber::ptr* f_ptr, int threadId) 
-            : threadId(thread) {
+            : thread(threadId) {
                 fiber.swap(*f_ptr);
         }
 
         FiberAndThread (std::function<void()> f, int threadId) 
-            : func(f), threadId(thread) {
+            : func(f), thread(threadId) {
             
         }
 
         // 传入智能指针的地址，约定swap使其引用计数减一。
         FiberAndThread (std::function<void()>* f, int threadId) 
-            : threadId(thread) {
+            : thread(threadId) {
                 func.swap(*f);
         }
 
@@ -109,25 +110,20 @@ private:
             func = nullptr;
             thread = -1;
         }
-        // 设置当前线程调度器 
-        void Scheduler::setThis() {
-            tl_scheduler = this;
-        }
-
     };
 
 private:
     std::mutex m_mutex;                         // 资源互斥锁
     std::vector<Thread::ptr> m_threads;         // 管理的线程
-    std::list<FiberAndThread> m_fibers;                      // 管理的协程
+    std::list<FiberAndThread> m_tasks;                      // 管理的协程
     Fiber::ptr m_rootFiber;                     // 主协程
     std::string m_name;                         // 线程名称
-protect:
+protected:
     std::vector<int> m_threadIds;               // 线程id数组
     int m_rootThreadId = 0;                     // 主线程
-    size_t m_threadCount;                       // 总线程数
-    size_t m_activeThreadCount;                 // 活跃线程数
-    size_t m_idleThreadCount;                   // 空闲线程数
+    size_t m_threadCount = 0;                       // 总线程数
+    std::atomic<size_t> m_activeThreadCount = {0};                 // 活跃线程数
+    std::atomic<size_t> m_idleThreadCount = {0};                   // 空闲线程数
     bool m_stopping = true;                        // 主动停止
     bool m_autoStop = false;                        // 自动停止 
 };
