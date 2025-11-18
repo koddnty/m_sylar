@@ -5,5 +5,7 @@
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles/test_thread.dir
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles/test_util.dir
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles/test_fiber.dir
+/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles/test_scheduler.dir
+/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles/ock_test.dir
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles/edit_cache.dir
 /home/ls20241009/user/code/project/sylar_cp/m_sylar/build/CMakeFiles/rebuild_cache.dir
