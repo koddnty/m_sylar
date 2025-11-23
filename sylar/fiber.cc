@@ -1,6 +1,8 @@
 #include "fiber.h"
 
 namespace m_sylar {
+static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+
 static std::atomic<uint64_t> s_fiber_id {0};
 static std::atomic<uint64_t> s_fiber_count {0};
 
@@ -53,9 +55,10 @@ Fiber::Fiber(std::function<void()> cb, uint64_t stackSize)
 }
 Fiber::~Fiber(){
     --s_fiber_count;
-    std::cout << "~Fiber : " << m_fiberId << std::endl; 
+    std::cout << "~Fiber : " << m_fiberId << "threadId" << m_sylar::getThreadId() << std::endl; 
+    // M_SYLAR_LOG_INFO(g_logger) << "~Fiber : " << m_fiberId << "threadId" << m_sylar::getThreadId();
     if(m_stack) {
-        // 协程有栈 子协程
+        // 协程有栈子协程
         M_SYLAR_ASSERT(m_state == TERM || m_state == INIT);
 
         StackAllocator::Dealloc(m_stack, m_stackSize);
@@ -109,7 +112,7 @@ void Fiber::SetThisFiber(Fiber* fiber){          // 设置当前线程的协程 
     t_fiber = fiber;
 }
 Fiber::ptr Fiber::GetThisFiber(){                  // 获取当前协程 (若线程无主协程将自动创建主协程)
-    if(t_fiber) {
+    if(t_fiber != nullptr) {
         return t_fiber->shared_from_this();
     }
     // M_SYLAR_LOG_INFO(g_logger) << "just test g_logger";

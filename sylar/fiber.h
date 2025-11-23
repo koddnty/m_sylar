@@ -8,11 +8,12 @@
 #include <ucontext.h>
 #include <functional>
 
-static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+
 
 namespace m_sylar {
 
 class Fiber : public std::enable_shared_from_this<Fiber> {
+    friend class Scheduler;      // 调度器
 public:
     using ptr = std::shared_ptr<Fiber>;
     // 协程状态

@@ -5,9 +5,11 @@ namespace m_sylar {
     static thread_local Scheduler* tl_scheduler = nullptr;       // 线程内 调度器指针
     static thread_local Fiber* tl_fiber = nullptr;               // 线程内 主协程指针
 
-    Scheduler::Scheduler (const std::string& name, size_t thread_num = 1, bool use_caller = true)
-    : m_idleThreadCount(thread_num), m_name(name) {
-        M_SYLAR_ASSERT2(m_threadCount > 0, "Thread pool must have at least one thread\n");
+    static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+
+    Scheduler::Scheduler (const std::string& name, size_t thread_num, bool use_caller)
+    : m_name(name), m_idleThreadCount(thread_num){
+        M_SYLAR_ASSERT2(thread_num > 0, "Thread pool must have at least one thread\n");
         if(use_caller){
             m_sylar::Fiber::GetThisFiber();     
             --thread_num;  
@@ -33,7 +35,6 @@ namespace m_sylar {
         
     }   
 
-
     void Scheduler::setThis(){
         tl_scheduler = this;
     }
@@ -45,16 +46,16 @@ namespace m_sylar {
     Fiber* Scheduler::GetMainFiber(){
         return tl_fiber;
     }    
+
     // 线程池开始，新创建线程运行scheduler::run
     void Scheduler::start() {
         // std::unique_lock();
         m_stopping = false;
-        M_SYLAR_ASSERT(m_threadIds.empty());
+        M_SYLAR_ASSERT(m_threads.empty());
         m_threads.resize(m_threadCount);
-        m_threadIds.resize(m_threadCount);
         for (size_t i = 0; i < m_threadCount; i++){
             m_threads[i].reset(new Thread(std::bind(&Scheduler::run, this), m_name + "_" + std::to_string(i)));
-            m_threadIds[i] = m_threads[i]->getId();
+            m_threadIds.push_back(m_threads[i]->getId());
         }
     }
     // 线程池停止
@@ -71,14 +72,14 @@ namespace m_sylar {
             }
         }
 
-        bool return_on_this_fiber = false;
+        // bool return_on_this_fiber = false;
         if(m_rootThreadId != -1){
             // 线程是useCaller线程
-            M_SYLAR_ASSERT(Thread::getThis() == this);
-            return_on_this_fiber = true;
+            // M_SYLAR_ASSERT(Thread::getThis() == this);
+            // return_on_this_fiber = true;
         } 
         else {
-            M_SYLAR_ASSERT(Thread::getThis() == this);
+            // M_SYLAR_ASSERT(Thread::getThis() == this);
         }
 
         m_stopping = true;
@@ -120,7 +121,7 @@ namespace m_sylar {
                         continue;
                     }
                     
-                    M_SYLAR_ASSERT2(it->fiber || it->cb, 
+                    M_SYLAR_ASSERT2(it->fiber || it->func, 
                                     "the task is NULL");
                     if(it->fiber && it->fiber->getState() == Fiber::EXEC) {
                         // 结束的任务，跳过
@@ -155,18 +156,14 @@ namespace m_sylar {
                     ft.fiber->m_state = Fiber::HOLD;
                 }
                 ft.reset();
-            } else if(ft.cb) {
+            } 
+            else if(ft.func) {
                 // 函数任务
-                if (cb_fiber) {
-                    cb_fiber.reset(&ft.cb);
-                } 
-                else {
-                    cb_fiber.reset(new Fiber(ft.cb));
-                }
+                cb_fiber.reset(new Fiber(ft.func));
                 ft.reset();
                 ++m_activeThreadCount;
                 cb_fiber->swapIn();
-                --m_activeThreadCount();
+                --m_activeThreadCount;
                 if(cb_fiber->getState() == Fiber::READY) {
                     while(cb_fiber->getState() == Fiber::READY){
                         schedule(cb_fiber);
@@ -198,5 +195,23 @@ namespace m_sylar {
         }
         // 线程池终止
         // ...
+    }
+
+    // 特定线程唤醒函数
+    void Scheduler::tickle(){
+        M_SYLAR_LOG_INFO(g_logger) << "tickle others";
+    }
+    bool Scheduler::stopping(){
+        bool State;
+        {
+            std::unique_lock<std::mutex> lock (m_mutex);
+            State = m_autoStop && m_stopping && m_tasks.empty() && m_activeThreadCount == 0;
+        }
+        M_SYLAR_LOG_INFO(g_logger) << "thread pool stopping check : ";
+        return State;
+    }
+    // 空转函数，线程空闲时运行
+    void Scheduler::idle(){
+        M_SYLAR_LOG_INFO(g_logger) << "thread " << m_sylar::getThreadId() << "is idle";
     }
 }

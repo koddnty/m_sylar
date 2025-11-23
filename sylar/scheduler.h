@@ -8,7 +8,7 @@
 
 namespace m_sylar {
 
-static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+
 
 
 class Scheduler {
@@ -18,7 +18,7 @@ public:
     using ptr = std::shared_ptr<Scheduler>;
 
     // use_caller 代表是否把当前线程加入scheduler
-    Scheduler (const std::string& name, size_t thread_num, bool use_caller);
+    Scheduler (const std::string& name, size_t thread_num = 1, bool use_caller = true);
     virtual ~Scheduler ();
 
     std::string getName () {return m_name;}
@@ -73,6 +73,7 @@ private:
 protected:
     virtual void tickle();
     void run();
+    virtual bool stopping();
     virtual void idle();
 private: 
     // 线程与任务   

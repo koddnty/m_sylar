@@ -74,6 +74,16 @@ add_executable(test_fiber tests/test_fiber.cc)
 add_dependencies(test_fiber sylar )
 target_link_libraries(test_fiber sylar ${LIB_LIB})
 
+add_executable(test_scheduler tests/scheduler.cc)
+# force_redefine_macro_for_sources(test_yaml)
+add_dependencies(test_scheduler sylar )
+target_link_libraries(test_scheduler sylar ${LIB_LIB})
+
+add_executable(ock_test tests/ock_test.cc)
+# force_redefine_macro_for_sources(test_yaml)
+add_dependencies(ock_test sylar )
+target_link_libraries(ock_test sylar ${LIB_LIB})
+
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)
 # force_redefine_macro_for_sources(test_yaml)

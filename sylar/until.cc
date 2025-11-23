@@ -11,11 +11,22 @@ pid_t getThreadId (){
 
 std::string getThreadName (){
     // 获取当前线程，获取当前的threadName
-    return Thread::getThis()->getName();
+    std::string threadName = "normalThread";
+    auto thread = Thread::getThis();
+    threadName = thread->getName();
+    // if(thread){
+    //     threadName = thread->getName();
+    // }
+    return threadName;
 }
 
-uint32_t getFiberId(){
-    return Fiber::GetThisFiber()->getFiberId();
+uint64_t getFiberId(){
+    uint64_t fiberId = 0;
+    auto fiber = Fiber::GetThisFiber();
+    if(fiber){
+        fiberId = fiber->getFiberId();
+    }
+    return fiberId;
 }
    
 
