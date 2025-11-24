@@ -21,6 +21,7 @@ namespace m_sylar {
             tl_fiber = m_rootFiber.get();
             m_rootThreadId = m_sylar::getThreadId();
             m_threadIds.push_back(m_rootThreadId);
+            Fiber::SetThisFiber(m_rootFiber);
         }
         else{
             std::cout << "not use caller" << std::endl;
@@ -60,6 +61,7 @@ namespace m_sylar {
         }
         if(m_rootFiber) {
             // useCaller
+            Fiber::GetThisFiber();
             m_rootFiber->swapIn();
         }
     }
@@ -106,9 +108,12 @@ namespace m_sylar {
     // 线程运行函数
     void Scheduler::run() {
         setThis();              // 设置线程调度器
+        std::cout << m_sylar::getThreadId() << "  " << m_rootThreadId << std::endl;
         if(m_sylar::getThreadId() != m_rootThreadId) {
             tl_fiber = Fiber::GetThisFiber().get();          // 设置线程主协程
         }
+        Fiber::ptr idle_fiber(new Fiber(std::bind(&Scheduler::idle, this)));
+
         Fiber::ptr cb_fiber;        // 函数任务协程
         FiberAndThread ft;          
         while(true) {
@@ -188,7 +193,6 @@ namespace m_sylar {
             }
             else {
                 // 当前线程空闲
-                Fiber::ptr idle_fiber(new Fiber(std::bind(&Scheduler::idle, this)));
                 if(idle_fiber->getState() == Fiber::TERM) {
                     break;
                 }
@@ -225,6 +229,5 @@ namespace m_sylar {
     // 空转函数，线程空闲时运行
     void Scheduler::idle(){
         M_SYLAR_LOG_INFO(g_logger) << "thread " << m_sylar::getThreadId() << "is idle";
-        sleep(1);
     }
 }
