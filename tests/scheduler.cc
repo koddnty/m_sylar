@@ -6,10 +6,12 @@
 m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 int main(void) {
+    std::cout << "test scheduler" << m_sylar::getThreadId() << std::endl;
     std::string name = "first";
-    m_sylar::Scheduler sc(name, 1, true);
+    m_sylar::Scheduler sc(name, 1, false);
     sc.start();
+    sleep(5);
     sc.stop();
-    sleep(40);
+    sleep(5);
     return 0;
 }

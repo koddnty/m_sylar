@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "/home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/ock_test"
-  "/home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/ock_test.pdb"
+  "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/bin/ock_test"
+  "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/bin/ock_test.pdb"
   "CMakeFiles/ock_test.dir/tests/ock_test.cc.o"
   "CMakeFiles/ock_test.dir/tests/ock_test.cc.o.d"
 )

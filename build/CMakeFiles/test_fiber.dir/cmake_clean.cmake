@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "/home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_fiber"
-  "/home/ls20241009/user/code/project/sylar_cp/m_sylar/bin/test_fiber.pdb"
+  "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/bin/test_fiber"
+  "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/bin/test_fiber.pdb"
   "CMakeFiles/test_fiber.dir/tests/test_fiber.cc.o"
   "CMakeFiles/test_fiber.dir/tests/test_fiber.cc.o.d"
 )

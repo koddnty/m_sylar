@@ -1,7 +1,7 @@
 CMakeFiles/sylar.dir/sylar/thread.cc.o: \
- /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/thread.cc \
+ /home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc \
  /usr/include/stdc-predef.h \
- /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/thread.h \
+ /home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.h \
  /usr/include/c++/13/thread /usr/include/c++/13/bits/requires_hosted.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/os_defines.h \
@@ -89,7 +89,7 @@ CMakeFiles/sylar.dir/sylar/thread.cc.o: \
  /usr/include/linux/errno.h /usr/include/x86_64-linux-gnu/asm/errno.h \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
  /usr/include/x86_64-linux-gnu/bits/types/error_t.h \
- /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/until.h \
+ /home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/until.h \
  /usr/include/unistd.h /usr/include/x86_64-linux-gnu/bits/posix_opt.h \
  /usr/include/x86_64-linux-gnu/bits/environments.h \
  /usr/include/x86_64-linux-gnu/bits/confname.h \
@@ -213,8 +213,8 @@ CMakeFiles/sylar.dir/sylar/thread.cc.o: \
  /usr/include/c++/13/backward/auto_ptr.h \
  /usr/include/c++/13/pstl/glue_memory_defs.h \
  /usr/include/c++/13/pstl/execution_defs.h \
- /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/log.h \
- /home/ls20241009/user/code/project/sylar_cp/m_sylar/sylar/singleton.h \
+ /home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/log.h \
+ /home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/singleton.h \
  /usr/include/c++/13/iostream /usr/include/c++/13/list \
  /usr/include/c++/13/bits/stl_list.h /usr/include/c++/13/bits/list.tcc \
  /usr/include/c++/13/map /usr/include/c++/13/bits/stl_tree.h \

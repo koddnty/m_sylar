@@ -36,6 +36,7 @@ Fiber::Fiber() {
 // 特殊函数
 Fiber::Fiber(std::function<void()> cb, uint64_t stackSize)
     : m_fiberId(++s_fiber_id), m_cb(cb){
+    m_state = INIT;
     ++s_fiber_count;
     m_stackSize = (stackSize == 0) ? g_fiber_stack_size->getValue() : stackSize;
 
@@ -51,7 +52,7 @@ Fiber::Fiber(std::function<void()> cb, uint64_t stackSize)
     m_context.uc_stack.ss_size = m_stackSize;
     
     makecontext(&m_context, &Fiber::MainFunc, 0);
-
+    m_state = HOLD;
 }
 Fiber::~Fiber(){
     --s_fiber_count;

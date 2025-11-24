@@ -1,0 +1,13 @@
+1763965082	[INFO]	[system]	[thread:22980:first_0 fiber:1]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:227	thread 22980is idle
+1763965083	[INFO]	[system]	[thread:22980:first_0 fiber:2]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:227	thread 22980is idle
+1763965084	[INFO]	[system]	[thread:22980:first_0 fiber:3]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:227	thread 22980is idle
+1763965085	[INFO]	[system]	[thread:22980:first_0 fiber:4]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:227	thread 22980is idle
+1763965086	[INFO]	[system]	[thread:22980:first_0 fiber:5]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:227	thread 22980is idle
+1763965087	[INFO]	[system]	[thread:22979:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:214	tickle others
+1763965087	[INFO]	[system]	[thread:22979:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:222	thread pool stopping check : 
+1763965087	[INFO]	[system]	[thread:22980:first_0 fiber:6]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:227	thread 22980is idle
+1763965088	[INFO]	[system]	[thread:22980:first_0 fiber:7]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:227	thread 22980is idle
+1763965089	[INFO]	[system]	[thread:22980:first_0 fiber:8]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:227	thread 22980is idle
+1763965090	[INFO]	[system]	[thread:22980:first_0 fiber:9]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:227	thread 22980is idle
+1763965091	[INFO]	[system]	[thread:22980:first_0 fiber:10]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:227	thread 22980is idle
+1763965092	[INFO]	[system]	[thread:22979:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor

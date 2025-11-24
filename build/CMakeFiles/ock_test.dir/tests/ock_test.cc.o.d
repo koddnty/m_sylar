@@ -1,8 +1,8 @@
 CMakeFiles/ock_test.dir/tests/ock_test.cc.o: \
- /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/ock_test.cc \
+ /home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/ock_test.cc \
  /usr/include/stdc-predef.h \
- /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/../sylar/log.h \
- /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/../sylar/singleton.h \
+ /home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/../sylar/log.h \
+ /home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/../sylar/singleton.h \
  /usr/include/c++/13/memory /usr/include/c++/13/bits/memoryfwd.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/os_defines.h \
@@ -171,7 +171,7 @@ CMakeFiles/ock_test.dir/tests/ock_test.cc.o: \
  /usr/include/c++/13/bits/basic_ios.tcc \
  /usr/include/c++/13/bits/ostream.tcc /usr/include/c++/13/istream \
  /usr/include/c++/13/bits/istream.tcc \
- /home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/../sylar/until.h \
+ /home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/../sylar/until.h \
  /usr/include/c++/13/thread /usr/include/c++/13/bits/std_thread.h \
  /usr/include/c++/13/bits/this_thread_sleep.h \
  /usr/include/c++/13/bits/chrono.h /usr/include/c++/13/ratio \
