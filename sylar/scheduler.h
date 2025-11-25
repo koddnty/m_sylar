@@ -35,7 +35,7 @@ public:
     void schedule (Fiber_or_Func f, int threadId = -1) {
         bool need_tickle = false;
         {
-            std::mutex m_mutex;
+            std::unique_lock<std::mutex> m_mutex;
             need_tickle = schedulerNoLock(f, threadId);
         }
         if (need_tickle) {

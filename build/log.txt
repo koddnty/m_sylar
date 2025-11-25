@@ -1,0 +1,6 @@
+1763975510	[INFO]	[system]	[thread:48467:first_0 fiber:1]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 48467is idle
+1763975513	[INFO]	[system]	[thread:48466:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1763975513	[INFO]	[system]	[thread:48466:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1763975513	[INFO]	[system]	[thread:48466:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:221	thread pool stopping check : 
+1763975518	[INFO]	[system]	[thread:48466:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:23	main end
+1763975518	[INFO]	[system]	[thread:48466:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
