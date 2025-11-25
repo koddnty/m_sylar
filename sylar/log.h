@@ -20,7 +20,7 @@
                     , m_sylar::getThreadId(), m_sylar::getThreadName(), m_sylar::getFiberId() , time(0), logger, level))).getSS()
 
 #define M_SYLAR_LOG_UNKNOWN(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::UNKNOWN)
-#define M_SYLAR_LOG_DEGUB(logger)   M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::DEBUG)
+#define M_SYLAR_LOG_DEBUG(logger)   M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::DEBUG)
 #define M_SYLAR_LOG_INFO(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::INFO)
 #define M_SYLAR_LOG_WARN(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::WARN)
 #define M_SYLAR_LOG_ERROR(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::ERROR)

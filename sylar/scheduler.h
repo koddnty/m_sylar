@@ -71,7 +71,7 @@ private:
     }
 
 protected:
-    virtual void tickle();
+    virtual void tickle();          // 模块自定义tickle
     void run();
     virtual bool stopping();
     virtual void idle();

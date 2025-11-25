@@ -223,6 +223,6 @@ namespace m_sylar {
     }
     // 空转函数，线程空闲时运行
     void Scheduler::idle(){
-        M_SYLAR_LOG_INFO(g_logger) << "thread " << m_sylar::getThreadId() << "is idle";
+        M_SYLAR_LOG_DEBUG(g_logger) << "thread " << m_sylar::getThreadId() << "is idle";
     }
 }
