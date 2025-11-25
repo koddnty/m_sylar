@@ -5,7 +5,9 @@ project(m_sylar)
 # add_definitions(-D__FILE__="\"$(notdir $(abspath $<))\"")
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic  -fPIC -ggdb -std=c++17 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++17 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
+
+# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 include_directories(.)
 
@@ -15,6 +17,8 @@ set(LIB_SRC
     sylar/until.cc
     sylar/config.cc
     sylar/thread.cc
+    sylar/fiber.cc
+    sylar/scheduler.cc
     )
 
 set ( LIB_LIB
@@ -29,7 +33,16 @@ set ( LIB_LIB
 
 find_package(yaml-cpp REQUIRED)
 
-add_library(sylar SHARED ${LIB_SRC})
+# add_library(sylar SHARED ${LIB_SRC})
+add_library(sylar STATIC 
+    sylar/log.cc
+    sylar/until.cc
+    sylar/config.cc
+    sylar/thread.cc
+    sylar/fiber.cc
+    sylar/scheduler.cc
+)
+
 # force_redefine_macro_for_sources(sylar)
 add_executable(test tests/test.cc)
 add_dependencies(test sylar)
@@ -54,6 +67,29 @@ add_executable(test_util tests/test_util.cc)
 # force_redefine_macro_for_sources(test_yaml)
 add_dependencies(test_util sylar )
 target_link_libraries(test_util sylar ${LIB_LIB})
+
+# test_fiber
+add_executable(test_fiber tests/test_fiber.cc)
+# force_redefine_macro_for_sources(test_yaml)
+add_dependencies(test_fiber sylar )
+target_link_libraries(test_fiber sylar ${LIB_LIB})
+
+add_executable(test_scheduler tests/scheduler.cc)
+# force_redefine_macro_for_sources(test_yaml)
+add_dependencies(test_scheduler sylar )
+target_link_libraries(test_scheduler sylar ${LIB_LIB})
+
+add_executable(ock_test tests/ock_test.cc)
+# force_redefine_macro_for_sources(test_yaml)
+add_dependencies(ock_test sylar )
+target_link_libraries(ock_test sylar ${LIB_LIB})
+
+#/ test_scheduler
+#add_executable(test_scheduler tests/test_scheduler.cc)
+# force_redefine_macro_for_sources(test_yaml)
+#add_dependencies(test_scheduler sylar )
+#target_link_libraries(test_scheduler sylar ${LIB_LIB})
+
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

@@ -7,6 +7,14 @@ logs:
         level : DEBUG
       - type: StdoutLogAppender
         level: DEBUG
+  - name: system2
+    level: DEBUG
+    appenders:
+      - type: FileLogAppender
+        file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/log/system_log.txt
+        level : DEBUG
+      - type: StdoutLogAppender
+        level: DEBUG
   - name: config
     level: DEBUG
     # formatter: " logger 默认格式 %d%T%m%n"
@@ -27,6 +35,8 @@ logs:
         formatter : "testFormatter : [appender 自定义 %d%T%m]%n"
         level : ERROR
 
+settings:
+  runningPath : "/home/ls20241009/user/code/project/sylar_cp/m_sylar"
 
   
 

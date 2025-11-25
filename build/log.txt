@@ -1,0 +1,83 @@
+1764050685	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050685	[DEBUG]	[system]	[thread:40434:first_0 fiber:2]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40435:first_1 fiber:7]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40434:first_0 fiber:3]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40436:first_2 fiber:8]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40438:first_4 fiber:10]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40435:first_1 fiber:11]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40437:first_3 fiber:14]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40438:first_4 fiber:15]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40439:first_5 fiber:18]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40438:first_4 fiber:16]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40436:first_2 fiber:13]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40434:first_0 fiber:12]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40440:first_6 fiber:21]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40436:first_2 fiber:24]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40434:first_0 fiber:26]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[DEBUG]	[system]	[thread:40438:first_4 fiber:25]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[INFO]	[system]	[thread:40438:first_4 fiber:9]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40438is idle
+1764050685	[DEBUG]	[system]	[thread:40434:first_0 fiber:28]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[INFO]	[system]	[thread:40434:first_0 fiber:1]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40434is idle
+1764050685	[INFO]	[system]	[thread:40446:first_12 fiber:29]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40446is idle
+1764050685	[DEBUG]	[system]	[thread:40441:first_7 fiber:23]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[INFO]	[system]	[thread:40442:first_8 fiber:30]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40442is idle
+1764050685	[INFO]	[system]	[thread:40441:first_7 fiber:22]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40441is idle
+1764050685	[INFO]	[system]	[thread:40439:first_5 fiber:17]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40439is idle
+1764050685	[INFO]	[system]	[thread:40440:first_6 fiber:19]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40440is idle
+1764050685	[DEBUG]	[system]	[thread:40435:first_1 fiber:27]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[INFO]	[system]	[thread:40447:first_13 fiber:35]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40447is idle
+1764050685	[INFO]	[system]	[thread:40435:first_1 fiber:4]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40435is idle
+1764050685	[INFO]	[system]	[thread:40449:first_15 fiber:36]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40449is idle
+1764050685	[INFO]	[system]	[thread:40436:first_2 fiber:6]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40436is idle
+1764050685	[INFO]	[system]	[thread:40444:first_10 fiber:31]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40444is idle
+1764050685	[DEBUG]	[system]	[thread:40437:first_3 fiber:20]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:9	func is welld runed
+1764050685	[INFO]	[system]	[thread:40451:first_17 fiber:38]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40451is idle
+1764050685	[INFO]	[system]	[thread:40448:first_14 fiber:34]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40448is idle
+1764050685	[INFO]	[system]	[thread:40443:first_9 fiber:33]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40443is idle
+1764050685	[INFO]	[system]	[thread:40453:first_19 fiber:40]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40453is idle
+1764050685	[INFO]	[system]	[thread:40450:first_16 fiber:37]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40450is idle
+1764050685	[INFO]	[system]	[thread:40452:first_18 fiber:39]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40452is idle
+1764050685	[INFO]	[system]	[thread:40445:first_11 fiber:32]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40445is idle
+1764050685	[INFO]	[system]	[thread:40437:first_3 fiber:5]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:226	thread 40437is idle
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:213	tickle others
+1764050688	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/scheduler.cc:221	thread pool stopping check : 
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/tests/scheduler.cc:25	main end
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor
+1764050693	[INFO]	[system]	[thread:40433:UNKNOWN fiber:0]	/home/koddnty/user/projects/sylar/m_sylar/m_sylar/sylar/thread.cc:41	thread destructor

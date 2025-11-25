@@ -125,19 +125,18 @@ public:
     };
 };
 
-void test_class(){
-    std::cout << "11" << std::endl;
-    m_sylar::ConfigVar<std::string>::ptr test =
-        m_sylar::configManager::Lookup("logs.0.appender.0.file", std::string("HelloWorld"), "system port");
-    test->addListener(10, [test](const std::string& old_val, const std::string& new_val){
-        M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "reload [" << test->getName() << "] from [" << old_val << "] to [" << new_val << "]";
-    });
-    std::cout << test->getValue() << "  before" << std::endl;
-    YAML::Node root = YAML::LoadFile("/home/ls20241009/user/code/project/sylar_cp/m_sylar/conf/basic.yaml");
-    m_sylar::configManager::LoadFromYaml(root);
-    std::cout << test->getValue() << "  after" << std::endl;
-    m_sylar::configManager::Print_all_conf();
-}
+// void test_class(){
+//     std::cout << "11" << std::endl;
+
+//     test->addListener(10, [test](const std::string& old_val, const std::string& new_val){
+//         M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "reload [" << test->getName() << "] from [" << old_val << "] to [" << new_val << "]";
+//     });
+//     std::cout << test->getValue() << "  before" << std::endl;
+//     YAML::Node root = YAML::LoadFile("/home/ls20241009/user/code/project/sylar_cp/m_sylar/conf/basic.yaml");
+//     m_sylar::configManager::LoadFromYaml(root);
+//     std::cout << test->getValue() << "  after" << std::endl;
+//     m_sylar::configManager::Print_all_conf();
+// }
 
 void test_config_log () {
     // Logger::ptr logger(new Logger("ali"));
@@ -168,7 +167,7 @@ void test_config_log () {
     auto i2 = m_sylar::LoggerMgr::GetInstance()->getLogger("system2");
     // m_sylar::configManager::LoadFromYaml(loadYaml);
     // M_SYLAR_LOG_UNKNOWN(i) << "M_SYLAR_LOG_UNKNOWN";
-    // M_SYLAR_LOG_DEGUB(i)   << "M_SYLAR_LOG_DEGUB";
+    // M_SYLAR_LOG_DEBUG(i)   << "M_SYLAR_LOG_DEBUG";
     // M_SYLAR_LOG_INFO(i)    << "M_SYLAR_LOG_INFO";
     // M_SYLAR_LOG_WARN(i)    << "M_SYLAR_LOG_WARN";
     // M_SYLAR_LOG_ERROR(i)   << "M_SYLAR_LOG_ERROR";
@@ -176,7 +175,7 @@ void test_config_log () {
 
 
     M_SYLAR_LOG_UNKNOWN(i2) << "M_SYLAR_LOG_UNKNOWN";
-    M_SYLAR_LOG_DEGUB(i2) << "M_SYLAR_LOG_DEGUB";
+    M_SYLAR_LOG_DEBUG(i2) << "M_SYLAR_LOG_DEBUG";
     M_SYLAR_LOG_INFO(i2) << "M_SYLAR_LOG_INFO";
     M_SYLAR_LOG_WARN(i2) << "M_SYLAR_LOG_WARN";
     M_SYLAR_LOG_ERROR(i2) << "M_SYLAR_LOG_ERROR";
@@ -184,14 +183,14 @@ void test_config_log () {
 
     // i2->setFormatter("system 默认格式 %d%T%m%n");
     // M_SYLAR_LOG_UNKNOWN(i2) << "M_SYLAR_LOG_UNKNOWN";
-    // M_SYLAR_LOG_DEGUB(i2) << "M_SYLAR_LOG_DEGUB";
+    // M_SYLAR_LOG_DEBUG(i2) << "M_SYLAR_LOG_DEBUG";
     // M_SYLAR_LOG_INFO(i2) << "M_SYLAR_LOG_INFO";
     // M_SYLAR_LOG_WARN(i2) << "M_SYLAR_LOG_WARN";
     // M_SYLAR_LOG_ERROR(i2) << "M_SYLAR_LOG_ERROR";
     // M_SYLAR_LOG_FATAL(i2) << "M_SYLAR_LOG_FATAL";
 
     
-    // M_SYLAR_LOG_DEGUB(i2) << "system2_debug";
+    // M_SYLAR_LOG_DEBUG(i2) << "system2_debug";
     // m_sylar::configManager::Print_all_conf();
 
 }

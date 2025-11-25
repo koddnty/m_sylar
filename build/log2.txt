@@ -1,4 +1,0 @@
-1758810732	[INFO]	[config]	[thread:15432 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc:172	M_SYLAR_LOG_INFO
-1758810732	[WARN]	[config]	[thread:15432 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc:173	M_SYLAR_LOG_WARN
-1758810732	[ERROR]	[config]	[thread:15432 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc:174	M_SYLAR_LOG_ERROR
-1758810732	[FATAL]	[config]	[thread:15432 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_config.cc:175	M_SYLAR_LOG_FATAL

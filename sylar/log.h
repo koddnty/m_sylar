@@ -1,5 +1,6 @@
 #pragma once
 #include "singleton.h"
+#include "until.h"
 #include <string>
 #include <vector>
 #include <memory>
@@ -16,10 +17,10 @@
 #define M_SYLAR_LOG_EVENT(logger, level)\
     if(logger->getLevel() <= level) \
         m_sylar::LogEventWrap(m_sylar::LogEvent::ptr(new m_sylar::LogEvent(__FILE__, __LINE__, 0 \
-                    , m_sylar::getThreadId(), m_sylar::getFiberId() , time(0), logger, level))).getSS()
+                    , m_sylar::getThreadId(), m_sylar::getThreadName(), m_sylar::getFiberId() , time(0), logger, level))).getSS()
 
 #define M_SYLAR_LOG_UNKNOWN(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::UNKNOWN)
-#define M_SYLAR_LOG_DEGUB(logger)   M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::DEBUG)
+#define M_SYLAR_LOG_DEBUG(logger)   M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::DEBUG)
 #define M_SYLAR_LOG_INFO(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::INFO)
 #define M_SYLAR_LOG_WARN(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::WARN)
 #define M_SYLAR_LOG_ERROR(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::ERROR)
@@ -58,6 +59,7 @@ class LogEvent{
 public:
     typedef std::shared_ptr<LogEvent> ptr;
     LogEvent(const char* file, int32_t m_line, uint32_t elapse, uint32_t threadID,
+            const std::string& threadName,
             uint32_t fiberID, uint64_t timer, std::shared_ptr<Logger> logger,
             LogLevel::Level level);
 
@@ -68,6 +70,7 @@ public:
     uint32_t getFiberId() const{ return m_fiberID;}
     uint32_t getElapse() const{ return m_elapse;}
     uint32_t getTimer() const{ return m_timer;}
+    std::string getThreadName() const {return m_threadName;}
     std::shared_ptr<Logger> getLogger() const{ return m_logger;}
     std::string getContent () const{ return m_ss.str();}
     LogLevel::Level getLevel () const{ return m_level;}
@@ -78,6 +81,7 @@ private:
     int32_t m_line = 0;                  // 行号
     uint32_t m_elapse = 0;               // 程序启动时间（ms）
     uint32_t m_threadID = 0;             // 线程id
+    std::string m_threadName = "default";// 线程名称
     uint32_t m_fiberID = 0;              // 协程id
     uint64_t m_timer;                    // 时间戳
     std::stringstream m_ss;              // 日志格式
@@ -203,6 +207,10 @@ public:
     using ptr = std::shared_ptr<FileLogAppender>;
     void log(LogLevel::Level level, std::shared_ptr<Logger> logger, LogEvent::ptr event) override;
 
+    ~FileLogAppender() {
+        std::cout << "调用析构函数" << std::endl;
+        m_file_stream << std::flush;
+    }
     //文件打开函数，成功返回true
     bool reopen();
 private:
@@ -223,6 +231,7 @@ private:
     std::shared_mutex m_rwMutex;        //锁
     std::map<std::string, Logger::ptr> m_loggers;
     Logger::ptr m_root;             // 初始默认logger,有初始的StdoutAppender，formatter为默认值
+    Logger::ptr m_system;
 };
 
 typedef m_sylar::Singleton<LoggerManager> LoggerMgr;

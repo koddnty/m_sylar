@@ -1,4 +1,4 @@
-# Install script for directory: /home/ls20241009/user/code/project/sylar_cp/m_sylar
+# Install script for directory: /home/koddnty/user/projects/sylar/m_sylar/m_sylar
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/ls20241009/user/code/project/sylar_cp/m_sylar/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

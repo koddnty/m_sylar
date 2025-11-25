@@ -1,5 +1,6 @@
 #include "until.h"
 #include "log.h"
+#include "fiber.h"
 
 
 namespace m_sylar{
@@ -8,8 +9,24 @@ pid_t getThreadId (){
     return syscall(SYS_gettid);
 }
 
-uint32_t getFiberId(){
-    return 2;
+std::string getThreadName (){
+    // 获取当前线程，获取当前的threadName
+    std::string threadName = "normalThread";
+    auto thread = Thread::getThis();
+    threadName = thread->getName();
+    // if(thread){
+    //     threadName = thread->getName();
+    // }
+    return threadName;
+}
+
+uint64_t getFiberId(){
+    uint64_t fiberId = 0;
+    auto fiber = Fiber::GetThisFiber();
+    if(fiber){
+        fiberId = fiber->getFiberId();
+    }
+    return fiberId;
 }
    
 

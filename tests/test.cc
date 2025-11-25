@@ -19,7 +19,7 @@ int main(void){
     // cout << "Hello_m_sylar" << endl;
     
     // M_SYLAR_LOG_UNKNOWN(logger) << "我爱中国1";
-    // M_SYLAR_LOG_DEGUB(logger) << "我爱中国2";
+    // M_SYLAR_LOG_DEBUG(logger) << "我爱中国2";
     // M_SYLAR_LOG_WARN(logger) << "我爱中国33";
     // M_SYLAR_LOG_ERROR(logger) << "我爱中国44";
     // M_SYLAR_LOG_FATAL(logger) << "我爱中国55";

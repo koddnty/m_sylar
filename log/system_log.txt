@@ -1,0 +1,6 @@
+1760014165	[INFO]	[system]	[thread:21404:func_0 fiber:1]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:12	runner_fiber begin
+1760014165	[INFO]	[system]	[thread:21404:func_0 fiber:1]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:14	runner_fiber end
+1760014165	[INFO]	[system]	[thread:21405:func_1 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:12	runner_fiber begin
+1760014169	[INFO]	[system]	[thread:21405:func_1 fiber:2]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:14	runner_fiber end
+1760014169	[INFO]	[system]	[thread:21406:func_2 fiber:3]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:12	runner_fiber begin
+1760014169	[INFO]	[system]	[thread:21406:func_2 fiber:3]	/home/ls20241009/user/code/project/sylar_cp/m_sylar/tests/test_fiber.cc:14	runner_fiber end
