@@ -19,6 +19,7 @@ set(LIB_SRC
     sylar/thread.cc
     sylar/fiber.cc
     sylar/scheduler.cc
+    sylar/ioManager.cc
     )
 
 set ( LIB_LIB
@@ -41,6 +42,7 @@ add_library(sylar STATIC
     sylar/thread.cc
     sylar/fiber.cc
     sylar/scheduler.cc
+    sylar/ioManager.cc
 )
 
 # force_redefine_macro_for_sources(sylar)

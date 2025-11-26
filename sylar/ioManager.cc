@@ -1,0 +1,356 @@
+#include "ioManager.h"
+#include "config.h"
+#include "fiber.h"
+#include "log.h"
+#include "macro.h"
+#include "scheduler.h"
+#include <cassert>
+#include <cerrno>
+#include <cstddef>
+#include <cstring>
+#include <mutex>
+#include <shared_mutex>
+#include <sys/epoll.h>
+#include <ucontext.h>
+#include <unistd.h>
+#include <vector>
+#include <yaml-cpp/parser.h>
+
+namespace m_sylar
+{
+
+static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");   
+
+IOManager::IOManager(const std::string &name, size_t thread_num, bool use_caller)
+    : Scheduler(name, thread_num, use_caller)
+{
+    m_epollFd = epoll_create(1);
+    M_SYLAR_ASSERT(m_epollFd > 0);
+    
+    m_eventFd = eventfd(0, EFD_CLOEXEC | EFD_NONBLOCK);
+
+    epoll_event event;
+    memset(&event, 0, sizeof(epoll_event));
+    event.events = EPOLLIN | EPOLLET;
+    event.data.fd = m_eventFd;
+
+    int rt = epoll_ctl(m_epollFd, EPOLL_CTL_ADD, m_eventFd, &event);
+    M_SYLAR_ASSERT(rt == 0);
+
+    m_fdContexts.resize(64);
+
+    start();
+}
+
+IOManager::~IOManager()
+{
+    stop();
+    close(m_epollFd);
+    close(m_eventFd);
+    for (int i = 0; i < m_fdContexts.size(); i++) {
+        delete m_fdContexts[i];
+    }
+}
+
+IOManager::FdContext::EventContext& IOManager::FdContext::getEventContext(const Event& event)
+{
+        switch (event) {
+            case Event::NONE :
+                return read;
+            case Event::READ :
+                return read;
+            case Event::WRITE :
+                return write;
+            default:
+                M_SYLAR_ASSERT2(g_logger, 
+                    "event : " + event + "  is illegal");
+                throw std::invalid_argument("Invalid event type"); 
+        }
+}
+
+void IOManager::FdContext::resetEventContext(EventContext& event_ctx)
+{
+    event_ctx.scheduler = nullptr;
+    event_ctx.fiber.reset();
+    event_ctx.cb_func = nullptr;
+    return;
+}
+
+void IOManager::FdContext::trigger(Event& event)
+{
+    M_SYLAR_ASSERT(this->event & event);
+    this->event = (Event)(this->event & ~event);
+    EventContext& context = getEventContext(event);
+    M_SYLAR_ASSERT(!(context.cb_func && context.fiber));
+    if(context.cb_func)
+    {
+        Scheduler::GetThis()->schedule(&context.cb_func);
+    }
+    else if(context.fiber) 
+    {
+        Scheduler::GetThis()->schedule(&context.fiber);
+    }
+    context.scheduler = nullptr;
+    return;
+}
+
+// 0 success 1 retry -1 failed
+int IOManager::addEvent(int fd, Event event, std::function<void()> cb_func)
+{
+    // 获取fd_ctx指针
+    FdContext *fd_ctx = nullptr;
+    {
+        std::shared_lock<std::shared_mutex> w_lock(m_rwmutex);
+        if (m_fdContexts.size() > fd) {
+          fd_ctx = m_fdContexts[fd];
+        } else {
+          fdContextResize(m_fdContexts.size() * 2);
+          fd_ctx = m_fdContexts[fd];
+        }
+    }
+
+    // 注册fd到epoll
+    std::unique_lock<std::shared_mutex> w_lock(fd_ctx->rwmutex);
+    if(fd_ctx->event & event)
+    {
+        // 事件重复
+        M_SYLAR_LOG_ERROR(g_logger) << "fd = " << fd   
+            << "  event = " << event 
+            << "  fd_ctx->event = " << fd_ctx->event;
+        M_SYLAR_ASSERT(!(fd_ctx->event & event));
+    }
+
+    int option = (fd_ctx->event == Event::NONE) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+    epoll_event epevent;
+    epevent.events = EPOLLET | fd_ctx->event | event;
+    epevent.data.ptr = fd_ctx;
+
+    int rt = epoll_ctl(m_epollFd, option, fd, &epevent);
+    if(rt == -1) 
+    {
+        // epoll_ctl失败
+        M_SYLAR_LOG_ERROR(g_logger) << "fd:" << fd  
+            << " event:" << event
+            << " option: " << option
+            << " rt: " << rt
+            << " erron: " << strerror(errno);
+        return -1;
+    }
+    ++m_pendding_event_count;
+
+    // 设置EventContext
+    fd_ctx->event = (Event)(fd_ctx->event | event);
+    FdContext::EventContext& event_ctx = fd_ctx->getEventContext(event); 
+    M_SYLAR_ASSERT(!(event_ctx.scheduler || event_ctx.fiber || event_ctx.cb_func));
+
+    event_ctx.scheduler = Scheduler::GetThis();
+     
+    if(cb_func)
+    {
+        // 回调函数任务
+        event_ctx.cb_func.swap(cb_func);
+    } else{
+        // fiber协程任务
+        event_ctx.fiber = Fiber::GetThisFiber();
+        M_SYLAR_ASSERT(event_ctx.fiber->getState() = Fiber::EXEC);
+    }
+    return 0;
+}
+
+bool IOManager::delEvent(int fd, Event event)
+{
+    std::shared_lock<std::shared_mutex> r_lock (m_rwmutex);
+    // 找到fd对应event事件
+    if(m_fdContexts.size() < fd) 
+    {
+        M_SYLAR_LOG_WARN(g_logger) << "fd index out of FdContexts range";
+        return false;
+    }
+
+    FdContext* fd_ctx = m_fdContexts[fd];
+    r_lock.unlock();
+
+    // 检查事件关联性
+    std::unique_lock<std::shared_mutex> w_lock (fd_ctx->rwmutex);
+    if (!(fd_ctx->event & event)) {
+        // 事件无关联
+        return false;
+    }
+
+    // 为fd设置注册新的event
+    Event new_event = (Event)(fd_ctx->event & ~event);
+    int option = (new_event == 0) ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
+    epoll_event ep_event;
+    ep_event.events = option | EPOLLET;
+    ep_event.data.ptr = fd_ctx;
+
+    int rt = epoll_ctl(m_epollFd, option, fd, &ep_event);
+    if(rt == -1) 
+    {
+        // epoll_ctl失败
+        M_SYLAR_LOG_ERROR(g_logger) << "fd:" << fd  
+            << " event:" << event
+            << " option: " << option
+            << " rt: " << rt
+            << " erron: " << strerror(errno);
+        return false;
+    }
+    --m_pendding_event_count;
+    
+    // 新事件复写回FdContext
+    fd_ctx->event = new_event;
+    FdContext::EventContext& event_ctx = fd_ctx->getEventContext(event);
+    fd_ctx->resetEventContext(event_ctx);   
+    return true;
+}
+
+bool IOManager::cancelEvent(int fd, Event event)
+{
+    std::shared_lock<std::shared_mutex> r_lock (m_rwmutex);
+    // 找到fd对应event事件
+    if(m_fdContexts.size() < fd) 
+    {
+        M_SYLAR_LOG_WARN(g_logger) << "fd index out of FdContexts range";
+        return false;
+    }
+
+    FdContext* fd_ctx = m_fdContexts[fd];
+    r_lock.unlock();
+
+    // 检查事件关联性
+    std::unique_lock<std::shared_mutex> w_lock (fd_ctx->rwmutex);
+    if (!(fd_ctx->event & event)) {
+        // 事件无关联
+        return false;
+    }
+
+    // 为fd设置注册新的event
+    Event new_event = (Event)(fd_ctx->event & ~event);
+    int option = (new_event == 0) ? EPOLL_CTL_DEL : EPOLL_CTL_MOD;
+    epoll_event ep_event;
+    ep_event.events = option | EPOLLET;
+    ep_event.data.ptr = fd_ctx;
+
+    int rt = epoll_ctl(m_epollFd, option, fd, &ep_event);
+    if(rt == -1) 
+    {
+        // epoll_ctl失败
+        M_SYLAR_LOG_ERROR(g_logger) << "fd:" << fd  
+            << " event:" << event
+            << " option: " << option
+            << " rt: " << rt
+            << " erron: " << strerror(errno);
+        return false;
+    }
+
+    // 触发回调
+    fd_ctx->trigger(event);
+    --m_pendding_event_count;
+    
+    // 新事件复写回FdContext
+    fd_ctx->event = new_event;
+    FdContext::EventContext& event_ctx = fd_ctx->getEventContext(event);
+    fd_ctx->resetEventContext(event_ctx);   
+    return true;
+}
+
+bool IOManager::cancelAll(int fd)
+{
+    std::shared_lock<std::shared_mutex> r_lock (m_rwmutex);
+    // 找到fd对应event事件
+    if(m_fdContexts.size() < fd) 
+    {
+        M_SYLAR_LOG_WARN(g_logger) << "fd index out of FdContexts range";
+        return false;
+    }
+
+    FdContext* fd_ctx = m_fdContexts[fd];
+    r_lock.unlock();
+
+    // 检查事件关联性
+    std::unique_lock<std::shared_mutex> w_lock (fd_ctx->rwmutex);
+    if (!(fd_ctx->event)) {
+        // 无事件
+        return false;
+    }
+
+    // 为fd设置注册新的event
+    Event new_event = (Event)(0);
+    int option = EPOLL_CTL_DEL;
+    epoll_event ep_event;
+    ep_event.events = option;
+    ep_event.data.ptr = fd_ctx;
+
+    int rt = epoll_ctl(m_epollFd, option, fd, &ep_event);
+    if(rt == -1) 
+    {
+        // epoll_ctl失败
+        M_SYLAR_LOG_ERROR(g_logger) << "fd:" << fd  
+            << " event:" << ep_event.events
+            << " option: " << option
+            << " rt: " << rt
+            << " erron: " << strerror(errno);
+        return false;
+    }
+
+    // 触发回调 + 空事件复写回FdContext
+    if(fd_ctx->event & READ)
+    {
+        fd_ctx->trigger(READ);
+        --m_pendding_event_count;
+
+        FdContext::EventContext& event_ctx = fd_ctx->getEventContext(READ);
+        fd_ctx->resetEventContext(event_ctx);   
+    }
+    if(fd_ctx->event & WRITE)
+    {
+        fd_ctx->trigger(WRITE);
+        --m_pendding_event_count;
+
+        FdContext::EventContext& event_ctx = fd_ctx->getEventContext(WRITE);
+        fd_ctx->resetEventContext(event_ctx);   
+    }
+
+    M_SYLAR_ASSERT(fd_ctx->event = Event::NONE);        // 应当在trigger中实现
+    return true;    
+}
+
+size_t IOManager::fdContextResize(size_t size)
+{
+    try 
+    {
+        m_fdContexts.resize(size, nullptr);    
+    }
+    catch(const std::exception& e)
+    {
+        M_SYLAR_LOG_ERROR(g_logger) << e.what();
+    }
+    
+    for(size_t i = 0; i < m_fdContexts.size(); ++i)
+    {
+        if(m_fdContexts[i] == nullptr)
+        {
+            m_fdContexts[i] = new FdContext;
+            m_fdContexts[i]->fd = i;
+        }
+    }
+    return size;
+}
+
+IOManager* IOManager::getThis()
+{
+    return dynamic_cast<IOManager*>(Scheduler::GetThis());
+}
+
+void IOManager::tickle()
+{
+}
+
+bool IOManager::stopping()
+{
+}
+
+void IOManager::idle()
+{
+}
+}
