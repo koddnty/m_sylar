@@ -44,7 +44,7 @@ private:
 
         EventContext& getEventContext(const Event& event);      // 获取一个FdContext对应的EventContext(read或者write)
         void resetEventContext(EventContext& event_ctx);      // 重置EventContext
-        void trigger(Event& event);
+        void trigger(const Event& event);
 
         EventContext read;          // 读事件
         EventContext write;         // 写事件

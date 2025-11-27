@@ -7,10 +7,14 @@
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <shared_mutex>
 #include <sys/epoll.h>
+#include <sys/eventfd.h>
+#include <sys/types.h>
 #include <ucontext.h>
 #include <unistd.h>
 #include <vector>
@@ -76,7 +80,7 @@ void IOManager::FdContext::resetEventContext(EventContext& event_ctx)
     return;
 }
 
-void IOManager::FdContext::trigger(Event& event)
+void IOManager::FdContext::trigger(const Event& event)
 {
     M_SYLAR_ASSERT(this->event & event);
     this->event = (Event)(this->event & ~event);
@@ -304,7 +308,7 @@ bool IOManager::cancelAll(int fd)
     }
     if(fd_ctx->event & WRITE)
     {
-        fd_ctx->trigger(WRITE);
+        fd_ctx->trigger(Event::WRITE);
         --m_pendding_event_count;
 
         FdContext::EventContext& event_ctx = fd_ctx->getEventContext(WRITE);
@@ -344,13 +348,117 @@ IOManager* IOManager::getThis()
 
 void IOManager::tickle()
 {
+    if(!isHaveIdleThread())
+    {
+        return;
+    }
+    int64_t buffer = 1;
+    int rt = write(m_eventFd, &buffer, sizeof(int64_t));
+    M_SYLAR_ASSERT(rt > 0);
 }
 
 bool IOManager::stopping()
 {
+    return Scheduler::stopping()
+        && m_pendding_event_count == 0;
 }
 
 void IOManager::idle()
 {
+    const static int MAX_EVENT_NUM = 64;
+    static const int MAX_TIMEOUT = 5000;
+
+    epoll_event* ep_events = new epoll_event[MAX_EVENT_NUM];
+    std::shared_ptr<epoll_event> shared_events (ep_events, [](epoll_event* ep_event){
+        delete [] ep_event;
+    });
+
+    while(true) 
+    {
+        if(stopping())
+        {
+            M_SYLAR_LOG_INFO(g_logger) << "idle stopping";
+            break;
+        }
+
+        int rt = 0;
+        do {
+            epoll_wait(m_epollFd, ep_events, MAX_EVENT_NUM, MAX_TIMEOUT);
+            if (rt > 0 && errno == EINTR)
+            {}
+            else 
+            {
+                break;
+            }
+        } while(true);
+
+        // 处理事件
+        for(int i = 0; i < rt; i++)
+        {
+            epoll_event ep_event = ep_events[i];
+            if(ep_event.data.fd == m_eventFd)               // eventFd 存储用的fd，任务存储用对应Fdcontext
+            {
+                // eventFd 数据，唤醒，无任务
+                int64_t dummy = 0;
+                while(read(m_eventFd, &dummy, sizeof(int64_t)) > 0) ;
+                continue;
+            }   
+
+            FdContext* fd_ctx = (FdContext*)ep_event.data.ptr;
+            std::unique_lock<std::shared_mutex> w_lock (fd_ctx->rwmutex);
+            if(ep_event.events & (EPOLLERR | EPOLLHUP))
+            {
+                ep_event.events |= (EPOLLIN | EPOLLOUT);                //--------------------------?
+            }
+
+            uint32_t real_event = Event::NONE;
+            if(ep_event.events & EPOLLIN)
+            {
+                real_event |= Event::READ;
+            }
+            if(ep_event.events & EPOLLOUT)
+            {
+                real_event |= Event::READ;
+            }
+
+            if(real_event & fd_ctx->event)
+            {
+                // 空事件
+                continue;
+            }
+
+            // 写回剩余事件
+            int left_event = fd_ctx->event | ~real_event;
+            int op = (left_event == Event::NONE) ? EPOLL_CTL_DEL : EPOLL_CTL_ADD; 
+            ep_event.events = EPOLLET | left_event;
+            int rt = epoll_ctl(m_epollFd, op, fd_ctx->fd, &ep_event);
+            if(rt)
+            {
+                M_SYLAR_LOG_ERROR(g_logger) << "epoll_ctl (" << m_epollFd << ", "
+                    << op << ", " << fd_ctx->fd << ", " << ep_event.events << ") "
+                    << "errno : " << strerror(errno);
+                continue;
+            }
+            
+            // 触发事件
+            if(ep_event.events & Event::READ)
+            {
+                fd_ctx->trigger(Event::READ);
+                --m_pendding_event_count;
+            }
+            if(ep_event.events & Event::WRITE)
+            {
+                fd_ctx->trigger(Event::WRITE);
+                --m_pendding_event_count; 
+            }
+        }
+
+        // 回退至running， 下一轮任务检测
+        Fiber::ptr cur = Fiber::GetThisFiber();
+        auto raw_ptr = cur.get();
+        cur.reset();            // 防止长时间持有，导致无法析构
+        raw_ptr->swapOut();
+    }
 }
+
 }
