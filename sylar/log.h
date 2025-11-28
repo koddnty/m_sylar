@@ -208,7 +208,6 @@ public:
     void log(LogLevel::Level level, std::shared_ptr<Logger> logger, LogEvent::ptr event) override;
 
     ~FileLogAppender() {
-        std::cout << "调用析构函数" << std::endl;
         m_file_stream << std::flush;
     }
     //文件打开函数，成功返回true

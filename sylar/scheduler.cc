@@ -218,7 +218,7 @@ namespace m_sylar {
             std::unique_lock<std::mutex> lock (m_mutex);
             State = m_autoStop && m_stopping && m_tasks.empty() && m_activeThreadCount == 0;
         }
-        M_SYLAR_LOG_INFO(g_logger) << "thread pool stopping check : ";
+        // M_SYLAR_LOG_INFO(g_logger) << "thread pool stopping check : " << State;
         return State;
     }
     // 空转函数，线程空闲时运行

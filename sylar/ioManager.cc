@@ -1,5 +1,5 @@
 #include "ioManager.h"
-#include "config.h"
+#include "config.h" 
 #include "fiber.h"
 #include "log.h"
 #include "macro.h"
@@ -41,8 +41,7 @@ IOManager::IOManager(const std::string &name, size_t thread_num, bool use_caller
     int rt = epoll_ctl(m_epollFd, EPOLL_CTL_ADD, m_eventFd, &event);
     M_SYLAR_ASSERT(rt == 0);
 
-    m_fdContexts.resize(64);
-
+    fdContextResize(64);
     start();
 }
 
@@ -59,8 +58,6 @@ IOManager::~IOManager()
 IOManager::FdContext::EventContext& IOManager::FdContext::getEventContext(const Event& event)
 {
         switch (event) {
-            case Event::NONE :
-                return read;
             case Event::READ :
                 return read;
             case Event::WRITE :
@@ -108,12 +105,13 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb_func)
         if (m_fdContexts.size() > fd) {
           fd_ctx = m_fdContexts[fd];
         } else {
-          fdContextResize(m_fdContexts.size() * 2);
+          fdContextResize(((m_fdContexts.size() * 2 > fd) ? (m_fdContexts.size() * 2) : fd) );
           fd_ctx = m_fdContexts[fd];
         }
     }
 
     // 注册fd到epoll
+    M_SYLAR_ASSERT(fd_ctx != nullptr);
     std::unique_lock<std::shared_mutex> w_lock(fd_ctx->rwmutex);
     if(fd_ctx->event & event)
     {
@@ -145,7 +143,10 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb_func)
     // 设置EventContext
     fd_ctx->event = (Event)(fd_ctx->event | event);
     FdContext::EventContext& event_ctx = fd_ctx->getEventContext(event); 
-    M_SYLAR_ASSERT(!(event_ctx.scheduler || event_ctx.fiber || event_ctx.cb_func));
+    M_SYLAR_ASSERT(!(event_ctx.scheduler));
+    M_SYLAR_ASSERT(!(event_ctx.fiber));
+    M_SYLAR_ASSERT(!(event_ctx.cb_func));
+    // M_SYLAR_ASSERT(!(event_ctx.scheduler || event_ctx.fiber || event_ctx.cb_func));
 
     event_ctx.scheduler = Scheduler::GetThis();
      
@@ -330,6 +331,7 @@ size_t IOManager::fdContextResize(size_t size)
         M_SYLAR_LOG_ERROR(g_logger) << e.what();
     }
     
+    // 添加fd_ctx内容
     for(size_t i = 0; i < m_fdContexts.size(); ++i)
     {
         if(m_fdContexts[i] == nullptr)
@@ -352,6 +354,7 @@ void IOManager::tickle()
     {
         return;
     }
+    M_SYLAR_LOG_INFO(g_logger) << "tickle()";
     int64_t buffer = 1;
     int rt = write(m_eventFd, &buffer, sizeof(int64_t));
     M_SYLAR_ASSERT(rt > 0);
@@ -381,18 +384,27 @@ void IOManager::idle()
             break;
         }
 
+        // 持续监听io任务
         int rt = 0;
         do {
-            epoll_wait(m_epollFd, ep_events, MAX_EVENT_NUM, MAX_TIMEOUT);
-            if (rt > 0 && errno == EINTR)
-            {}
-            else 
+            rt = epoll_wait(m_epollFd, ep_events, MAX_EVENT_NUM, MAX_TIMEOUT);
+            if (rt >= 0)
             {
+                break;
+            }
+            else if (errno == EINTR)
+            {
+                // 被信号中断, 重试
+                continue;
+            }
+            else {
+                // 错误
+                M_SYLAR_LOG_ERROR(g_logger) << "epoll_wait failed, errno:" << errno << " error " << strerror(errno);
                 break;
             }
         } while(true);
 
-        // 处理事件
+        // 处理简单io任务
         for(int i = 0; i < rt; i++)
         {
             epoll_event ep_event = ep_events[i];
@@ -418,19 +430,20 @@ void IOManager::idle()
             }
             if(ep_event.events & EPOLLOUT)
             {
-                real_event |= Event::READ;
+                real_event |= Event::WRITE;
             }
 
-            if(real_event & fd_ctx->event)
+            if(!(real_event & fd_ctx->event))
             {
                 // 空事件
                 continue;
             }
 
             // 写回剩余事件
-            int left_event = fd_ctx->event | ~real_event;
-            int op = (left_event == Event::NONE) ? EPOLL_CTL_DEL : EPOLL_CTL_ADD; 
+            int left_event = fd_ctx->event & ~real_event;
+            int op = (left_event == Event::NONE) ? EPOLL_CTL_DEL : EPOLL_CTL_MOD; 
             ep_event.events = EPOLLET | left_event;
+            
             int rt = epoll_ctl(m_epollFd, op, fd_ctx->fd, &ep_event);
             if(rt)
             {
@@ -440,7 +453,7 @@ void IOManager::idle()
                 continue;
             }
             
-            // 触发事件
+            // 触发io任务回调事件
             if(ep_event.events & Event::READ)
             {
                 fd_ctx->trigger(Event::READ);
@@ -459,6 +472,7 @@ void IOManager::idle()
         cur.reset();            // 防止长时间持有，导致无法析构
         raw_ptr->swapOut();
     }
+
 }
 
 }

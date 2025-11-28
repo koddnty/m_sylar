@@ -7,5 +7,6 @@
 /home/koddnty/user/projects/sylar/m_sylar/m_sylar/build/CMakeFiles/test_fiber.dir
 /home/koddnty/user/projects/sylar/m_sylar/m_sylar/build/CMakeFiles/test_scheduler.dir
 /home/koddnty/user/projects/sylar/m_sylar/m_sylar/build/CMakeFiles/ock_test.dir
+/home/koddnty/user/projects/sylar/m_sylar/m_sylar/build/CMakeFiles/test_iomanager.dir
 /home/koddnty/user/projects/sylar/m_sylar/m_sylar/build/CMakeFiles/edit_cache.dir
 /home/koddnty/user/projects/sylar/m_sylar/m_sylar/build/CMakeFiles/rebuild_cache.dir
