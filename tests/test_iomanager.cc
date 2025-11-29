@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fcntl.h>
 #include <netinet/in.h>
+#include <ostream>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -14,13 +15,13 @@ m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 void test1_fiber1()
 {
     M_SYLAR_LOG_INFO(g_logger) << "test1_fiber1";
-    std::cout << "test1_fiber1";
+    std::cout << "test1_fiber1" << std::endl;
 }
 
 void test1()
 {
-    m_sylar::IOManager iom ("test_ioManager");
-    iom.schedule(test1_fiber1);
+    m_sylar::IOManager iom ("test_ioManager", 20);
+    // iom.schedule(test1_fiber1);
     // sleep(3);
     // M_SYLAR_LOG_INFO(g_logger) << "开始批量添加事件";
     // for(int i = 0; i < 1; i++){
@@ -36,6 +37,7 @@ void test1()
         return;
     }
     
+    M_SYLAR_LOG_DEBUG(g_logger) << "socketfd = " << sockfd;
     sockaddr_in server_addr{};
     server_addr.sin_family = AF_INET; 
     server_addr.sin_port = htons(80);
@@ -49,30 +51,35 @@ void test1()
         M_SYLAR_LOG_INFO(g_logger) << "检测到一个读事件， fd:" << sockfd;
     });
 
+    // sleep(5);
+
     iom.addEvent(sockfd, m_sylar::IOManager::Event::WRITE, [sockfd](){
         M_SYLAR_LOG_INFO(g_logger) << "检测到一个写事件， fd:" << sockfd;
-        close(sockfd);
     });
 
-    M_SYLAR_LOG_INFO(g_logger) << " events添加完成";
+    // M_SYLAR_LOG_INFO(g_logger) << " events添加完成";
 
+    M_SYLAR_LOG_INFO(g_logger) << " 连接开始";
     int ct_rt = connect(sockfd, (sockaddr*) &server_addr, sizeof(server_addr));
     M_SYLAR_LOG_INFO(g_logger) << " 连接完毕";
 
-    const std::string message = "helloWorld\n";
+    // const std::string message = "helloWorld\n";
     // ssize_t message_len = send(sockfd, message.c_str(), message.length(), 0);
     // M_SYLAR_LOG_INFO(g_logger) << " 信息发送完毕";
 
     std::cout << "睡了" << std::endl;
-    sleep(3);
+    sleep(2);
     iom.stop();
     return;
 }   
 
-void client()
+void test2()
 {
-
-
+    m_sylar::IOManager iom ("test_ioManager", 2);
+    sleep(1);
+    iom.schedule(test1_fiber1);
+    sleep(2);
+    iom.stop();
 }
 
 int main(void) 

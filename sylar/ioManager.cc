@@ -41,6 +41,7 @@ IOManager::IOManager(const std::string &name, size_t thread_num, bool use_caller
     int rt = epoll_ctl(m_epollFd, EPOLL_CTL_ADD, m_eventFd, &event);
     M_SYLAR_ASSERT(rt == 0);
 
+    M_SYLAR_LOG_DEBUG(g_logger) << "evnetFd = " << m_eventFd;
     fdContextResize(64);
     start();
 }
@@ -49,8 +50,9 @@ IOManager::~IOManager()
 {
     stop();
     close(m_epollFd);
+    // M_SYLAR_LOG_DEBUG(g_logger) << "close eventFd";
     close(m_eventFd);
-    for (int i = 0; i < m_fdContexts.size(); i++) {
+    for (size_t i = 0; i < m_fdContexts.size(); i++) {
         delete m_fdContexts[i];
     }
 }
@@ -102,10 +104,10 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb_func)
     FdContext *fd_ctx = nullptr;
     {
         std::shared_lock<std::shared_mutex> w_lock(m_rwmutex);
-        if (m_fdContexts.size() > fd) {
+        if (m_fdContexts.size() > (size_t)fd) {
           fd_ctx = m_fdContexts[fd];
         } else {
-          fdContextResize(((m_fdContexts.size() * 2 > fd) ? (m_fdContexts.size() * 2) : fd) );
+          fdContextResize(((m_fdContexts.size() * 2 > (size_t)fd) ? (m_fdContexts.size() * 2) : fd) );
           fd_ctx = m_fdContexts[fd];
         }
     }
@@ -157,7 +159,7 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb_func)
     } else{
         // fiber协程任务
         event_ctx.fiber = Fiber::GetThisFiber();
-        M_SYLAR_ASSERT(event_ctx.fiber->getState() = Fiber::EXEC);
+        M_SYLAR_ASSERT(event_ctx.fiber->getState() == Fiber::EXEC);
     }
     return 0;
 }
@@ -166,7 +168,7 @@ bool IOManager::delEvent(int fd, Event event)
 {
     std::shared_lock<std::shared_mutex> r_lock (m_rwmutex);
     // 找到fd对应event事件
-    if(m_fdContexts.size() < fd) 
+    if(m_fdContexts.size() < (size_t)fd) 
     {
         M_SYLAR_LOG_WARN(g_logger) << "fd index out of FdContexts range";
         return false;
@@ -213,7 +215,7 @@ bool IOManager::cancelEvent(int fd, Event event)
 {
     std::shared_lock<std::shared_mutex> r_lock (m_rwmutex);
     // 找到fd对应event事件
-    if(m_fdContexts.size() < fd) 
+    if(m_fdContexts.size() < (size_t)fd) 
     {
         M_SYLAR_LOG_WARN(g_logger) << "fd index out of FdContexts range";
         return false;
@@ -263,7 +265,7 @@ bool IOManager::cancelAll(int fd)
 {
     std::shared_lock<std::shared_mutex> r_lock (m_rwmutex);
     // 找到fd对应event事件
-    if(m_fdContexts.size() < fd) 
+    if(m_fdContexts.size() < (size_t)fd) 
     {
         M_SYLAR_LOG_WARN(g_logger) << "fd index out of FdContexts range";
         return false;
@@ -280,7 +282,6 @@ bool IOManager::cancelAll(int fd)
     }
 
     // 为fd设置注册新的event
-    Event new_event = (Event)(0);
     int option = EPOLL_CTL_DEL;
     epoll_event ep_event;
     ep_event.events = option;
@@ -316,7 +317,7 @@ bool IOManager::cancelAll(int fd)
         fd_ctx->resetEventContext(event_ctx);   
     }
 
-    M_SYLAR_ASSERT(fd_ctx->event = Event::NONE);        // 应当在trigger中实现
+    M_SYLAR_ASSERT(fd_ctx->event == Event::NONE);        // 应当在trigger中实现
     return true;    
 }
 
@@ -354,7 +355,7 @@ void IOManager::tickle()
     {
         return;
     }
-    M_SYLAR_LOG_INFO(g_logger) << "tickle()";
+    // M_SYLAR_LOG_INFO(g_logger) << "iomanager tickle()";
     int64_t buffer = 1;
     int rt = write(m_eventFd, &buffer, sizeof(int64_t));
     M_SYLAR_ASSERT(rt > 0);
@@ -390,10 +391,12 @@ void IOManager::idle()
             rt = epoll_wait(m_epollFd, ep_events, MAX_EVENT_NUM, MAX_TIMEOUT);
             if (rt >= 0)
             {
+                // M_SYLAR_LOG_DEBUG(g_logger) << "new event, rt=" << rt;
                 break;
             }
             else if (errno == EINTR)
             {
+                M_SYLAR_LOG_DEBUG(g_logger) << "thread is stopped, retry rt=" << rt;
                 // 被信号中断, 重试
                 continue;
             }
@@ -411,6 +414,7 @@ void IOManager::idle()
             if(ep_event.data.fd == m_eventFd)               // eventFd 存储用的fd，任务存储用对应Fdcontext
             {
                 // eventFd 数据，唤醒，无任务
+                // M_SYLAR_LOG_DEBUG(g_logger) << "message form eventFd, new task";
                 int64_t dummy = 0;
                 while(read(m_eventFd, &dummy, sizeof(int64_t)) > 0) ;
                 continue;
@@ -418,10 +422,11 @@ void IOManager::idle()
 
             FdContext* fd_ctx = (FdContext*)ep_event.data.ptr;
             std::unique_lock<std::shared_mutex> w_lock (fd_ctx->rwmutex);
-            if(ep_event.events & (EPOLLERR | EPOLLHUP))
-            {
-                ep_event.events |= (EPOLLIN | EPOLLOUT);                //--------------------------?
-            }
+            // if(ep_event.events & (EPOLLERR | EPOLLHUP))
+            // {
+                
+            //     break;
+            // }
 
             uint32_t real_event = Event::NONE;
             if(ep_event.events & EPOLLIN)
@@ -440,6 +445,9 @@ void IOManager::idle()
             }
 
             // 写回剩余事件
+            // M_SYLAR_LOG_DEBUG(g_logger) << "epoll    task:" << real_event;
+            // M_SYLAR_LOG_DEBUG(g_logger) << "registed task:" << fd_ctx->event;
+            // M_SYLAR_LOG_DEBUG(g_logger) << "task fd:" << fd_ctx->fd;
             int left_event = fd_ctx->event & ~real_event;
             int op = (left_event == Event::NONE) ? EPOLL_CTL_DEL : EPOLL_CTL_MOD; 
             ep_event.events = EPOLLET | left_event;
@@ -454,12 +462,12 @@ void IOManager::idle()
             }
             
             // 触发io任务回调事件
-            if(ep_event.events & Event::READ)
+            if((real_event & fd_ctx->event) & Event::READ)
             {
                 fd_ctx->trigger(Event::READ);
                 --m_pendding_event_count;
             }
-            if(ep_event.events & Event::WRITE)
+            if((real_event & fd_ctx->event) & Event::WRITE)
             {
                 fd_ctx->trigger(Event::WRITE);
                 --m_pendding_event_count; 
