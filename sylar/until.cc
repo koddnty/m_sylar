@@ -59,5 +59,20 @@ std::string BackTraceToStr(int size, int skip, const std::string& prefix){
     return ss.str();
 }
 
+
+uint64_t GetCurrentTime_ms()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}
+
+uint64_t GetCurrentTime_us()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * 1000000 + tv.tv_usec; 
+}
+
 }
 

@@ -8,6 +8,7 @@
 #include <execinfo.h>
 #include <filesystem>
 #include <string>
+#include <sys/time.h>
 
 namespace m_sylar{
 
@@ -26,4 +27,11 @@ inline std::string getExecutableDir() {
     std::filesystem::path exe_path = std::filesystem::read_symlink("/proc/self/exe");
     return exe_path.parent_path().parent_path().string();
 }
+
+
+// 时间获取函数
+uint64_t GetCurrentTime_ms();       // 获取ms级
+
+uint64_t GetCurrentTime_us();       // 获取us级
+
 }
