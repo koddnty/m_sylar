@@ -8,9 +8,10 @@
 #include <sys/types.h>
 #include "allHeader.h"
 #include "log.h"
+#include "ioManager.h"
 
 
-namespace m_sylar 
+namespace m_sylar_o 
 {
     
 class TimeManager;
@@ -35,9 +36,8 @@ private:
     bool m_recurring = false;               // 是否循环  (否)
     bool m_cycleMs;                         // 循环时间 
     bool m_nextTime;                        // 下一次执行时间
-    std::function<void()> m_cb;           // 定时器回调
+    std::function<void()> m_cb;             // 定时器回调
     TimeManager* m_manager = nullptr;   
-
 };
 
 
@@ -61,8 +61,4 @@ private:
     std::set<Timer::ptr, Timer::Compare> m_times;       // 定时器合集
 
 };
-
-
-
-
 }

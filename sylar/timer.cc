@@ -4,7 +4,7 @@
 
 m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
-namespace m_sylar
+namespace m_sylar_o
 {
 
 bool Timer::Compare::operator()(const Timer::ptr& lhs, const Timer::ptr& rhs) const

@@ -13,7 +13,8 @@ ltmain.sh
 *.pb.h
 *.pb.cc
 *.rl.cc
-build/*
+build/
+bin/
 aclocal.m4
 autom4te.cache
 config.h.in
