@@ -51,6 +51,8 @@ private:
     
     static void default_condition_cb() { return; }
 
+    void re_enroll();
+
 private:
     int m_timeFd;                               // timefd
     bool m_is_cycle;                            // 是否循环
@@ -77,21 +79,23 @@ public:
     TimeManager(IOManager::ptr iom);
     ~TimeManager();
 
-    void addTimer(uint64_t intervalTime, bool is_cycle, 
+    int addTimer(uint64_t intervalTime, bool is_cycle, 
         std::shared_ptr<TimeManager> manager,
         std::function<void()> main_cb);                                // 添加普通定时器
     
-    void addConditionTimer(uint64_t intervalTime, bool is_cycle, 
+    int addConditionTimer(uint64_t intervalTime, bool is_cycle, 
         std::shared_ptr<TimeManager> manager,
         std::function<void()> main_cb,
         std::function<bool()> condition,
         std::function<void()> condition_cb);                        // 添加条件定时器
 
     void cancelTimer(Timer::ptr timer);                             // 取消定时器
+    void cancelTimer(int timerFd);
 
 private:
     std::shared_mutex m_rwMutex;
-    std::set<Timer::ptr, Timer::Compare> m_timers;                  // 定时器合集
+    // std::set<Timer::ptr, Timer::Compare> m_timers;                  // 定时器合集
+    std::map<int, Timer::ptr> m_timersMap;                           
     IOManager::ptr m_iom;                                           // 定时器管理类
 };
 

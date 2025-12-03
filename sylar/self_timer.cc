@@ -55,9 +55,17 @@ Timer::Timer(uint64_t intervalTime, bool is_cycle,
     {
         m_condition = default_condition;
     }
+    else 
+    {
+        m_condition = condition;
+    }
     if(condition_cb == nullptr)
     {
         m_condition_cb = default_condition_cb;
+    }
+    else
+    {
+        m_condition_cb = condition_cb;
     }
 }
 
@@ -97,6 +105,9 @@ void Timer::enrollToManager()
 
 void Timer::runner()
 {
+    // 取出数据
+    uint64_t expirations = 0;
+    read(m_timeFd, &expirations, sizeof(expirations));
     // 执行回调
     if(m_condition())
     {
@@ -112,6 +123,15 @@ void Timer::runner()
     {
         m_manager->cancelTimer(shared_from_this());
     }
+    else
+    {
+        re_enroll();
+    }
+}
+
+void Timer::re_enroll()
+{
+    m_manager->m_iom->addEvent(m_timeFd, IOManager::Event::READ, std::bind(&Timer::runner, shared_from_this())); 
 }
 
 
@@ -128,19 +148,21 @@ TimeManager::~TimeManager()
 }
 
 
-void TimeManager::addTimer(uint64_t intervalTime, bool is_cycle, 
+int TimeManager::addTimer(uint64_t intervalTime, bool is_cycle, 
         std::shared_ptr<TimeManager> manager,
         std::function<void()> main_cb)
 {
     Timer::ptr new_timer (new Timer(intervalTime, is_cycle, shared_from_this(), main_cb));
 
     std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
-    m_timers.insert(new_timer);
+    // M_SYLAR_LOG_DEBUG(g_logger) << "add in timerFd map : timerFd=" <<  new_timer->m_timeFd;
     new_timer->enrollToManager();
+    m_timersMap[new_timer->m_timeFd] = new_timer;
+    return new_timer->m_timeFd;
 }               
 
 
-void TimeManager::addConditionTimer(uint64_t intervalTime, bool is_cycle, 
+int TimeManager::addConditionTimer(uint64_t intervalTime, bool is_cycle, 
     std::shared_ptr<TimeManager> manager,
     std::function<void()> main_cb,
     std::function<bool()> condition,
@@ -150,24 +172,49 @@ void TimeManager::addConditionTimer(uint64_t intervalTime, bool is_cycle,
                                         , main_cb, condition, condition_cb));
 
     std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
-    m_timers.insert(new_timer);
+    // M_SYLAR_LOG_DEBUG(g_logger) << "add in timerFd map : timerFd=" <<  new_timer->m_timeFd;
     new_timer->enrollToManager();
+    m_timersMap[new_timer->m_timeFd] = new_timer;
+    return new_timer->m_timeFd;
 }
 
 
 void TimeManager::cancelTimer(Timer::ptr timer)
 {
-    m_iom->delEvent(timer->m_timeFd, IOManager::Event::READ);
+    m_iom->cancelAll(timer->m_timeFd);
 
     std::unique_lock<std::shared_mutex> w_lock(m_rwMutex);
-    auto it = m_timers.erase(timer);
-
-    if(!it)
+    
+    auto it = m_timersMap.find(timer->m_timeFd);
+    if(it != m_timersMap.end())
+    {
+        m_timersMap.erase(it);
+    }
+    else
     {
         M_SYLAR_LOG_ERROR(g_logger) << "timer is not in time manager" 
             << "timerFd=" << timer->m_timeFd;
     }
 }
+
+void TimeManager::cancelTimer(int timerFd)
+{
+    m_iom->cancelAll(timerFd);
+
+    std::unique_lock<std::shared_mutex> w_lock(m_rwMutex);
+    
+    auto it = m_timersMap.find(timerFd);
+    if(it != m_timersMap.end())
+    {
+        m_timersMap.erase(it);
+    }
+    else
+    {
+        M_SYLAR_LOG_ERROR(g_logger) << "timer is not in time manager" 
+            << "timerFd=" << timerFd;
+    }
+}
+
 
 
 }

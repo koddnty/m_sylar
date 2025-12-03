@@ -57,12 +57,17 @@ void test1()
         M_SYLAR_LOG_INFO(g_logger) << "检测到一个写事件， fd:" << sockfd;
     });
 
+
     // M_SYLAR_LOG_INFO(g_logger) << " events添加完成";
 
     M_SYLAR_LOG_INFO(g_logger) << " 连接开始";
     int ct_rt = connect(sockfd, (sockaddr*) &server_addr, sizeof(server_addr));
     M_SYLAR_LOG_INFO(g_logger) << " 连接完毕";
 
+
+    // iom.addEvent(sockfd, m_sylar::IOManager::Event::WRITE, [sockfd](){
+    //     M_SYLAR_LOG_INFO(g_logger) << "检测到一个写事件， fd:" << sockfd;
+    // });
     // const std::string message = "helloWorld\n";
     // ssize_t message_len = send(sockfd, message.c_str(), message.length(), 0);
     // M_SYLAR_LOG_INFO(g_logger) << " 信息发送完毕";
