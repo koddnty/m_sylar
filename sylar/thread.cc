@@ -38,7 +38,7 @@ Thread::Thread(std::function<void()> cb, const std::string& name = "UNKNOWN"){
 
 Thread::~Thread () {
     pthread_detach(m_thread);
-    M_SYLAR_LOG_INFO(g_logger) << "thread destructor";
+    // M_SYLAR_LOG_INFO(g_logger) << "thread destructor";
 }
 
 

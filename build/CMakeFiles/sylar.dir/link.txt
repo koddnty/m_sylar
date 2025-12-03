@@ -1,2 +1,0 @@
-/usr/bin/ar qc /home/koddnty/user/projects/sylar/m_sylar/m_sylar/lib/libsylar.a CMakeFiles/sylar.dir/sylar/log.cc.o CMakeFiles/sylar.dir/sylar/until.cc.o CMakeFiles/sylar.dir/sylar/config.cc.o CMakeFiles/sylar.dir/sylar/thread.cc.o CMakeFiles/sylar.dir/sylar/fiber.cc.o CMakeFiles/sylar.dir/sylar/scheduler.cc.o
-/usr/bin/ranlib /home/koddnty/user/projects/sylar/m_sylar/m_sylar/lib/libsylar.a

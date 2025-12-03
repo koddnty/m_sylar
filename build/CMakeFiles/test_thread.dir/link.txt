@@ -1,1 +1,0 @@
-/usr/bin/c++  -rdynamic -g -fPIC -ggdb -std=c++17 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations CMakeFiles/test_thread.dir/tests/test_thread.cc.o -o /home/koddnty/user/projects/sylar/m_sylar/m_sylar/bin/test_thread  /home/koddnty/user/projects/sylar/m_sylar/m_sylar/lib/libsylar.a -lpthread /usr/local/lib/libyaml-cpp.a 

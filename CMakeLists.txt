@@ -19,6 +19,8 @@ set(LIB_SRC
     sylar/thread.cc
     sylar/fiber.cc
     sylar/scheduler.cc
+    sylar/ioManager.cc
+    sylar/self_timer.cc
     )
 
 set ( LIB_LIB
@@ -41,6 +43,8 @@ add_library(sylar STATIC
     sylar/thread.cc
     sylar/fiber.cc
     sylar/scheduler.cc
+    sylar/ioManager.cc
+    sylar/self_timer.cc
 )
 
 # force_redefine_macro_for_sources(sylar)
@@ -83,6 +87,18 @@ add_executable(ock_test tests/ock_test.cc)
 # force_redefine_macro_for_sources(test_yaml)
 add_dependencies(ock_test sylar )
 target_link_libraries(ock_test sylar ${LIB_LIB})
+
+
+add_executable(test_iomanager tests/test_iomanager.cc)
+# force_redefine_macro_for_sources(test_yaml)
+add_dependencies(test_iomanager sylar )
+target_link_libraries(test_iomanager sylar ${LIB_LIB})
+
+
+add_executable(test_self_timer tests/test_self_timer.cc)
+# force_redefine_macro_for_sources(test_yaml)
+add_dependencies(test_self_timer sylar )
+target_link_libraries(test_self_timer sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)

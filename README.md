@@ -96,3 +96,9 @@ LogFormatter创建时自定义pattern日志格式支持的格式
 ```
 
 调用addListener添加变更回调函数,日志改变会自动执行对应函数
+
+## 接口与实现方式文档汇总
+
+- [io任务模块](./docs/ioManager.md)
+
+  - [定时器](./docs/timer.md)  

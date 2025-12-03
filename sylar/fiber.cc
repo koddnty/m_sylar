@@ -56,7 +56,7 @@ Fiber::Fiber(std::function<void()> cb, uint64_t stackSize)
 }
 Fiber::~Fiber(){
     --s_fiber_count;
-    std::cout << "~Fiber : " << m_fiberId << "threadId" << m_sylar::getThreadId() << std::endl; 
+    // std::cout << "threadId=" << m_sylar::getThreadId() << "  ~Fiber id=" << m_fiberId <<  std::endl; 
     // M_SYLAR_LOG_INFO(g_logger) << "~Fiber : " << m_fiberId << "threadId" << m_sylar::getThreadId();
     if(m_stack) {
         // 协程有栈子协程

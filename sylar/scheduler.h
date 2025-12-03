@@ -18,7 +18,7 @@ public:
     using ptr = std::shared_ptr<Scheduler>;
 
     // use_caller 代表是否把当前线程加入scheduler
-    Scheduler (const std::string& name, size_t thread_num = 1, bool use_caller = true);
+    Scheduler (const std::string& name, size_t thread_num = 1, bool use_caller = false);
     virtual ~Scheduler ();
 
     std::string getName () {return m_name;}
@@ -62,11 +62,11 @@ private:
     // 单例添加函数，同时检测判断是否需要唤醒线程。
     template <typename Fiber_or_Func>
     bool schedulerNoLock (Fiber_or_Func f, int threadId) {
-        bool need_tickle = m_tasks.empty();
         FiberAndThread ft (f, threadId);
         if(ft.fiber || ft.func){
             m_tasks.push_back(ft);
         }
+        bool need_tickle = (m_idleThreadCount > 0);
         return need_tickle;
     }
 
@@ -75,6 +75,8 @@ protected:
     void run();
     virtual bool stopping();
     virtual void idle();
+
+    bool isHaveIdleThread() { return m_idleThreadCount > 0;}
 private: 
     // 线程与任务   
     struct FiberAndThread {
