@@ -50,7 +50,7 @@ void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim)
     std::shared_ptr<bool> p_tan {std::make_shared<bool>(true)};
 
     // tim->addTimer(1 * 1000000, true, tim, ccb);
-    int newfd = tim->addConditionTimer(1 * 1000000, false, tim, ccb, 
+    int newfd = tim->addConditionTimer(1 * 1000000, false, ccb, 
         [&tan]() 
         {
             // if(!tan)
@@ -66,7 +66,7 @@ void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim)
                 return false;
             }
         }
-    , [tim, newfd]()
+    , [tim, &newfd]()
     {
         M_SYLAR_LOG_DEBUG(g_logger) << "条件不满足，结束任务";
         tim->cancelTimer(newfd);

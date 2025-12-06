@@ -12,19 +12,21 @@ set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++17 -Wall -W
 include_directories(.)
 
 # -O2
-set(LIB_SRC
-    sylar/log.cc
-    sylar/until.cc
-    sylar/config.cc
-    sylar/thread.cc
-    sylar/fiber.cc
-    sylar/scheduler.cc
-    sylar/ioManager.cc
-    sylar/self_timer.cc
-    )
+# set(LIB_SRC
+#     sylar/log.cc
+#     sylar/until.cc
+#     sylar/config.cc
+#     sylar/thread.cc
+#     sylar/fiber.cc
+#     sylar/scheduler.cc
+#     sylar/ioManager.cc
+#     sylar/self_timer.cc
+#     sylar/hook.cc
+#     )
 
 set ( LIB_LIB
     pthread
+    dl
     yaml-cpp::yaml-cpp
 )
 
@@ -44,53 +46,46 @@ add_library(sylar STATIC
     sylar/fiber.cc
     sylar/scheduler.cc
     sylar/ioManager.cc
-    sylar/self_timer.cc
+    sylar/self_timer.cc    
+    sylar/hook.cc
 )
 
-# force_redefine_macro_for_sources(sylar)
+
 add_executable(test tests/test.cc)
 add_dependencies(test sylar)
 target_link_libraries(test sylar ${LIB_LIB})
 
 add_executable(test_conf tests/test_config.cc)
-# force_redefine_macro_for_sources(test_conf)
 add_dependencies(test_conf sylar)
 target_link_libraries(test_conf sylar ${LIB_LIB})
 
 add_executable(test_yaml tests/test_yaml.cc)
-# force_redefine_macro_for_sources(test_yaml)
 add_dependencies(test_yaml sylar)
 target_link_libraries(test_yaml sylar ${LIB_LIB})
 
 add_executable(test_thread tests/test_thread.cc)
-# force_redefine_macro_for_sources(test_yaml)
 add_dependencies(test_thread sylar )
 target_link_libraries(test_thread sylar ${LIB_LIB})
 
 add_executable(test_util tests/test_util.cc)
-# force_redefine_macro_for_sources(test_yaml)
 add_dependencies(test_util sylar )
 target_link_libraries(test_util sylar ${LIB_LIB})
 
 # test_fiber
 add_executable(test_fiber tests/test_fiber.cc)
-# force_redefine_macro_for_sources(test_yaml)
 add_dependencies(test_fiber sylar )
 target_link_libraries(test_fiber sylar ${LIB_LIB})
 
 add_executable(test_scheduler tests/scheduler.cc)
-# force_redefine_macro_for_sources(test_yaml)
 add_dependencies(test_scheduler sylar )
 target_link_libraries(test_scheduler sylar ${LIB_LIB})
 
 add_executable(ock_test tests/ock_test.cc)
-# force_redefine_macro_for_sources(test_yaml)
 add_dependencies(ock_test sylar )
 target_link_libraries(ock_test sylar ${LIB_LIB})
 
 
 add_executable(test_iomanager tests/test_iomanager.cc)
-# force_redefine_macro_for_sources(test_yaml)
 add_dependencies(test_iomanager sylar )
 target_link_libraries(test_iomanager sylar ${LIB_LIB})
 
@@ -99,6 +94,10 @@ add_executable(test_self_timer tests/test_self_timer.cc)
 # force_redefine_macro_for_sources(test_yaml)
 add_dependencies(test_self_timer sylar )
 target_link_libraries(test_self_timer sylar ${LIB_LIB})
+
+add_executable(test_hook tests/test_hook.cc)
+add_dependencies(test_hook sylar)
+target_link_libraries(test_hook sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)

@@ -1,4 +1,5 @@
 #include "scheduler.h"
+#include "hook.h"
 #include "log.h"
 #include <algorithm>
 #include <mutex>
@@ -107,6 +108,7 @@ namespace m_sylar {
     // 线程运行函数
     void Scheduler::run() {
         setThis();              // 设置线程调度器
+        set_hook_state(true);
         if(m_sylar::getThreadId() != m_rootThreadId) {
             tl_fiber = Fiber::GetThisFiber().get();          // 设置线程主协程
         }
