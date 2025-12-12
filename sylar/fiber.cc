@@ -161,6 +161,4 @@ void Fiber::MainFunc() {
     M_SYLAR_ASSERT2(false, "fiber has already been destoried, but still swaped in.");
 }
 
-
-
 }
