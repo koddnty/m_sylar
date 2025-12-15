@@ -48,6 +48,7 @@ add_library(sylar STATIC
     sylar/ioManager.cc
     sylar/self_timer.cc    
     sylar/hook.cc
+    sylar/fdManager.cc
 )
 
 

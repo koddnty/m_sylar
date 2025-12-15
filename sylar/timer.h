@@ -11,7 +11,7 @@
 #include "ioManager.h"
 
 
-namespace m_sylar_o 
+namespace ddm_sylar_o 
 {
     
 class TimeManager;
