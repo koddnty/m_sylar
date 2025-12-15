@@ -37,9 +37,9 @@ private:
     {
         struct EventContext 
         {
-            Scheduler* scheduler = nullptr;               // 事件对应的调度器
-            Fiber::ptr fiber;                   // 执行协程
-            std::function<void()> cb_func = nullptr;      // 事件回调
+            Scheduler* scheduler = nullptr;                 // 事件对应的调度器
+            Fiber::ptr fiber;                               // 执行协程
+            std::function<void()> cb_func = nullptr;        // 事件回调
         };
 
         EventContext& getEventContext(const Event& event);      // 获取一个FdContext对应的EventContext(read或者write)
@@ -65,7 +65,7 @@ public:
 
     size_t fdContextResize(size_t size);
 
-    static IOManager* getThis();
+    static IOManager* getInstance();
 
 protected:
     void tickle() override;

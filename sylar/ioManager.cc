@@ -1,5 +1,4 @@
 #include "ioManager.h"
-#include "config.h" 
 #include "fiber.h"
 #include "log.h"
 #include "macro.h"
@@ -126,7 +125,7 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb_func)
 
     int option = (fd_ctx->event == Event::NONE) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
     epoll_event epevent;
-    epevent.events = EPOLLET | fd_ctx->event | event;
+    epevent.events = EPOLLET | (fd_ctx->event | event);
     epevent.data.ptr = fd_ctx;
 
     int rt = epoll_ctl(m_epollFd, option, fd, &epevent);
@@ -344,7 +343,7 @@ size_t IOManager::fdContextResize(size_t size)
     return size;
 }
 
-IOManager* IOManager::getThis()
+IOManager* IOManager::getInstance()
 {
     return dynamic_cast<IOManager*>(Scheduler::GetThis());
 }

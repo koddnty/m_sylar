@@ -7,6 +7,7 @@
 #include <shared_mutex>
 #include <vector>
 #include "log.h"
+#include "singleton.h"
 
 /*
     为hook管理打开的socketfd， 确保ioManager可用性
@@ -38,8 +39,8 @@ public:
     void setSysNoblock(bool v) {m_sysNoblock = v;}
     bool getSysNoblock() const {return m_sysNoblock;}
 
-    void* setTimeout();
-    uint64_t getTimeout();
+    void setTimeout(int type, uint64_t time);
+    uint64_t getTimeout(int type);
 
 private:
     bool m_is_init;
@@ -72,5 +73,7 @@ private:
     std::shared_mutex m_rwMutex;
     std::vector<FdCtx::ptr> m_fdCtxs;
 };
+
+using FdMgr = m_sylar::Singleton<FdManager>;
 
 }

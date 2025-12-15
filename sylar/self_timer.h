@@ -12,6 +12,7 @@
 #include "log.h"
 #include "ioManager.h"
 #include "timer.h"
+#include "singleton.h"
 
 namespace m_sylar {
 
@@ -93,7 +94,7 @@ public:
     void cancelTimer(Timer::ptr timer);                             // 取消定时器
     void cancelTimer(int timerFd);
 
-    static TimeManager* getThis();         // 获取timeManager
+    static TimeManager* getInstance();         // 获取timeManager
 
 private:
     std::shared_mutex m_rwMutex;
@@ -102,5 +103,6 @@ private:
     IOManager* m_iom;                                           // 定时器管理类
 
 };
+
 
 }

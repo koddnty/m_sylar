@@ -222,13 +222,13 @@ void TimeManager::cancelTimer(int timerFd)
     }
 }
 
-TimeManager* TimeManager::getThis()
+TimeManager* TimeManager::getInstance()
 {
     if(t_tim)
     {
         return t_tim;
     }
-    m_sylar::IOManager* iom = m_sylar::IOManager::getThis();
+    m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
     if(iom)
     {
         return new TimeManager(iom);
