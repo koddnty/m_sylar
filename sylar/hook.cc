@@ -2,10 +2,13 @@
 #include <asm-generic/errno.h>
 #include <asm-generic/socket.h>
 #include <cerrno>
+#include <cstdarg>
 #include <cstdint>
+#include <fcntl.h>
 #include <memory>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 #include "fdManager.h"
 #include "ioManager.h"
 #include "log.h"
@@ -142,7 +145,7 @@ retry:
             goto retry;
         }
     }
-
+    return 0;
 }
 
 
@@ -370,7 +373,7 @@ ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags)
 }
 
 // close
- int close(int fd){
+int close(int fd){
     if(!m_sylar::is_hook_enable())
     {
         return original_close(fd);
@@ -388,6 +391,185 @@ ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags)
         m_sylar::FdMgr::GetInstance()->del(fd);
     }
     return original_close(fd);
+}
+
+// functional       
+int fcntl (int fd, int op, ...  )
+{
+    va_list ap;
+    va_start(ap, op);
+
+    switch(op)
+    {
+        case F_SETFL:
+        {
+            int arg = va_arg(ap, int);
+            va_end(ap);
+
+            m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
+            if(!fd_ctx || fd_ctx->is_closed() || !fd_ctx->is_socket())
+            {
+                return original_fcntl(fd, op, arg);
+            }
+            fd_ctx->setUserNoblock(arg & O_NONBLOCK);
+            if(fd_ctx->getSysNoblock())     // 保存系统原状态
+            {
+                arg |= O_NONBLOCK;                
+            }
+            else
+            {
+                arg &= !O_NONBLOCK;
+            }
+            return original_fcntl(fd, op, arg);
+        }
+            break;
+        case F_GETFL:
+            {
+                va_end(ap);
+                int original_value = original_fcntl(fd, op);
+                if(!m_sylar::is_hook_enable())
+                {
+                    return original_value;
+                }
+
+                m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd, false);
+                if(!fd_ctx || fd_ctx->is_closed() || !fd_ctx->is_socket())
+                {
+                    // 非socket
+                    return original_value;
+                } 
+                if(fd_ctx->getUserNoblock())
+                {
+                    return original_value | O_NONBLOCK;     // 用户设置非阻塞
+                }
+                else
+                {
+                    // return original_value & ~O_NONBLOCK;    // 用户没有规定非阻塞，默认阻塞
+                    return original_value & ~O_NONBLOCK ;    // 用户没有规定非阻塞，默认阻塞，是实际非阻塞
+                }
+            }
+            break;
+
+        case F_DUPFD:       // int
+        case F_DUPFD_CLOEXEC:
+        case F_SETFD:   
+        case F_SETOWN:
+        case F_SETSIG:
+        case F_SETLEASE:
+        case F_NOTIFY:
+        case F_SETPIPE_SZ:
+        case F_ADD_SEALS:
+        {       
+            int arg = va_arg(ap, int);
+            va_end(ap);
+            return original_fcntl(fd, op, arg);
+        }
+            break;
+
+        // uint64-t*
+        case F_GET_RW_HINT:
+        case F_SET_RW_HINT:
+        case F_GET_FILE_RW_HINT:
+        case F_SET_FILE_RW_HINT:
+        {
+            uint64_t* arg = va_arg(ap, uint64_t*);
+            va_end(ap);
+            return original_fcntl(fd, op, arg);
+        }
+            break;
+        // void
+        // case F_GETFD:
+        // case F_GETFL:        // 特殊
+        // case F_GETOWN:
+        // case F_GETSIG:
+        // case F_GETLEASE:
+        // case F_GETPIPE_SZ:
+        // case F_GET_SEALS:
+        // {
+
+        // }
+        //     break;
+
+        // struct flock *
+        case F_SETLK:
+        case F_SETLKW :
+        case F_GETLK:
+        case F_OFD_SETLK:
+        case F_OFD_SETLKW:
+        case F_OFD_GETLK:
+        {
+            struct flock * arg = va_arg(ap, struct flock *);
+            va_end(ap);
+            return original_fcntl(fd, op, arg);
+        }
+            break;
+
+        // struct f_owner_ex*
+        case F_GETOWN_EX:
+        case F_SETOWN_EX:
+        {
+            struct f_owner_ex* arg = va_arg(ap, struct f_owner_ex*);
+            va_end(ap);
+            return original_fcntl(fd, op, arg);
+        }
+            break;
+        
+        default:
+            va_end(ap);
+            return original_fcntl(fd, op);
+    }
+}
+
+int ioctl(int fd, unsigned long op, ...)
+{
+    va_list ap;
+    va_start(ap, op);
+    void* arg = va_arg(ap, void*);
+    va_end(ap);
+
+    if(FIONBIO == op)
+    {
+        bool user_nonblock = !! *(int*)arg;
+        m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
+        if(!fd_ctx || fd_ctx->is_closed() || !fd_ctx->is_socket())
+        {
+            return original_fcntl(fd, op, arg);
+        }
+        fd_ctx->setUserNoblock(user_nonblock);
+    } 
+    return original_ioctl(fd, op, 1);
+}
+
+
+// option
+int getsockopt(int sockfd, int level, int optname,
+                    void* optval,
+                    socklen_t * optlen)
+{
+    return original_getsockopt(sockfd, level, optname, optval, optlen);
+}
+
+int setsockopt(int sockfd, int level, int optname,
+                    const void* optval,
+                    socklen_t optlen)
+{
+    if(!m_sylar::is_hook_enable())
+    {
+        return original_setsockopt(sockfd, level, optname, optval, optlen);
+    }
+    if(level == SOL_SOCKET)
+    {
+        if(optname == SO_RCVTIMEO || optname == SO_SNDTIMEO)
+        {
+            auto fd_ctx = m_sylar::FdMgr::GetInstance()->get(sockfd);
+            if(fd_ctx)
+            {
+                const timeval* v = (const timeval*)optval;
+                fd_ctx->setTimeout(optname, v->tv_sec * 1000000 + v->tv_usec);
+            }
+        }
+    }
+    return original_setsockopt(sockfd, level, optname, optval, optlen);
 }
 }
 
