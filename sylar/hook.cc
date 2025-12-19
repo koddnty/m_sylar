@@ -10,7 +10,9 @@
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include "fdManager.h"
+#include "fiber.h"
 #include "ioManager.h"
+#include "config.h"
 #include "log.h"
 #include "self_timer.h"
 
@@ -46,6 +48,9 @@ namespace m_sylar
 
 static thread_local bool t_hook_enable = false;
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+
+static m_sylar::ConfigVar<uint64_t>::ptr g_tcp_connect_timeout =
+    m_sylar::configManager::Lookup("tcp.connect.timeout", (uint64_t)5000, "tcp connect timeout");     // 
 
 struct fdTimerInfo
 {
@@ -149,7 +154,6 @@ retry:
 }
 
 
-
 struct _Hook_initer 
 {
     _Hook_initer()
@@ -169,6 +173,14 @@ struct _Hook_initer
             HOOK_FUN(XX)
         #undef XX
     }
+
+    void hook_config_init()
+    {
+        // 0xA1B2C4 日志模块logs监听唯一标识
+        g_tcp_connect_timeout->addListener(0xA1B2C4, [](const uint64_t& old_val, const uint64_t& new_val){
+            g_tcp_connect_timeout->setValue(new_val);
+        });
+    }
 };
 static _Hook_initer s_hook_inite;
 
@@ -181,9 +193,6 @@ void set_hook_state(bool flags)
 {
     t_hook_enable = flags;
 }
-
-
-
 }
 
 
@@ -280,8 +289,87 @@ int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen)
 }
 
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
-{
-    return original_connect(sockfd, addr, addrlen);
+{   
+    uint64_t ms_sleep = m_sylar::g_tcp_connect_timeout->getValue();
+    if(!m_sylar::is_hook_enable())
+    {
+        return original_connect(sockfd, addr, addrlen);
+    }
+    
+    m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(sockfd, false);
+    if(!fd_ctx || fd_ctx->close() || !fd_ctx->is_init())
+    {
+        errno = EBADFD;
+        return -1;
+    }
+    if(!fd_ctx->is_socket() || fd_ctx->getUserNoblock())        // 文件描述符非socket或用户需要非阻塞
+    {   
+        return original_connect(sockfd, addr, addrlen);
+    }
+
+    // 先直接尝试
+    int n = original_connect(sockfd, addr, addrlen);
+    if(n == 0)
+    {
+        return 0;
+    }
+    else if(errno != EINPROGRESS || n != -1)
+    {
+        return n;
+    }
+
+    // 使用定时器和iomanager进行connectfd的监听
+    auto iom = m_sylar::IOManager::getInstance();
+    auto tim = m_sylar::TimeManager::getInstance();
+    int timer_fd = -1;
+    std::shared_ptr<bool> is_time_out (new bool(false));
+    if(ms_sleep != (uint64_t)-1)
+    {
+        timer_fd = tim->addConditionTimer(ms_sleep * 1000, false, [](){}, 
+                [](){
+                    return false;
+                }, 
+                [iom, sockfd, is_time_out](){
+
+                    iom->cancelEvent(sockfd, m_sylar::IOManager::WRITE);
+                    *is_time_out = true;
+                    M_SYLAR_LOG_INFO(m_sylar::g_logger) << "sockfd {" << sockfd << "}" << "connect out of time";
+                });
+    }
+
+    int rt = iom->addEvent(sockfd, m_sylar::IOManager::WRITE);
+    if(timer_fd != -1) {tim->cancelTimer(timer_fd);}
+    if(rt)
+    {   
+        // 设置事件错误
+        M_SYLAR_LOG_ERROR(m_sylar::g_logger) << "iom->addEvent failed, sockfd = {" << sockfd << "}";
+    }
+    else
+    {
+        m_sylar::Fiber::YieldToHold();
+        if(*is_time_out)
+        {
+            errno = ETIMEDOUT;
+            return -1;
+        }
+    }
+
+    // 处理错误，分析返回值
+    int error = 0;
+    socklen_t len = sizeof(int);
+    if(-1 == getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len))
+    {
+        return -1;
+    }
+    if(!error)
+    {
+        return 0;
+    }
+    else
+    {
+        errno = error;
+        return -1;
+    }
 }
 
 // read

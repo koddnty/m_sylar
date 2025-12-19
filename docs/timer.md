@@ -1,4 +1,4 @@
-# Timer 实现方式与接口
+# Timer 接口
 
 ## 实现方式
 
@@ -18,7 +18,7 @@
 int addTimer(uint64_t intervalTime, bool is_cycle, std::shared_ptr<TimeManager> manager,std::function<void()> main_cb)
 ```
 
-- ``intervalTime`` 循环时间，以微秒计（1:1000000)  
+- ``intervalTime`` 循环时间，以微秒计(1:1000000)  
 
 - ``is_cycle`` 是否循环计时
 

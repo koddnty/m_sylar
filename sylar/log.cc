@@ -590,6 +590,7 @@ struct LogIniter
 {
     //添加配置日志模块config变更logs日志监听函数，修改logger的manager变更日志
     LogIniter () {
+        // 0xA1B2C3 日志模块logs监听唯一标识
         s_log_defines->addListener(0xA1B2C3, [](const std::set<LogDefine>& old_val, const std::set<LogDefine>& new_val){
             M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "s_log_defines changed";
             // 遍历日志中的的logger
