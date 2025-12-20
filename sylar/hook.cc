@@ -5,7 +5,9 @@
 #include <cstdarg>
 #include <cstdint>
 #include <fcntl.h>
+#include <iostream>
 #include <memory>
+#include <ostream>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -64,9 +66,11 @@ static ssize_t do_io(int fd, Original_fun func, const char* fun_name,
 {
     if(!m_sylar::is_hook_enable())
     {
+        // std::cout << "NOHOOK" << std::endl;
         return func(fd, std::forward<Args>(args)...);
     }
-
+    
+    // std::cout << "HOOKED" << std::endl;
     // 对fd状态检查
     m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd, false);
     if(!fd_ctx)
@@ -168,6 +172,7 @@ struct _Hook_initer
         {
             return;
         }
+        is_inited = true;
 
         #define XX(name) original_ ## name = (name ## _fun)dlsym(RTLD_NEXT, #name);
             HOOK_FUN(XX)
@@ -297,7 +302,7 @@ int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     }
     
     m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(sockfd, false);
-    if(!fd_ctx || fd_ctx->close() || !fd_ctx->is_init())
+    if(!fd_ctx || fd_ctx->is_closed() || !fd_ctx->is_init())
     {
         errno = EBADFD;
         return -1;
@@ -323,22 +328,22 @@ int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     auto tim = m_sylar::TimeManager::getInstance();
     int timer_fd = -1;
     std::shared_ptr<bool> is_time_out (new bool(false));
+    std::cout << ms_sleep << std::endl;
     if(ms_sleep != (uint64_t)-1)
     {
-        timer_fd = tim->addConditionTimer(ms_sleep * 1000, false, [](){}, 
+        timer_fd = tim->addConditionTimer(10000000, false, [](){}, 
                 [](){
                     return false;
                 }, 
                 [iom, sockfd, is_time_out](){
 
-                    iom->cancelEvent(sockfd, m_sylar::IOManager::WRITE);
+                    iom->cancelEvent(sockfd, m_sylar::IOManager::WRITE);        // 触发io事件
                     *is_time_out = true;
                     M_SYLAR_LOG_INFO(m_sylar::g_logger) << "sockfd {" << sockfd << "}" << "connect out of time";
                 });
     }
 
     int rt = iom->addEvent(sockfd, m_sylar::IOManager::WRITE);
-    if(timer_fd != -1) {tim->cancelTimer(timer_fd);}
     if(rt)
     {   
         // 设置事件错误
@@ -347,6 +352,7 @@ int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     else
     {
         m_sylar::Fiber::YieldToHold();
+        if(timer_fd != -1 && *is_time_out == false) {tim->cancelTimer(timer_fd);}    // 此处由于设计问题会导致回调执行一次
         if(*is_time_out)
         {
             errno = ETIMEDOUT;

@@ -48,7 +48,7 @@ int addConditionTimer(uint64_t intervalTime, bool is_cycle,
 
 - 前4个参数与``addTimer``相同
 
-- ``condition`` 计时器到时间后将优先进行condition的判断，如果返回true，则继续执行main_cb, 如果返回false，则执行condition_cb。需要的函数签名：``std::function<void()>``
+- ``condition`` 计时器到时间后将优先进行condition的判断，如果返回true，则继续执行main_cb, 如果返回false，则执行condition_cb。需要的函数签名：``std::function<bool()>``，若不满足将先执行回调函数，然后自动取消timer。
 
 - ``condition_cb`` 计时器到时间后condition返回值为false执行的函数, 需要的函数签名：``std::function<void()>``
 

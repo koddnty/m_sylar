@@ -70,6 +70,12 @@ bool FdCtx::init()
     return m_is_init;
 }
 
+bool close()
+{
+    close();
+    return true;
+}
+
 
 void FdCtx::setTimeout(int type, uint64_t time)
 {

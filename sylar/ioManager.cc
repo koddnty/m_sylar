@@ -86,10 +86,12 @@ void IOManager::FdContext::trigger(const Event& event)
     M_SYLAR_ASSERT(!(context.cb_func && context.fiber));
     if(context.cb_func)
     {
+        M_SYLAR_ASSERT2(Scheduler::GetThis(), "scheduler is null");
         Scheduler::GetThis()->schedule(&context.cb_func);
     }
     else if(context.fiber) 
     {
+        M_SYLAR_ASSERT2(Scheduler::GetThis(), "scheduler is null");
         Scheduler::GetThis()->schedule(&context.fiber);
     }
     context.scheduler = nullptr;

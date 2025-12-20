@@ -6,8 +6,10 @@
 #include <algorithm>
 #include <cstddef>
 #include <ctime>
+#include <iostream>
 #include <memory>
 #include <mutex>
+#include <ostream>
 #include <shared_mutex>
 #include <unistd.h>
 #include <sys/timerfd.h>
@@ -110,6 +112,7 @@ void Timer::runner()
     // 取出数据
     uint64_t expirations = 0;
     read(m_timeFd, &expirations, sizeof(expirations));
+    M_SYLAR_LOG_DEBUG(g_logger) << "is triggled, expirations = {" << expirations << "}, m_timeFd = {" << this->m_timeFd << "}" <<  std::endl;
     // 执行回调
     if(m_condition())
     {
@@ -181,20 +184,25 @@ int TimeManager::addConditionTimer(uint64_t intervalTime, bool is_cycle,
     std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
     // M_SYLAR_LOG_DEBUG(g_logger) << "add in timerFd map : timerFd=" <<  new_timer->m_timeFd;
     new_timer->enrollToManager();
+
+    //M_SYLAR_LOG_DEBUG(g_logger) << "new timer, fd = {" << new_timer->m_timeFd << "}" << std::endl;
     m_timersMap[new_timer->m_timeFd] = new_timer;
+    //std::cerr << new_timer->m_timeFd << "---- " << m_timersMap[new_timer->m_timeFd]->m_timeFd << std::endl;
     return new_timer->m_timeFd;
 }
 
 
 void TimeManager::cancelTimer(Timer::ptr timer)
 {
-    m_iom->cancelAll(timer->m_timeFd);
+    m_iom->delEvent(timer->m_timeFd, IOManager::READ);
 
     std::unique_lock<std::shared_mutex> w_lock(m_rwMutex);
     
     auto it = m_timersMap.find(timer->m_timeFd);
+    //M_SYLAR_LOG_DEBUG(g_logger) << "finding timer, timer_fd = {" << timer->m_timeFd << "}";
     if(it != m_timersMap.end())
     {
+        //std::cout << "m_timersMap.erase{" << timer->m_timeFd << "}" << std::endl;
         m_timersMap.erase(it);
     }
     else
@@ -206,13 +214,17 @@ void TimeManager::cancelTimer(Timer::ptr timer)
 
 void TimeManager::cancelTimer(int timerFd)
 {
-    m_iom->cancelAll(timerFd);
+    M_SYLAR_ASSERT2(m_iom, "m_iom is nullptr");
+    m_iom->delEvent(timerFd, IOManager::READ);
 
     std::unique_lock<std::shared_mutex> w_lock(m_rwMutex);
     
     auto it = m_timersMap.find(timerFd);
+    // M_SYLAR_LOG_DEBUG(g_logger) << "finding timer, timer_fd = {" << timerFd << "}, m_timersMap[timerFd] = " << m_timersMap[timerFd]->m_timeFd << std::endl;
     if(it != m_timersMap.end())
     {
+        //std::cout << "m_timersMap.erase{" << timerFd << "}";
+        
         m_timersMap.erase(it);
     }
     else
@@ -233,7 +245,7 @@ TimeManager* TimeManager::getInstance()
     {
         return new TimeManager(iom);
     }
-    M_SYLAR_ASSERT2(false, "cant get time manager without a iomanager");
+    M_SYLAR_ASSERT2(false, "can not get time manager without a iomanager");
 }  
 
 
