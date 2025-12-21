@@ -104,7 +104,7 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb_func)
     // 获取fd_ctx指针
     FdContext *fd_ctx = nullptr;
     {
-        std::shared_lock<std::shared_mutex> w_lock(m_rwmutex);
+        std::unique_lock<std::shared_mutex> w_lock(m_rwmutex);
         if (m_fdContexts.size() > (size_t)fd) {
           fd_ctx = m_fdContexts[fd];
         } else {

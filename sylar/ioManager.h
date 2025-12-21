@@ -3,6 +3,7 @@
 #include "config.h"
 #include "macro.h"
 #include "scheduler.h"
+// #include "self_timer.h"
 #include <atomic>
 #include <cstddef>
 #include <iostream>
@@ -80,6 +81,8 @@ private:
     std::atomic<size_t> m_pendding_event_count;             // 事件计数
     std::shared_mutex m_rwmutex;
     std::vector<FdContext*> m_fdContexts;
+
+    // TimeManager::ptr m_timeManager = nullptr;               // ioMangaer对应timerManager
 };
 
 }

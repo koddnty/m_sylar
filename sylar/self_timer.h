@@ -97,7 +97,7 @@ public:
     static TimeManager* getInstance();         // 获取timeManager
 
 private:
-    std::shared_mutex m_rwMutex;
+    // std::shared_mutex m_rwMutex;
     // std::set<Timer::ptr, Timer::Compare> m_timers;                  // 定时器合集
     std::map<int, Timer::ptr> m_timersMap;                      // （Timer唯一存储点）将决定timer的生命周期     
     IOManager* m_iom;                                           // 定时器管理类

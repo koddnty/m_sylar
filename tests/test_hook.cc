@@ -1,5 +1,6 @@
 #include "../sylar/hook.h"
 #include "../sylar/ioManager.h"
+#include <cstring>
 #include <ctime>
 #include <iostream>
 #include <arpa/inet.h>
@@ -46,14 +47,15 @@ void test2(void)
         sockaddr_in addr;
         addr.sin_family = AF_INET;
         addr.sin_port = htons(80);
-        inet_pton(AF_INET, "111.63.65.247", &addr.sin_addr.s_addr);
+        inet_pton(AF_INET, "111.63.65.103", &addr.sin_addr.s_addr);
 
         int rt = connect(sockfd, (sockaddr*)&addr, sizeof(addr));
 
-        M_SYLAR_LOG_INFO(g_logger) << "connect rt = {" << rt << "}, errno = {" << errno << ", " << "}";
+        M_SYLAR_LOG_INFO(g_logger) << "connect rt = {" << rt << "}, errno = {" << errno << ", " << strerror(errno) << "}";
     });
-    original_sleep(20);
 
+
+    original_sleep(1);
     iom->stop();
 }
 

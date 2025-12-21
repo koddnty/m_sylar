@@ -32,7 +32,7 @@ void condition_cb()
 void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim);
 void test1()
 {   
-    m_sylar::IOManager::ptr iom (new m_sylar::IOManager("timer_test"));
+    m_sylar::IOManager::ptr iom (new m_sylar::IOManager("timer_test", 12));
 
 
     m_sylar::TimeManager::ptr tim (new m_sylar::TimeManager(iom));
@@ -43,9 +43,11 @@ void test1()
     iom->stop();
 }
 
+
+static int var = 0;
 void func()
 {
-    std::cout << "回调执行" << std::endl;
+    M_SYLAR_LOG_INFO(g_logger) << "var = " << ++var;
 }
 
 
@@ -54,28 +56,32 @@ void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim)
 
     bool tan = true;
 
-    iom->schedule([tim](){
-        // tim->addTimer(1 * 1000000, true, tim, ccb);
-        int newfd = m_sylar::TimeManager::getInstance()->addConditionTimer(1 * 10000000, false, ccb, 
-            []() 
-            {
-                // if(!tan)
-                // {
-                //     M_SYLAR_LOG_DEBUG(g_logger) << "p_tan is nullptr";
-                //     return false;
-                // }
+    for(int i = 0; i < 100; i++)
+    {
+        iom->schedule([](){
+            // tim->addTimer(1 * 1000000, true, tim, ccb);
+            int newfd = m_sylar::TimeManager::getInstance()->addConditionTimer(1 * 10000000, false, ccb, 
+                []() 
+                {
+                    // if(!tan)
+                    // {
+                    //     M_SYLAR_LOG_DEBUG(g_logger) << "p_tan is nullptr";
+                    //     return false;
+                    // }
 
-                return false;
-            }
-        , func);
+                    return false;
+                }
+            , func);
 
-        original_sleep(3);
-        std::cout << "自主取消timer" << ::std::endl;
-        m_sylar::TimeManager::getInstance()->cancelTimer(newfd);
-        std::cout << "取消timer结束" << ::std::endl;
+            // sleep(3);
+            // std::cout << "自主取消timer" << ::std::endl;
+            // m_sylar::TimeManager::getInstance()->cancelTimer(newfd);        //
+            // std::cout << "取消timer结束" << ::std::endl;
 
-        original_sleep(5);
-    });
+            // sleep(5);
+        });
+    }
+
 
     sleep(1000);
 }
