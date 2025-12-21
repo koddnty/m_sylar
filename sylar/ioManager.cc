@@ -40,7 +40,7 @@ IOManager::IOManager(const std::string &name, size_t thread_num, bool use_caller
     int rt = epoll_ctl(m_epollFd, EPOLL_CTL_ADD, m_eventFd, &event);
     M_SYLAR_ASSERT(rt == 0);
 
-    M_SYLAR_LOG_DEBUG(g_logger) << "evnetFd = " << m_eventFd;
+    // M_SYLAR_LOG_DEBUG(g_logger) << "evnetFd = " << m_eventFd;
     fdContextResize(64);
     start();
 }

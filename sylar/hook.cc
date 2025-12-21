@@ -146,7 +146,7 @@ retry:
                 errno = fdtino->is_cancelled;
                 return -1;
             }
-            else
+            else if(time_out != (uint64_t)-1)
             {
                 // 取消定时器
                 tim->cancelTimer(timer_fd);
@@ -154,7 +154,7 @@ retry:
             goto retry;
         }
     }
-    return 0;
+    return n;
 }
 
 
@@ -328,10 +328,10 @@ int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     auto tim = m_sylar::TimeManager::getInstance();
     int timer_fd = -1;
     std::shared_ptr<bool> is_time_out (new bool(false));
-    std::cout << ms_sleep << std::endl;
+    // std::cout << ms_sleep << std::endl;
     if(ms_sleep != (uint64_t)-1)
     {
-        timer_fd = tim->addConditionTimer(10000000, false, [](){}, 
+        timer_fd = tim->addConditionTimer(ms_sleep * 1000, false, [](){}, 
                 [](){
                     return false;
                 }, 
@@ -352,7 +352,9 @@ int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     else
     {
         m_sylar::Fiber::YieldToHold();
-        if(timer_fd != -1 && *is_time_out == false) {tim->cancelTimer(timer_fd);}    // 此处由于设计问题会导致回调执行一次
+        if(timer_fd != -1 && *is_time_out == false) {
+            tim->cancelTimer(timer_fd);
+        }    // cancelTimer不会导致回调执行
         if(*is_time_out)
         {
             errno = ETIMEDOUT;
@@ -367,13 +369,14 @@ int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     {
         return -1;
     }
+    errno = error;
     if(!error)
     {
+       
         return 0;
     }
     else
     {
-        errno = error;
         return -1;
     }
 }
