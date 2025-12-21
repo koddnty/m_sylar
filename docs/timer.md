@@ -1,4 +1,4 @@
-# Timer 实现方式与接口
+# Timer 接口
 
 ## 实现方式
 
@@ -18,7 +18,7 @@
 int addTimer(uint64_t intervalTime, bool is_cycle, std::shared_ptr<TimeManager> manager,std::function<void()> main_cb)
 ```
 
-- ``intervalTime`` 循环时间，以微秒计（1:1000000)  
+- ``intervalTime`` 循环时间，以微秒计(1:1000000)  
 
 - ``is_cycle`` 是否循环计时
 
@@ -48,7 +48,7 @@ int addConditionTimer(uint64_t intervalTime, bool is_cycle,
 
 - 前4个参数与``addTimer``相同
 
-- ``condition`` 计时器到时间后将优先进行condition的判断，如果返回true，则继续执行main_cb, 如果返回false，则执行condition_cb。需要的函数签名：``std::function<void()>``
+- ``condition`` 计时器到时间后将优先进行condition的判断，如果返回true，则继续执行main_cb, 如果返回false，则执行condition_cb。需要的函数签名：``std::function<bool()>``，若不满足将先执行回调函数，然后自动取消timer。
 
 - ``condition_cb`` 计时器到时间后condition返回值为false执行的函数, 需要的函数签名：``std::function<void()>``
 

@@ -1,5 +1,4 @@
 #include "ioManager.h"
-#include "config.h" 
 #include "fiber.h"
 #include "log.h"
 #include "macro.h"
@@ -41,7 +40,7 @@ IOManager::IOManager(const std::string &name, size_t thread_num, bool use_caller
     int rt = epoll_ctl(m_epollFd, EPOLL_CTL_ADD, m_eventFd, &event);
     M_SYLAR_ASSERT(rt == 0);
 
-    M_SYLAR_LOG_DEBUG(g_logger) << "evnetFd = " << m_eventFd;
+    // M_SYLAR_LOG_DEBUG(g_logger) << "evnetFd = " << m_eventFd;
     fdContextResize(64);
     start();
 }
@@ -87,10 +86,12 @@ void IOManager::FdContext::trigger(const Event& event)
     M_SYLAR_ASSERT(!(context.cb_func && context.fiber));
     if(context.cb_func)
     {
+        M_SYLAR_ASSERT2(Scheduler::GetThis(), "scheduler is null");
         Scheduler::GetThis()->schedule(&context.cb_func);
     }
     else if(context.fiber) 
     {
+        M_SYLAR_ASSERT2(Scheduler::GetThis(), "scheduler is null");
         Scheduler::GetThis()->schedule(&context.fiber);
     }
     context.scheduler = nullptr;
@@ -103,7 +104,7 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb_func)
     // 获取fd_ctx指针
     FdContext *fd_ctx = nullptr;
     {
-        std::shared_lock<std::shared_mutex> w_lock(m_rwmutex);
+        std::unique_lock<std::shared_mutex> w_lock(m_rwmutex);
         if (m_fdContexts.size() > (size_t)fd) {
           fd_ctx = m_fdContexts[fd];
         } else {
@@ -126,7 +127,7 @@ int IOManager::addEvent(int fd, Event event, std::function<void()> cb_func)
 
     int option = (fd_ctx->event == Event::NONE) ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
     epoll_event epevent;
-    epevent.events = EPOLLET | fd_ctx->event | event;
+    epevent.events = EPOLLET | (fd_ctx->event | event);
     epevent.data.ptr = fd_ctx;
 
     int rt = epoll_ctl(m_epollFd, option, fd, &epevent);
@@ -344,7 +345,7 @@ size_t IOManager::fdContextResize(size_t size)
     return size;
 }
 
-IOManager* IOManager::getThis()
+IOManager* IOManager::getInstance()
 {
     return dynamic_cast<IOManager*>(Scheduler::GetThis());
 }

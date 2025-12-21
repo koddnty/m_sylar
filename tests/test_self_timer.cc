@@ -1,6 +1,7 @@
 #include <iostream>
 #include <memory>
 #include "../sylar/self_timer.h"
+#include "../sylar/hook.h"
 #include "../sylar/allHeader.h"
 
 
@@ -31,15 +32,22 @@ void condition_cb()
 void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim);
 void test1()
 {   
-    m_sylar::IOManager::ptr iom (new m_sylar::IOManager("timer_test"));
+    m_sylar::IOManager::ptr iom (new m_sylar::IOManager("timer_test", 12));
 
 
     m_sylar::TimeManager::ptr tim (new m_sylar::TimeManager(iom));
 
     test1_aux1(iom, tim);
 
-
+    sleep(1);
     iom->stop();
+}
+
+
+static int var = 0;
+void func()
+{
+    M_SYLAR_LOG_INFO(g_logger) << "var = " << ++var;
 }
 
 
@@ -47,37 +55,35 @@ void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim)
 {
 
     bool tan = true;
-    std::shared_ptr<bool> p_tan {std::make_shared<bool>(true)};
 
-    // tim->addTimer(1 * 1000000, true, tim, ccb);
-    int newfd = tim->addConditionTimer(1 * 1000000, false, ccb, 
-        [&tan]() 
-        {
-            // if(!tan)
-            // {
-            //     M_SYLAR_LOG_DEBUG(g_logger) << "p_tan is nullptr";
-            //     return false;
-            // }
-            if(tan)
-            {
-                return true;
-            }
-            else {
-                return false;
-            }
-        }
-    , [tim, &newfd]()
+    for(int i = 0; i < 100; i++)
     {
-        M_SYLAR_LOG_DEBUG(g_logger) << "条件不满足，结束任务";
-        tim->cancelTimer(newfd);
-    });
+        iom->schedule([](){
+            // tim->addTimer(1 * 1000000, true, tim, ccb);
+            int newfd = m_sylar::TimeManager::getInstance()->addConditionTimer(1 * 10000000, false, ccb, 
+                []() 
+                {
+                    // if(!tan)
+                    // {
+                    //     M_SYLAR_LOG_DEBUG(g_logger) << "p_tan is nullptr";
+                    //     return false;
+                    // }
 
-    sleep(5);
+                    return false;
+                }
+            , func);
 
-    tan = false;
+            // sleep(3);
+            // std::cout << "自主取消timer" << ::std::endl;
+            // m_sylar::TimeManager::getInstance()->cancelTimer(newfd);        //
+            // std::cout << "取消timer结束" << ::std::endl;
 
-    sleep(5);
+            // sleep(5);
+        });
+    }
 
+
+    sleep(1000);
 }
 
 

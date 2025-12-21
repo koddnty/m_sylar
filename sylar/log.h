@@ -17,7 +17,7 @@
 #define M_SYLAR_LOG_EVENT(logger, level)\
     if(logger->getLevel() <= level) \
         m_sylar::LogEventWrap(m_sylar::LogEvent::ptr(new m_sylar::LogEvent(__FILE__, __LINE__, 0 \
-                    , m_sylar::getThreadId(), m_sylar::getThreadName(), m_sylar::getFiberId() , time(0), logger, level))).getSS()
+                    , m_sylar::getThreadId(), m_sylar::getThreadName(), m_sylar::getFiberId(), time(0), logger, level))).getSS()
 
 #define M_SYLAR_LOG_UNKNOWN(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::UNKNOWN)
 #define M_SYLAR_LOG_DEBUG(logger)   M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::DEBUG)
