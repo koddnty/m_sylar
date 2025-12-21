@@ -1,4 +1,5 @@
 #include "config.h"
+#include <cstdio>
 
 namespace m_sylar{
 configManager::configValMap Get_Datas();
@@ -39,6 +40,7 @@ void configManager::LoadFromYaml(const YAML::Node& root){
     ListAllMember("", root, allNodes);
     for(auto& it : allNodes){
         std::string key = it.first;
+        fprintf(stdout, "%s\n", it.first.c_str());
         if(key.empty()){
             continue;
         } 

@@ -1,5 +1,6 @@
 #include "thread.h"
 #include "log.h"
+#include <semaphore.h>
 
 namespace m_sylar{
 
@@ -8,21 +9,54 @@ static thread_local std::string t_thread_name = "UNKNOWN";              // 线�
 
 static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
+
+Semaphore::Semaphore(int count)
+{
+    if(sem_init(&m_semaphore, 0, count))
+    {
+        M_SYLAR_LOG_ERROR(g_logger) << "sem_init failed";
+    }
+}
+
+Semaphore::~Semaphore()
+{
+    if(sem_close(&m_semaphore))
+    {
+        M_SYLAR_LOG_ERROR(g_logger) << "sem_close failed";
+    }
+}
+
+void Semaphore::wait()
+{
+    if(sem_wait(&m_semaphore))
+    {
+        M_SYLAR_LOG_ERROR(g_logger) << "sem_wait failed";
+    }
+}
+
+void Semaphore::notify()
+{
+    if(sem_post(&m_semaphore))
+    {
+        M_SYLAR_LOG_ERROR(g_logger) << "sem_post failed";
+    }
+}
+
+
 Thread* Thread::getThis(){
     return t_thread;
 }
 
-
 const std::string& Thread::getName(){
     return t_thread_name;
 }
+
 void Thread::setName(const std::string& name){
     if(t_thread){
         t_thread->setName(name);
     }
     t_thread_name = name;
 }
-
 
 Thread::Thread(std::function<void()> cb, const std::string& name = "UNKNOWN"){
     m_cb = cb;
@@ -33,14 +67,13 @@ Thread::Thread(std::function<void()> cb, const std::string& name = "UNKNOWN"){
             << "thread_name = " << name;
         throw std::logic_error("pthread_create error");
     }
+    m_semaphore.wait();
 }
-
 
 Thread::~Thread () {
     pthread_detach(m_thread);
     // M_SYLAR_LOG_INFO(g_logger) << "thread destructor";
 }
-
 
 void Thread::join(){
     if(m_thread){
@@ -54,7 +87,6 @@ void Thread::join(){
     m_thread = 0;
 }
 
-
 void* Thread::run(void* args){
     Thread* thread = (Thread*) args;
     t_thread = thread;
@@ -63,6 +95,7 @@ void* Thread::run(void* args){
     pthread_setname_np (pthread_self(), thread->m_name.substr(0, 15).c_str());          // 为线程命名
     std::function<void()> cb;
     cb.swap(thread->m_cb);
+    thread->m_semaphore.notify();
     cb();
     return 0;
 }

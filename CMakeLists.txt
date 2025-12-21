@@ -48,6 +48,7 @@ add_library(sylar STATIC
     sylar/ioManager.cc
     sylar/self_timer.cc    
     sylar/hook.cc
+    sylar/fdManager.cc
 )
 
 
@@ -58,6 +59,10 @@ target_link_libraries(test sylar ${LIB_LIB})
 add_executable(test_conf tests/test_config.cc)
 add_dependencies(test_conf sylar)
 target_link_libraries(test_conf sylar ${LIB_LIB})
+
+add_executable(test_conf2 tests/test_config2.cc)
+add_dependencies(test_conf2 sylar)
+target_link_libraries(test_conf2 sylar ${LIB_LIB})
 
 add_executable(test_yaml tests/test_yaml.cc)
 add_dependencies(test_yaml sylar)
