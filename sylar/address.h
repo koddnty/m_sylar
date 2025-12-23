@@ -80,7 +80,7 @@ class IPv6Address : public IPAddress
 {
 public:
     using ptr = std::shared_ptr<IPv6Address>;
-    IPv6Address(uint32_t address = INADDR_ANY, uint32_t port = 0);
+    IPv6Address(const char* address, uint32_t port = 0);
 
     const sockaddr* getAddr() const override;
     socklen_t getAddrLen() const override;
