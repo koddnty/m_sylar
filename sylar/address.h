@@ -113,7 +113,7 @@ public:
 
 private:
     sockaddr_un m_addr;
-    socklen_t m_length;
+    socklen_t m_addr_size;
 };
 
 
@@ -122,7 +122,7 @@ class UnknownAddress : public Address
 {
 public:
     using ptr = std::shared_ptr<UnknownAddress>;
-    UnknownAddress();
+    UnknownAddress(int family);
 
     std::ostream& insert(std::ostream& os) const override;
 

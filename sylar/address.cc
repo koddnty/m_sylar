@@ -1,11 +1,14 @@
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <sstream>
+#include <stdexcept>
 #include <sys/socket.h>
 #include "address.h"
 #include "endian.h"
 #include <arpa/inet.h>
+#include <sys/un.h>
 
 namespace m_sylar{  
 
@@ -172,24 +175,74 @@ void IPv6Address::setPort(uint32_t v)
 
 
 // Unix定义
+static const size_t MAX_PATH_LEN = sizeof(((sockaddr_un*)0)->sun_path) - 1;
 UnixAddress::UnixAddress(const std::string& path)
-{
+{   // 函数输入格式 抽象路径名 "\\0..."或 普通路径名 "..."
+    memset(&m_addr, 0, sizeof(m_addr));
+    m_addr.sun_family = AF_UNIX;
+    int path_len = path.length() + 1;    // 为string存储的字符串最后加入'\0'， 与 .c_str()同步
 
+    if(!path.empty() && path[0] == '\0')
+    {
+        // 抽象路径名, 除去最后的'\0'
+        path_len--;
+    }
+
+    if(path_len > MAX_PATH_LEN)
+    {
+        throw std::logic_error("path too long");
+    }
+
+    memcpy(m_addr.sun_path, path.c_str(), path_len);
+    m_addr_size += offsetof(sockaddr_un, sun_path);
 }
 
 std::ostream& UnixAddress::insert(std::ostream& os) const 
 {
-
+    if(m_addr_size > offsetof(sockaddr_un, sun_path)
+         && m_addr.sun_path[0] == '\0')
+    {
+        os << "\\0" << std::string(m_addr.sun_path + 1, m_addr_size - offsetof(sockaddr_un, sun_path) - 1);
+        return os;
+    }
+    os << m_addr.sun_path;
+    return os;
 }
 
 const sockaddr* UnixAddress::getAddr() const 
 {
-
+    return (sockaddr*)&m_addr;
 }
 
 socklen_t UnixAddress::getAddrLen() const 
 {
-
+    return m_addr_size;
 }
+
+
+
+// known地址类型
+UnknownAddress::UnknownAddress(int family)
+{
+    memset(&m_addr, 0, sizeof(m_addr));
+    m_addr.sa_family = family;
+}
+
+std::ostream& UnknownAddress::insert(std::ostream& os) const 
+{
+    return os;
+}
+
+
+const sockaddr* UnknownAddress::getAddr() const 
+{
+    return &m_addr;
+}
+
+socklen_t UnknownAddress::getAddrLen() const 
+{
+    return sizeof(m_addr);
+}
+
 
 }
