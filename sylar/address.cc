@@ -1,16 +1,41 @@
+#include <cassert>
+#include <cerrno>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <netinet/in.h>
 #include <sstream>
 #include <stdexcept>
 #include <sys/socket.h>
 #include "address.h"
 #include "endian.h"
+#include "log.h"
 #include <arpa/inet.h>
 #include <sys/un.h>
 
 namespace m_sylar{  
+
+static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+
+template<typename T>
+T getMask(int prefix_len)
+{
+    static_assert(std::is_unsigned_v<T>);
+    constexpr int bits = sizeof(T) * 8;
+    // assert(bits >= prefix_len);
+    // assert(prefix_len >= 0);
+    if(bits <= prefix_len)
+    {
+        return ~T{0};
+    }
+    if(prefix_len <= 0)
+    {
+        return T{0};
+    }
+
+    return (~T{0}) << (bits - prefix_len); 
+}
 
 int Address::getFamily() const
 {
@@ -58,11 +83,29 @@ bool Address::operator!= (const Address& rhs) const
 
 
 // IPv4Address 定义
+IPv4Address::IPv4Address(const sockaddr_in& addr)
+{
+    m_addr = addr;
+}
+
 IPv4Address::IPv4Address(uint32_t address, uint32_t port)
 {
     memset(&m_addr, 0, sizeof(m_addr));
     m_addr.sin_family = AF_INET;
     m_addr.sin_addr.s_addr = byteSwapToBigEndian(address);
+    m_addr.sin_port = byteSwapToBigEndian(port);
+}
+
+IPv4Address::IPv4Address(const char* address, uint32_t port)
+{
+    uint32_t buffer;
+    m_addr.sin_family = AF_INET;
+    if(inet_pton(AF_INET, address, &m_addr.sin_addr.s_addr) != 1)
+    {
+        M_SYLAR_LOG_ERROR(g_logger) << "inet_ntop converse failed, errno = " << errno 
+                << " " << strerror(errno); 
+    }
+    memset(&m_addr, 0, sizeof(m_addr));
     m_addr.sin_port = byteSwapToBigEndian(port);
 }
 
@@ -78,18 +121,35 @@ socklen_t IPv4Address::getAddrLen() const
 
 IPAddress::ptr IPv4Address::broadcastAddress(uint32_t prefix_len)
 {
-       
+    if(prefix_len > 32)
+    {
+        return nullptr;
+    }
+    sockaddr_in addr (m_addr);
+    addr.sin_addr.s_addr |= byteSwapToBigEndian(~getMask<uint32_t>(prefix_len));
+    return IPv4Address::ptr(new IPv4Address(addr));
 }
 
 IPAddress::ptr IPv4Address::networkAddress(uint32_t prefix_len) 
 {
-    
+    if(prefix_len > 32)
+    {
+        return nullptr;
+    }   
+    sockaddr_in addr(m_addr);
+    addr.sin_addr.s_addr &= byteSwapToBigEndian(getMask<uint32_t>(prefix_len));
+    return IPv4Address::ptr(new IPv4Address(addr));
 }
 
 
 IPAddress::ptr IPv4Address::subnetMask(uint32_t prefix_len)  
 {
-    
+    sockaddr_in mask;
+    memset(&mask, 0, sizeof(sockaddr_in));
+    mask.sin_family = AF_INET;
+    mask.sin_addr.s_addr = byteSwapToBigEndian(getMask<uint32_t>(prefix_len));
+
+    return IPAddress::ptr(new IPv4Address(mask));
 }
 
 std::ostream& IPv4Address::insert(std::ostream& os) const 
@@ -99,7 +159,7 @@ std::ostream& IPv4Address::insert(std::ostream& os) const
     os  << ((addr >> 24) & 0xff) << "."
         << ((addr >> 16) & 0xff) << "."
         << ((addr >> 8) & 0xff) << "."
-        << ((addr >> 0) & 0xff) << ":" 
+        << ((addr >> 0) & 0xff)
         << ":" << port;
     return os;
 }
@@ -116,13 +176,31 @@ void IPv4Address::setPort(uint32_t v)
 
 
 // IPv6Address 定义
-IPv6Address::IPv6Address(const char* address, uint32_t port)
+IPv6Address::IPv6Address(const sockaddr_in6& addr)
 {
+    m_addr = addr;
+}
+
+IPv6Address::IPv6Address(const char* address, uint32_t port)
+{   // 字符串地址
+    memset(&m_addr, 0, sizeof(m_addr));
+    m_addr.sin6_family = AF_INET6;
+    if(inet_pton(AF_INET6, address, &m_addr.sin6_addr) != 1)
+    {
+        M_SYLAR_LOG_ERROR(g_logger) << "inet_ntop converse failed, errno = " << errno 
+                << " " << strerror(errno); 
+    }
+    m_addr.sin6_port = byteSwapToBigEndian(port);
+}
+
+IPv6Address::IPv6Address(const uint8_t* addr, uint32_t port)
+{   // 原生地址
     memset(&m_addr, 0, sizeof(m_addr));
     m_addr.sin6_family = AF_INET6;
     m_addr.sin6_port = byteSwapToBigEndian(port);
-    memcpy(&m_addr.sin6_addr.s6_addr, address, 16);
+    memcpy(m_addr.sin6_addr.s6_addr, addr, 16); 
 }
+
 
 const sockaddr* IPv6Address::getAddr() const 
 {
@@ -134,20 +212,52 @@ socklen_t IPv6Address::getAddrLen() const
     return sizeof(m_addr);
 }
 
-IPAddress::ptr IPv6Address::broadcastAddress(uint32_t prefix_len)
-{
-    
-}
-
 IPAddress::ptr IPv6Address::networkAddress(uint32_t prefix_len) 
 {
-    
+    sockaddr_in6 addr(m_addr);
+    memset(addr.sin6_addr.s6_addr, 0, 16);
+    int last_block6 = prefix_len / 8;
+    int last_bits = prefix_len % 8;
+    if(last_block6 >= 16)
+    {
+        last_block6 = 16;
+        last_bits = 0;
+    }
+
+    for(int i = 0; i < last_block6; i++)
+    {
+        addr.sin6_addr.s6_addr[i] = m_addr.sin6_addr.s6_addr[i];
+    }
+    if(last_bits != 0)
+    {
+        addr.sin6_addr.s6_addr[last_block6] = (m_addr.sin6_addr.s6_addr[last_block6] >> last_bits) << last_bits;
+    }
+    return IPv6Address::ptr(new IPv6Address(addr));
 }
 
 
 IPAddress::ptr IPv6Address::subnetMask(uint32_t prefix_len)  
 {
-    
+    sockaddr_in6 addr(m_addr);
+    memset(addr.sin6_addr.s6_addr, 0, 16);
+    int last_block6 = prefix_len / 8;
+    int last_bits = prefix_len % 8;
+    if(last_block6 >= 16)
+    {
+        last_block6 = 16;
+        last_bits = 0;
+    }
+
+    for(int i = 0; i < last_block6; i++)
+    {
+        addr.sin6_addr.s6_addr[i] = ~(uint8_t {0});
+    }
+    if(last_bits != 0)
+    {
+        addr.sin6_addr.s6_addr[last_block6] = ~(uint8_t {0});
+        addr.sin6_addr.s6_addr[last_block6] = (m_addr.sin6_addr.s6_addr[last_block6] >> last_bits) << last_bits;
+    }
+    return IPv6Address::ptr(new IPv6Address(addr));   
 }
 
 std::ostream& IPv6Address::insert(std::ostream& os) const  

@@ -42,7 +42,6 @@ class IPAddress : public Address
 public:
     using ptr = std::shared_ptr<IPAddress>;
 
-    virtual IPAddress::ptr broadcastAddress(uint32_t prefix_len) = 0;
     virtual IPAddress::ptr networkAddress(uint32_t prefix_len) = 0;
     virtual IPAddress::ptr subnetMask(uint32_t prefix_len) = 0;
 
@@ -56,12 +55,15 @@ class IPv4Address : public IPAddress
 {
 public:
     using ptr = std::shared_ptr<IPv4Address>;
+    IPv4Address(const sockaddr_in& addr);
     IPv4Address(uint32_t address = INADDR_ANY, uint32_t port = 0);
+    IPv4Address(const char* address, uint32_t port = 0);
+
 
     const sockaddr* getAddr() const override;
     socklen_t getAddrLen() const override;
 
-    IPAddress::ptr broadcastAddress(uint32_t prefix_len) override;
+    IPAddress::ptr broadcastAddress(uint32_t prefix_len);
     IPAddress::ptr networkAddress(uint32_t prefix_len) override;
     IPAddress::ptr subnetMask(uint32_t prefix_len) override;
     std::ostream& insert(std::ostream& os) const override;
@@ -71,7 +73,7 @@ public:
     void setPort(uint32_t v) override;
 
 private:
-    sockaddr_in m_addr;
+    sockaddr_in m_addr;         // 均以网络字节序存储
 };
 
 
@@ -80,12 +82,13 @@ class IPv6Address : public IPAddress
 {
 public:
     using ptr = std::shared_ptr<IPv6Address>;
+    IPv6Address(const sockaddr_in6& addr);
     IPv6Address(const char* address, uint32_t port = 0);
+    IPv6Address(const uint8_t* addr, uint32_t port = 0);
 
     const sockaddr* getAddr() const override;
     socklen_t getAddrLen() const override;
 
-    IPAddress::ptr broadcastAddress(uint32_t prefix_len) override;
     IPAddress::ptr networkAddress(uint32_t prefix_len) override;
     IPAddress::ptr subnetMask(uint32_t prefix_len) override;
 
