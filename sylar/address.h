@@ -3,16 +3,25 @@
 #include <iostream>
 #include <memory>
 #include <netinet/in.h>
+#include <new>
 #include <ostream>
+#include <string>
 #include <sys/socket.h>
 #include <sys/fcntl.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <netdb.h>
+#include <ifaddrs.h>
+#include <utility>
 #include "log.h"
 
 
 namespace m_sylar
 {
+
+class IPAddress;
+class IPv4Address;
+class IPAv6ddress;
 
 class Address
 {
@@ -33,6 +42,23 @@ public:
     bool operator<(const Address& rhs) const;
     bool operator==(const Address& rhs) const;
     bool operator!= (const Address& rhs) const;
+    
+    static Address::ptr Create(sockaddr* addr, socklen_t path_len = 0);     // 根据addr创建不同类型的address
+
+    static bool Lookup(std::vector<Address::ptr>& result, const std::string& host, 
+                    int family = AF_UNSPEC, int type = 0, int protocol = 0);                // DNS解析
+
+    static Address::ptr LookupAny(const std::string& host, int family = AF_UNSPEC,
+                    int type = 0, int protocol = 0);            // 获取一个通用地址
+
+    static std::shared_ptr<IPAddress> LookupAnyIPAddress(const std::string& host, int family = AF_UNSPEC,
+                    int type = 0, int protocol = 0);            // 获取一个IP地址   
+                
+    static bool getInterfaceAddress(std::multimap<std::string, std::pair<Address::ptr, uint32_t>>& result, 
+                    int family = AF_UNSPEC);                    // get information from interface
+
+    static bool getInterfaceAddress(std::vector<std::pair<Address::ptr, uint32_t>>& result, 
+                int family, const std::string& interfaceName);
 };
 
 
@@ -102,12 +128,12 @@ private :
 };
 
 
-
 class UnixAddress : public Address
 {
 public:
     using ptr = std::shared_ptr<UnixAddress>;
     UnixAddress(const std::string& path);
+    UnixAddress(const sockaddr_un& addr, int path_len);
 
     std::ostream& insert(std::ostream& os) const override;
 
@@ -126,6 +152,7 @@ class UnknownAddress : public Address
 public:
     using ptr = std::shared_ptr<UnknownAddress>;
     UnknownAddress(int family);
+    UnknownAddress(const sockaddr& addr);
 
     std::ostream& insert(std::ostream& os) const override;
 
