@@ -58,6 +58,9 @@ static int countSetBites(T value)
     return count;
 }
 
+Address::Address() {}
+Address::~Address() {}
+
 int Address::getFamily() const
 {
     return getAddr()->sa_family;
@@ -128,7 +131,7 @@ Address::ptr Address::Create(sockaddr* addr, socklen_t path_len)
 
 bool Address::Lookup(std::vector<Address::ptr>& result, const std::string& host, 
             int family, int type, int protocol)     // 域名，网络层协议，传输层类型，传输层协议
-{   // 不支持url等协议到端口转换
+{   // 不支持url等协议到端口转换,baidu.com:http can work
     addrinfo hints;
     memset(&hints, 0, sizeof(hints));
     addrinfo *results;
@@ -156,7 +159,7 @@ bool Address::Lookup(std::vector<Address::ptr>& result, const std::string& host,
     }
     
     if(node.empty())
-    {   // ipv4地址检查
+    {   // ipv4地址 and host name
         size_t end_node = host.find(':');
         if(end_node == std::string::npos)
         {
@@ -260,7 +263,10 @@ bool Address::getInterfaceAddress(std::multimap<std::string, std::pair<Address::
                 prefix_len += countSetBites(netmask[i]);
             }
         }
-        result.insert({p->ifa_name, {addr, prefix_len}});
+        if(addr)
+        {
+            result.insert({p->ifa_name, {addr, prefix_len}});
+        }
     }
 
     freeifaddrs(interfaces);
@@ -360,10 +366,10 @@ std::ostream& IPv4Address::insert(std::ostream& os) const
 {
     uint32_t addr = m_addr.sin_addr.s_addr;
     uint32_t port = NetByteSwapToHostEndian(m_addr.sin_port);
-    os  << ((addr >> 24) & 0xff) << "."
-        << ((addr >> 16) & 0xff) << "."
+    os  << ((addr >> 0) & 0xff) << "."
         << ((addr >> 8) & 0xff) << "."
-        << ((addr >> 0) & 0xff)
+        << ((addr >> 16) & 0xff) << "."
+        << ((addr >> 24) & 0xff)
         << ":" << port;
     return os;
 }

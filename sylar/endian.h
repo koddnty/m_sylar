@@ -2,6 +2,8 @@
 
 #include <cstdint>
 #include <locale>
+#include <byteswap.h>
+
 
 /*
     实现在不同机器进行大小端转化
@@ -12,21 +14,21 @@ template<class T>
 typename std::enable_if<sizeof(T) == sizeof(uint64_t), T>::type
 byteSwap(T value)
 {   
-    return (T)bswap64_t(value);
+    return (T)bswap_64(value);
 }
 
 template<class T>
 typename std::enable_if<sizeof(T) == sizeof(uint32_t), T>::type
 byteSwap(T value)
 {   
-    return (T)bswap32_t(value);
+    return (T)bswap_32(value);
 }
 
 template<class T>
 typename std::enable_if<sizeof(T) == sizeof(uint16_t), T>::type
 byteSwap(T value)
 {   
-    return (T)bswap16_t(value);
+    return (T)bswap_16(value);
 }
 
 

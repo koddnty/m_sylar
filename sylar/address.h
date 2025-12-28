@@ -34,7 +34,7 @@ public:
     virtual const sockaddr* getAddr() const = 0;                    // 获取对应sockaddr
     virtual socklen_t getAddrLen() const = 0;                       // 获取sockaddr的大小   
 
-    virtual std::ostream& insert(std::ostream& os) const;           // 把自己的数据插入到刘os中
+    virtual std::ostream& insert(std::ostream& os) const = 0;           // 把自己的数据插入到刘os中
 
     int getFamily() const;
     std::string toString();

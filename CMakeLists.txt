@@ -9,21 +9,6 @@ set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++17 -Wall -W
 
 # set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
-include_directories(.)
-
-# -O2
-# set(LIB_SRC
-#     sylar/log.cc
-#     sylar/until.cc
-#     sylar/config.cc
-#     sylar/thread.cc
-#     sylar/fiber.cc
-#     sylar/scheduler.cc
-#     sylar/ioManager.cc
-#     sylar/self_timer.cc
-#     sylar/hook.cc
-#     )
-
 set ( LIB_LIB
     pthread
     dl
@@ -38,6 +23,8 @@ set ( LIB_LIB
 find_package(yaml-cpp REQUIRED)
 
 # add_library(sylar SHARED ${LIB_SRC})
+
+#  add source files
 add_library(sylar STATIC 
     sylar/log.cc
     sylar/until.cc
@@ -49,7 +36,17 @@ add_library(sylar STATIC
     sylar/self_timer.cc    
     sylar/hook.cc
     sylar/fdManager.cc
+    sylar/address.cc
 )
+
+target_include_directories(sylar PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# include_directories(
+#     ${CMAKE_CURRENT_SOURCE_DIR}
+#     ${CMAKE_CURRENT_SOURCE_DIR}/sylar
+# )
 
 
 add_executable(test tests/test.cc)
@@ -103,6 +100,11 @@ target_link_libraries(test_self_timer sylar ${LIB_LIB})
 add_executable(test_hook tests/test_hook.cc)
 add_dependencies(test_hook sylar)
 target_link_libraries(test_hook sylar ${LIB_LIB})
+
+add_executable(address_test tests/address_test.cc)
+add_dependencies(address_test sylar)
+target_link_libraries(address_test sylar ${LIB_LIB})
+
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)
