@@ -3,7 +3,6 @@
 #include <iostream>
 #include <memory>
 #include <netinet/in.h>
-#include <new>
 #include <ostream>
 #include <string>
 #include <sys/socket.h>
@@ -12,8 +11,8 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <ifaddrs.h>
-#include <utility>
-#include "log.h"
+#include <vector>
+#include <map>
 
 
 namespace m_sylar

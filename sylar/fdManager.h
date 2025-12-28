@@ -50,8 +50,8 @@ private:
     bool m_is_socket;
     int m_fd;
 
-    uint64_t m_recvTimeout;
-    uint64_t m_sendTimeout;
+    uint64_t m_recvTimeout;         // usec
+    uint64_t m_sendTimeout;         // usec
 };
 
 

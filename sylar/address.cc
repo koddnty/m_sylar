@@ -308,7 +308,6 @@ IPv4Address::IPv4Address(uint32_t address, uint32_t port)
 
 IPv4Address::IPv4Address(const char* address, uint32_t port)
 {
-    uint32_t buffer;
     m_addr.sin_family = AF_INET;
     if(inet_pton(AF_INET, address, &m_addr.sin_addr.s_addr) != 1)
     {

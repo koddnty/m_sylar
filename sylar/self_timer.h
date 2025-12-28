@@ -89,7 +89,7 @@ public:
     int addConditionTimer(uint64_t intervalTime, bool is_cycle, 
         std::function<void()> main_cb,
         std::function<bool()> condition,
-        std::function<void()> condition_cb);                        // 添加条件定时器
+        std::function<void()> condition_cb);                        // 添加条件定时器, usec
 
     void cancelTimer(Timer::ptr timer);                             // 取消定时器
     void cancelTimer(int timerFd);

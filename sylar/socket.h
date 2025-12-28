@@ -1,0 +1,95 @@
+#pragma once
+#include "sylar/address.h"
+#include <cstddef>
+#include <cstdint>
+#include <getopt.h>
+#include <memory.h>
+#include <memory>
+#include <ostream>
+#include <sys/socket.h>
+#include <sys/uio.h>
+#include "log.h"
+
+
+
+namespace m_sylar
+{
+
+class Socket : public std::enable_shared_from_this<Socket>
+{
+public:
+    using ptr = std::shared_ptr<Socket>;
+    using weak_ptr = std::shared_ptr<Socket>;
+
+    Socket(int family, int type, int protocol);
+    ~Socket();
+    
+    int64_t getSendTimeOut();           // usec
+    void setSendTimeOut(int64_t time);  // usec  
+
+    int64_t getRecvTimeOut();           // usec
+    void setRecvTimeOut(int64_t time);  // usec
+
+    bool getOption(int level, int option, void* result, socklen_t* len);        // get socket option, success on true
+    template<typename T>
+    bool getOption(int level, int option, T* result)
+    {
+        size_t len = sizeof(T);
+        return getsockopt(level, option, result, &len);
+    }
+
+    bool setOption(int level, int option, const void* value, socklen_t len);    // set socket option, success on true
+    template<typename T>
+    bool setOption(int level, int option, const T* value)
+    {
+        size_t len {sizeof(T)};
+        return setsockopt(level, option, value, len);
+    }
+
+    Socket::ptr accept();
+
+    bool init(int sock_fd);         // create a Socket from socketFd
+    bool bind(const Address::ptr addr);
+    bool connect(const Address::ptr addr, uint64_t timeOut = -1);
+    bool listen(int backlog = SOMAXCONN);
+    bool close();
+
+    int send(const void* buffer, size_t length, int flags = 0);
+    int send(const iovec* buffers, size_t length, int flags = 0);
+    int sendTo(Address::ptr to, const void* buffer, size_t length, int flags = 0);
+    int sendTo(Address::ptr to, const iovec* buffers, size_t length, int flags = 0);
+
+    int recv(const void* buffer, size_t length, int flags = 0);
+    int recv(const iovec* buffers, size_t length, int flags = 0);
+    int recvFrom(Address::ptr from, const void* buffers, size_t length, int flags = 0);
+    int recvFrom(Address::ptr from, const iovec* buffers, size_t length, int flags = 0);
+
+    Address::ptr getRemoteAddress();
+    Address::ptr getLocalAddress();
+
+    int getFamily() const {return m_family;}
+    int getType() const {return m_type;}
+    int Protocol() const {return m_protocol;}
+
+    std::ostream& dump(std::ostream& os) const;
+    int getSocket() const {return m_sock_fd;}
+
+    bool cancelRead();
+    bool cancelWrite();
+    bool cancelAll();
+
+private:
+    void initSock();
+    void newSock();
+private:
+    int m_sock_fd;
+    int m_family;
+    int m_protocol;
+    int m_type;
+    bool m_isConnected;
+
+    Address::ptr m_local_address;
+    Address::ptr m_remote_address;
+};
+
+}
