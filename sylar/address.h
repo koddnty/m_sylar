@@ -30,7 +30,7 @@ public:
     virtual ~Address();
     
 
-    virtual const sockaddr* getAddr() const = 0;                    // 获取对应sockaddr
+    virtual sockaddr* getAddr() const = 0;                    // 获取对应sockaddr
     virtual socklen_t getAddrLen() const = 0;                       // 获取sockaddr的大小   
 
     virtual std::ostream& insert(std::ostream& os) const = 0;           // 把自己的数据插入到刘os中
@@ -80,12 +80,13 @@ class IPv4Address : public IPAddress
 {
 public:
     using ptr = std::shared_ptr<IPv4Address>;
+    IPv4Address();
     IPv4Address(const sockaddr_in& addr);
-    IPv4Address(uint32_t address = INADDR_ANY, uint32_t port = 0);
-    IPv4Address(const char* address, uint32_t port = 0);
+    IPv4Address(uint32_t address, uint16_t port = 0);
+    IPv4Address(const char* address, uint16_t port = 0);
 
 
-    const sockaddr* getAddr() const override;
+    sockaddr* getAddr() const override;
     socklen_t getAddrLen() const override;
 
     IPAddress::ptr broadcastAddress(uint32_t prefix_len);
@@ -107,11 +108,12 @@ class IPv6Address : public IPAddress
 {
 public:
     using ptr = std::shared_ptr<IPv6Address>;
+    IPv6Address();
     IPv6Address(const sockaddr_in6& addr);
-    IPv6Address(const char* address, uint32_t port = 0);
-    IPv6Address(const uint8_t* addr, uint32_t port = 0);
+    IPv6Address(const char* address, uint16_t port = 0);
+    IPv6Address(const uint8_t* addr, uint16_t port = 0);
 
-    const sockaddr* getAddr() const override;
+    sockaddr* getAddr() const override;
     socklen_t getAddrLen() const override;
 
     IPAddress::ptr networkAddress(uint32_t prefix_len) override;
@@ -131,13 +133,15 @@ class UnixAddress : public Address
 {
 public:
     using ptr = std::shared_ptr<UnixAddress>;
+    UnixAddress();
     UnixAddress(const std::string& path);
     UnixAddress(const sockaddr_un& addr, int path_len);
 
     std::ostream& insert(std::ostream& os) const override;
 
-    const sockaddr* getAddr() const override;
+    sockaddr* getAddr() const override;
     socklen_t getAddrLen() const override;
+    void setAddrLen(socklen_t len) {m_addr_size = len;}
 
 private:
     sockaddr_un m_addr;
@@ -150,12 +154,13 @@ class UnknownAddress : public Address
 {
 public:
     using ptr = std::shared_ptr<UnknownAddress>;
+    UnknownAddress();
     UnknownAddress(int family);
     UnknownAddress(const sockaddr& addr);
 
     std::ostream& insert(std::ostream& os) const override;
 
-    const sockaddr* getAddr() const override;
+    sockaddr* getAddr() const override;
     socklen_t getAddrLen() const override;
 
 private:

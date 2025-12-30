@@ -46,12 +46,12 @@ public:
         return setsockopt(level, option, value, len);
     }
 
-    Socket::ptr accept();
 
     bool init(int sock_fd);         // create a Socket from socketFd
     bool bind(const Address::ptr addr);
-    bool connect(const Address::ptr addr, uint64_t timeOut = -1);
     bool listen(int backlog = SOMAXCONN);
+    Socket::ptr accept();
+    bool connect(const Address::ptr addr, uint64_t timeOut = -1);       // client
     bool close();
 
     int send(const void* buffer, size_t length, int flags = 0);
@@ -77,6 +77,8 @@ public:
     bool cancelRead();
     bool cancelWrite();
     bool cancelAll();
+
+    bool isValid();
 
 private:
     void initSock();

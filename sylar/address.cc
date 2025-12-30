@@ -293,12 +293,17 @@ bool Address::getInterfaceAddress(std::vector<std::pair<Address::ptr, uint32_t>>
 }
 
 // IPv4Address 定义
+IPv4Address::IPv4Address()
+{
+    m_addr.sin_family = AF_INET;
+}
+
 IPv4Address::IPv4Address(const sockaddr_in& addr)
 {
     m_addr = addr;
 }
 
-IPv4Address::IPv4Address(uint32_t address, uint32_t port)
+IPv4Address::IPv4Address(uint32_t address, uint16_t port)
 {
     memset(&m_addr, 0, sizeof(m_addr));
     m_addr.sin_family = AF_INET;
@@ -306,7 +311,7 @@ IPv4Address::IPv4Address(uint32_t address, uint32_t port)
     m_addr.sin_port = byteSwapToBigEndian(port);
 }
 
-IPv4Address::IPv4Address(const char* address, uint32_t port)
+IPv4Address::IPv4Address(const char* address, uint16_t port)
 {
     m_addr.sin_family = AF_INET;
     if(inet_pton(AF_INET, address, &m_addr.sin_addr.s_addr) != 1)
@@ -318,7 +323,7 @@ IPv4Address::IPv4Address(const char* address, uint32_t port)
     m_addr.sin_port = byteSwapToBigEndian(port);
 }
 
-const sockaddr* IPv4Address::getAddr() const 
+sockaddr* IPv4Address::getAddr() const 
 {
     return (sockaddr*)&m_addr;   
 }
@@ -364,7 +369,7 @@ IPAddress::ptr IPv4Address::subnetMask(uint32_t prefix_len)
 std::ostream& IPv4Address::insert(std::ostream& os) const 
 {
     uint32_t addr = m_addr.sin_addr.s_addr;
-    uint32_t port = NetByteSwapToHostEndian(m_addr.sin_port);
+    uint16_t port = NetByteSwapToHostEndian(m_addr.sin_port);
     os  << ((addr >> 0) & 0xff) << "."
         << ((addr >> 8) & 0xff) << "."
         << ((addr >> 16) & 0xff) << "."
@@ -385,12 +390,17 @@ void IPv4Address::setPort(uint32_t v)
 
 
 // IPv6Address 定义
+IPv6Address::IPv6Address()
+{
+    m_addr.sin6_family = AF_INET6;
+}
+
 IPv6Address::IPv6Address(const sockaddr_in6& addr)
 {
     m_addr = addr;
 }
 
-IPv6Address::IPv6Address(const char* address, uint32_t port)
+IPv6Address::IPv6Address(const char* address, uint16_t port)
 {   // 字符串地址
     memset(&m_addr, 0, sizeof(m_addr));
     m_addr.sin6_family = AF_INET6;
@@ -402,7 +412,7 @@ IPv6Address::IPv6Address(const char* address, uint32_t port)
     m_addr.sin6_port = byteSwapToBigEndian(port);
 }
 
-IPv6Address::IPv6Address(const uint8_t* addr, uint32_t port)
+IPv6Address::IPv6Address(const uint8_t* addr, uint16_t port)
 {   // 原生地址
     memset(&m_addr, 0, sizeof(m_addr));
     m_addr.sin6_family = AF_INET6;
@@ -411,7 +421,7 @@ IPv6Address::IPv6Address(const uint8_t* addr, uint32_t port)
 }
 
 
-const sockaddr* IPv6Address::getAddr() const 
+sockaddr* IPv6Address::getAddr() const 
 {
     return (sockaddr*)&m_addr;
 }
@@ -495,6 +505,11 @@ void IPv6Address::setPort(uint32_t v)
 
 // Unix定义
 static const size_t MAX_PATH_LEN = sizeof(((sockaddr_un*)0)->sun_path) - 1;
+UnixAddress::UnixAddress()
+{
+    m_addr.sun_family = AF_UNIX;
+}
+
 UnixAddress::UnixAddress(const std::string& path)
 {   // 函数输入格式 抽象路径名 "\\0..."或 普通路径名 "..."
     memset(&m_addr, 0, sizeof(m_addr));
@@ -534,7 +549,7 @@ std::ostream& UnixAddress::insert(std::ostream& os) const
     return os;
 }
 
-const sockaddr* UnixAddress::getAddr() const 
+sockaddr* UnixAddress::getAddr() const 
 {
     return (sockaddr*)&m_addr;
 }
@@ -547,6 +562,10 @@ socklen_t UnixAddress::getAddrLen() const
 
 
 // known地址类型
+UnknownAddress::UnknownAddress()
+{    
+}
+
 UnknownAddress::UnknownAddress(int family)
 {
     memset(&m_addr, 0, sizeof(m_addr));
@@ -564,9 +583,9 @@ std::ostream& UnknownAddress::insert(std::ostream& os) const
 }
 
 
-const sockaddr* UnknownAddress::getAddr() const 
+sockaddr* UnknownAddress::getAddr() const 
 {
-    return &m_addr;
+    return (sockaddr*)&m_addr;
 }
 
 socklen_t UnknownAddress::getAddrLen() const 
