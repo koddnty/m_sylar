@@ -378,12 +378,12 @@ std::ostream& IPv4Address::insert(std::ostream& os) const
     return os;
 }
 
-uint32_t IPv4Address::getPort() const  
+uint16_t IPv4Address::getPort() const  
 {
     return NetByteSwapToHostEndian(m_addr.sin_port);
 }
 
-void IPv4Address::setPort(uint32_t v)  
+void IPv4Address::setPort(uint16_t v)  
 {
    m_addr.sin_port = byteSwapToBigEndian(v);
 }
@@ -492,12 +492,12 @@ std::ostream& IPv6Address::insert(std::ostream& os) const
     return os;
 }
 
-uint32_t IPv6Address::getPort() const  
+uint16_t IPv6Address::getPort() const  
 {
     return NetByteSwapToHostEndian(m_addr.sin6_port);
 }
 
-void IPv6Address::setPort(uint32_t v)  
+void IPv6Address::setPort(uint16_t v)  
 {
     m_addr.sin6_port = byteSwapToBigEndian(v);
 }

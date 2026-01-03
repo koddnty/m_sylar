@@ -8,7 +8,6 @@
 #include <ostream>
 #include <sys/socket.h>
 #include <sys/uio.h>
-#include "log.h"
 
 
 
@@ -23,6 +22,19 @@ public:
 
     Socket(int family, int type, int protocol);
     ~Socket();
+
+    static ptr CreateTCP(m_sylar::Address::ptr address);
+    static ptr CreateUDP(m_sylar::Address::ptr address);
+
+    static ptr CreateTCPSocket();
+    static ptr CreateUDPSocket();
+
+    static ptr CreateTCPSocket6();
+    static ptr CreateUDPSocket6();
+
+    
+    static ptr CreateUnixTCPSocket();
+    static ptr CreateUnixUDPSocket();
     
     int64_t getSendTimeOut();           // usec
     void setSendTimeOut(int64_t time);  // usec  
@@ -43,7 +55,7 @@ public:
     bool setOption(int level, int option, const T* value)
     {
         size_t len {sizeof(T)};
-        return setsockopt(level, option, value, len);
+        return setsockopt(m_sock_fd, level, option, value, len);
     }
 
 
@@ -84,10 +96,10 @@ private:
     void initSock();
     void newSock();
 private:
-    int m_sock_fd;
-    int m_family;
-    int m_protocol;
-    int m_type;
+    int m_sock_fd;              // socket fd
+    int m_family;               // socket family (AF_INET...)
+    int m_protocol;             // protocol (OSTREAM)
+    int m_type;                 // type
     bool m_isConnected;
 
     Address::ptr m_local_address;

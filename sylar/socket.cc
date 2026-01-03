@@ -1,6 +1,7 @@
 #include "socket.h"
 #include "fdManager.h"
 #include "sylar/address.h"
+#include "sylar/ioManager.h"
 #include "sylar/log.h"
 #include <asm-generic/socket.h>
 #include <bits/types/error_t.h>
@@ -32,6 +33,47 @@ Socket::Socket(int family, int type, int protocol)
 Socket::~Socket()
 {
     close();
+}
+
+// easy create a socket 
+Socket::ptr Socket::CreateTCP(m_sylar::Address::ptr address){
+    Socket::ptr new_socket(new Socket(address->getFamily(), SOCK_STREAM, 0));
+    return new_socket;
+}
+
+Socket::ptr Socket::CreateUDP(m_sylar::Address::ptr address){
+    Socket::ptr new_socket(new Socket(address->getFamily(), SOCK_DGRAM, 0));
+    return new_socket;
+}
+
+Socket::ptr Socket::CreateTCPSocket(){
+    Socket::ptr new_socket(new Socket(AF_INET, SOCK_STREAM, 0));
+    return new_socket;
+}
+
+Socket::ptr Socket::CreateUDPSocket(){
+    Socket::ptr new_socket(new Socket(AF_INET, SOCK_DGRAM, 0));
+    return new_socket;
+}
+
+Socket::ptr Socket::CreateTCPSocket6(){
+    Socket::ptr new_socket(new Socket(AF_INET6, SOCK_STREAM, 0));
+    return new_socket;
+}
+
+Socket::ptr Socket::CreateUDPSocket6(){
+    Socket::ptr new_socket(new Socket(AF_INET6, SOCK_DGRAM, 0));
+    return new_socket;
+}
+
+Socket::ptr Socket::CreateUnixTCPSocket(){
+    Socket::ptr new_socket(new Socket(AF_UNIX, SOCK_STREAM, 0));
+    return new_socket;
+}
+
+Socket::ptr Socket::CreateUnixUDPSocket(){
+    Socket::ptr new_socket(new Socket(AF_UNIX, SOCK_DGRAM, 0));
+    return new_socket;
 }
 
 int64_t Socket::getSendTimeOut()
@@ -214,7 +256,7 @@ bool Socket::connect(const Address::ptr addr, uint64_t timeOut)
 }
 
 bool Socket::listen(int backlog)
-{   // 
+{   // listen to a socket fd, generate a new connect socket when a connect is comming.
     if(!isValid())
     {
         M_SYLAR_LOG_ERROR(g_logger) << "socket is not valid in function Socket::listen(int)";
@@ -427,20 +469,36 @@ Address::ptr Socket::getLocalAddress()
 
 std::ostream& Socket::dump(std::ostream& os) const
 {
+    os  << "socket family : " << m_family 
+        << "\naddress : " << m_local_address->toString()
+        << "\nprotocol : " << m_protocol
+        << "\nsocket fd : " << m_sock_fd
+        << "\ntype : " << m_type;
+
+    if(m_local_address)
+    {
+        os << "\n local address : \n" << m_local_address->toString();
+    }
+    if(m_remote_address)
+    {
+        os << "\n remote address : \n" << m_remote_address->toString();
+    }
+    return os;
 }
 
 bool Socket::cancelRead()
 {
+    return IOManager::getInstance()->cancelEvent(m_sock_fd, IOManager::READ);
 }
 
 bool Socket::cancelWrite()
 {
-
+    return IOManager::getInstance()->cancelEvent(m_sock_fd, IOManager::WRITE);
 }
 
 bool Socket::cancelAll()
 {
-
+    return IOManager::getInstance()->cancelAll(m_sock_fd);
 }
 
 bool Socket::isValid()

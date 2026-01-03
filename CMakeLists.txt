@@ -37,6 +37,7 @@ add_library(sylar STATIC
     sylar/hook.cc
     sylar/fdManager.cc
     sylar/address.cc
+    sylar/socket.cc
 )
 
 target_include_directories(sylar PUBLIC 
@@ -105,6 +106,9 @@ add_executable(address_test tests/address_test.cc)
 add_dependencies(address_test sylar)
 target_link_libraries(address_test sylar ${LIB_LIB})
 
+add_executable(socket_test tests/test_socket.cc)
+add_dependencies(socket_test sylar)
+target_link_libraries(socket_test sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)

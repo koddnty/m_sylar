@@ -70,8 +70,8 @@ public:
     virtual IPAddress::ptr networkAddress(uint32_t prefix_len) = 0;
     virtual IPAddress::ptr subnetMask(uint32_t prefix_len) = 0;
 
-    virtual uint32_t getPort() const = 0;
-    virtual void setPort(uint32_t v) = 0;
+    virtual uint16_t getPort() const = 0;
+    virtual void setPort(uint16_t v) = 0;
 };
 
 
@@ -95,8 +95,8 @@ public:
     std::ostream& insert(std::ostream& os) const override;
 
 
-    uint32_t getPort() const override;
-    void setPort(uint32_t v) override;
+    uint16_t getPort() const override;
+    void setPort(uint16_t v) override;
 
 private:
     sockaddr_in m_addr;         // 均以网络字节序存储
@@ -121,8 +121,8 @@ public:
 
     std::ostream& insert(std::ostream& os) const override;
 
-    uint32_t getPort() const override;
-    void setPort(uint32_t v) override;
+    uint16_t getPort() const override;
+    void setPort(uint16_t v) override;
     
 private :
     sockaddr_in6 m_addr;
