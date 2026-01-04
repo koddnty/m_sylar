@@ -70,15 +70,14 @@ bool FdCtx::init()
     return m_is_init;
 }
 
-bool close()
+bool FdCtx::close()
 {
-    close();
     return true;
 }
 
 
 void FdCtx::setTimeout(int type, uint64_t time)
-{
+{   // usec
     if(type == SO_RCVTIMEO)
     {
         m_recvTimeout = time;
@@ -91,7 +90,7 @@ void FdCtx::setTimeout(int type, uint64_t time)
 
 // 无设置-1, 设置>0
 uint64_t FdCtx::getTimeout(int type)
-{
+{   // usec
     if(type == SO_RCVTIMEO)
     {
         return m_recvTimeout;
