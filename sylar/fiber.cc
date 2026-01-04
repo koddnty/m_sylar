@@ -94,7 +94,7 @@ void Fiber::resetFunc(std::function<void()> cb){
     m_state = INIT;
 }       
 // 协程切换
-void Fiber::swapIn(){              // 主协程->当前协程
+void Fiber::swapIn(){              // 主协程->新协程
     SetThisFiber(this);
     M_SYLAR_ASSERT(m_fiberId && m_state != EXEC);
     m_state = EXEC;
