@@ -1,8 +1,8 @@
 #include <iostream>
 #include <memory>
-#include "../sylar/self_timer.h"
-#include "../sylar/hook.h"
-#include "../sylar/allHeader.h"
+#include "basic/self_timer.h"
+#include "basic/hook.h"
+#include "basic/allHeader.h"
 
 
 static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");

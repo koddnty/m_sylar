@@ -1,5 +1,5 @@
-#include "../sylar/hook.h"
-#include "../sylar/ioManager.h"
+#include "basic/hook.h"
+#include "basic/ioManager.h"
 #include <cstring>
 #include <ctime>
 #include <iostream>

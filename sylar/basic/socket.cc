@@ -1,8 +1,8 @@
 #include "socket.h"
 #include "fdManager.h"
-#include "sylar/address.h"
-#include "sylar/ioManager.h"
-#include "sylar/log.h"
+#include "address.h"
+#include "ioManager.h"
+#include "log.h"
 #include <asm-generic/socket.h>
 #include <bits/types/error_t.h>
 #include <cerrno>

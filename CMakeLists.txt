@@ -26,22 +26,22 @@ find_package(yaml-cpp REQUIRED)
 
 #  add source files
 add_library(sylar STATIC 
-    sylar/log.cc
-    sylar/until.cc
-    sylar/config.cc
-    sylar/thread.cc
-    sylar/fiber.cc
-    sylar/scheduler.cc
-    sylar/ioManager.cc
-    sylar/self_timer.cc    
-    sylar/hook.cc
-    sylar/fdManager.cc
-    sylar/address.cc
-    sylar/socket.cc
+    sylar/basic/log.cc
+    sylar/basic/until.cc
+    sylar/basic/config.cc
+    sylar/basic/thread.cc
+    sylar/basic/fiber.cc
+    sylar/basic/scheduler.cc
+    sylar/basic/ioManager.cc
+    sylar/basic/self_timer.cc    
+    sylar/basic/hook.cc
+    sylar/basic/fdManager.cc
+    sylar/basic/address.cc
+    sylar/basic/socket.cc
 )
 
 target_include_directories(sylar PUBLIC 
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/sylar
 )
 
 # include_directories(

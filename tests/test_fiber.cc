@@ -1,7 +1,7 @@
-#include "../sylar/fiber.h"
-#include "../sylar/log.h"
-#include "../sylar/config.h"
-#include "../sylar/allHeader.h"
+#include "basic/fiber.h"
+#include "basic/log.h"
+#include "basic/config.h"
+#include "basic/allHeader.h"
 #include <iostream>
     
 static m_sylar::Logger::ptr self_logger = M_SYLAR_GET_LOGGER_ROOT(); 

@@ -1,6 +1,6 @@
-#include "../sylar/config.h"
-#include "../sylar/log.h"
-#include "../sylar/scheduler.h"
+#include "basic/config.h"
+#include "basic/log.h"
+#include "basic/scheduler.h"
 #include <string>
 
 m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");

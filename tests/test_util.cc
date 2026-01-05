@@ -1,5 +1,5 @@
-#include "../sylar/allHeader.h"
-#include "../sylar/macro.h"
+#include "basic/allHeader.h"
+#include "basic/macro.h"
 
 m_sylar::Logger::ptr g_logger = M_SYLAR_GET_LOGGER_ROOT();
 
