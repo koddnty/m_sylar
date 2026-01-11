@@ -38,6 +38,7 @@ add_library(sylar STATIC
     sylar/basic/fdManager.cc
     sylar/basic/address.cc
     sylar/basic/socket.cc
+    sylar/http/http.cc
 )
 
 target_include_directories(sylar PUBLIC 

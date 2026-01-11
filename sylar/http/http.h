@@ -5,6 +5,7 @@
 #include <memory>
 #include <iostream>
 #include <map>
+#include <ostream>
 #include <string>
 #include <yaml-cpp/node/type.h>
 
@@ -123,17 +124,16 @@ namespace http{
 
 enum HttpMethod
 {
-#define XX(num, name, string) HTTP_##name = num ,
+#define XX(num, name, string) name = num ,
     HTTP_METHOD_MAP(XX) 
 #undef XX 
-
     HTTP_INVALID_METHOD = 255
 };
 
 
 enum HttpStatus
 {
-#define XX(code, name, desc) HTTP_##name = code,
+#define XX(code, name, desc) name = code,
     HTTP_STATUS_MAP(XX)
 #undef XX
 };
@@ -147,7 +147,7 @@ const char* HttpStatusToString(const HttpStatus& status);
 
 struct CaseInsensitive  
 {
-    bool operator()(const std::string& lhs, const std::string& rhs);
+    bool operator()(const std::string& lhs, const std::string& rhs) const ;
 };
 
 class HttpRequest
@@ -160,7 +160,7 @@ public:
 
     HttpMethod getMethod() const {return m_method; }
     uint8_t getVersion() const {return m_version; }
-    HttpStatus getStatus() const {return HttpStatus::HTTP_HTTP_VERSION_NOT_SUPPORTED; }
+    HttpStatus getStatus() const {return HttpStatus::HTTP_VERSION_NOT_SUPPORTED; }
     const std::string& getPath() const {return m_path; }
     const std::string& getQuery() const {return m_query; }
     const std::string& getBody() const {return m_body; }
@@ -185,22 +185,61 @@ public:
     std::string getParam(std::string& key, std::string val = "");
     std::string getCookie(std::string& key, std::string val = "");
 
-    bool setHeader(std::string& key, const std::string& val);
-    bool setParam(std::string& key, const std::string& val);
-    bool setCookie(std::string& key, const std::string& val);
+    void setHeader(std::string& key, const std::string& val);
+    void setParam(std::string& key, const std::string& val);
+    void setCookie(std::string& key, const std::string& val);
 
-    bool delHeader(std::string& key);
-    bool delParam(std::string& key);
-    bool delCookie(std::string& key);
+    void delHeader(std::string& key);
+    void delParam(std::string& key);
+    void delCookie(std::string& key);
 
     bool hasHeader(std::string& key, std::string* val = nullptr);       // val will be set to value if value exists
     bool hasParam(std::string& key, std::string* val = nullptr);
     bool hasCookie(std::string& key, std::string* val = nullptr);
 
+    std::ostream& dump(std::ostream& os);
+
+    // check and return by value if data exists
+    template<class T>   
+    bool checkGetHeaderAs(const MapType& m, const std::string& key, T& value, const T& def = T())   
+    {
+        return checkGetAs(m, key, value, def);
+    }
+
+    template<class T>
+    bool checkGetParamAs(const MapType& m, const std::string& key, T& value, const T& def = T())
+    {
+        return checkGetAs(m, key, value, def);
+    }
+
+    template<class T>
+    bool checkGetCookieAs(const MapType& m, const std::string& key, T& value, const T& def = T())
+    {
+        return checkGetAs(m, key, value, def);
+    }
+
+    // return directly if data exists, or return default value T()
+    template<class T>
+    T GetHeaderAs(const MapType& m, const std::string& key, const T& def = T())
+    {
+        return checkGetAs(m, key, def);
+    }
+
+    template<class T>
+    T GetParamAs(const MapType& m, const std::string& key, const T& def = T())
+    {
+        return checkGetAs(m, key, def);
+    }
+
+    template<class T>
+    T GetCookieAs(const MapType& m, const std::string& key, const T& def = T())
+    {
+        return checkGetAs(m, key, def);
+    }
 
 private: 
 template<class T>
-    bool getAs(const MapType& m, const std::string& key, T& value, const T& def = T())
+    bool checkGetAs(const MapType& m, const std::string& key, T& value, const T& def = T())
     {
         auto it = m.find(key);
         if(it == m.end())
