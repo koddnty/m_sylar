@@ -150,94 +150,52 @@ struct CaseInsensitive
     bool operator()(const std::string& lhs, const std::string& rhs) const ;
 };
 
-class HttpRequest
+
+
+
+class HTTP
 {
 public:
-    using ptr = std::shared_ptr<HttpRequest>;
+    using ptr = std::shared_ptr<HTTP>;
     using MapType = std::map<std::string, std::string, CaseInsensitive>;
 
-    HttpRequest(uint8_t version = 0x11, bool close = true);
+    HTTP(uint8_t version = 0x11, bool close = true);
 
-    HttpMethod getMethod() const {return m_method; }
     uint8_t getVersion() const {return m_version; }
     HttpStatus getStatus() const {return HttpStatus::HTTP_VERSION_NOT_SUPPORTED; }
-    const std::string& getPath() const {return m_path; }
-    const std::string& getQuery() const {return m_query; }
     const std::string& getBody() const {return m_body; }
-
     MapType& getHeaders()  {return m_headers; }
-    MapType& getParams() {return m_params; }
-    MapType& getCookies() {return m_cookies; }
+    std::string getHeader(std::string& key, std::string val = "");
 
-    void setMethod(HttpMethod method) {m_method = method; }
     // void setStatus(HttpStatus)
     void setVersion(uint8_t version) {m_version = version; }
-    void setPath (std::string path) { m_path = path;}
-    void setQuery (std::string query) { m_query = query;}
-    void setFragment (std::string fragment) { m_fragment = fragment;}
     void setBody (std::string body) { m_body = body;}
-
-    void setHeader (MapType& header) {m_headers = header; }
-    void setParams (MapType& params) {m_params = params; }
-    void setCookie (MapType& cookie) {m_cookies = cookie; }
-
-    std::string getHeader(std::string& key, std::string val = "");
-    std::string getParam(std::string& key, std::string val = "");
-    std::string getCookie(std::string& key, std::string val = "");
-
-    void setHeader(std::string& key, const std::string& val);
-    void setParam(std::string& key, const std::string& val);
-    void setCookie(std::string& key, const std::string& val);
+    void setHeaders (MapType& header) {m_headers = header; }
+    void setHeader(const std::string& key, const std::string& val);
 
     void delHeader(std::string& key);
-    void delParam(std::string& key);
-    void delCookie(std::string& key);
 
     bool hasHeader(std::string& key, std::string* val = nullptr);       // val will be set to value if value exists
-    bool hasParam(std::string& key, std::string* val = nullptr);
-    bool hasCookie(std::string& key, std::string* val = nullptr);
 
-    std::ostream& dump(std::ostream& os);
+    std::ostream& updateAndDump(std::ostream& os) {updateHeader(); return dump(os); }         // updte http header and dump
+    virtual bool updateHeader() = 0;
+    virtual std::ostream& dump(std::ostream& os) const = 0;       // it may generate some headers like content-Length
 
     // check and return by value if data exists
     template<class T>   
-    bool checkGetHeaderAs(const MapType& m, const std::string& key, T& value, const T& def = T())   
+    bool checkGetHeaderAs(const std::string& key, T& value, const T& def = T())   
     {
-        return checkGetAs(m, key, value, def);
-    }
-
-    template<class T>
-    bool checkGetParamAs(const MapType& m, const std::string& key, T& value, const T& def = T())
-    {
-        return checkGetAs(m, key, value, def);
-    }
-
-    template<class T>
-    bool checkGetCookieAs(const MapType& m, const std::string& key, T& value, const T& def = T())
-    {
-        return checkGetAs(m, key, value, def);
+        return checkGetAs(m_headers, key, value, def);
     }
 
     // return directly if data exists, or return default value T()
     template<class T>
     T GetHeaderAs(const MapType& m, const std::string& key, const T& def = T())
     {
-        return checkGetAs(m, key, def);
+        return getAs(m, key, def);
     }
 
-    template<class T>
-    T GetParamAs(const MapType& m, const std::string& key, const T& def = T())
-    {
-        return checkGetAs(m, key, def);
-    }
-
-    template<class T>
-    T GetCookieAs(const MapType& m, const std::string& key, const T& def = T())
-    {
-        return checkGetAs(m, key, def);
-    }
-
-private: 
+protected: 
 template<class T>
     bool checkGetAs(const MapType& m, const std::string& key, T& value, const T& def = T())
     {
@@ -279,23 +237,103 @@ template<class T>
         return def;
     }
 
+protected:
+    bool m_close;
+    uint8_t m_version;
+    MapType m_headers;
+    std::string m_body;
+};
 
 
+
+class HttpRequest : public HTTP
+{
+public:
+    using ptr = std::shared_ptr<HttpRequest>;
+
+    HttpRequest(uint8_t version = 0x11, bool close = true, HttpMethod method = HttpMethod::GET);
+    HttpMethod getMethod() const {return m_method; }
+
+    void setMethod(HttpMethod method) {m_method = method; }
+    void setParams (MapType& params) {m_params = params; }
+    void setCookies (MapType& cookie) {m_cookies = cookie; }
+    void setParam(const std::string& key, const std::string& val);
+    void setCookie(const std::string& key, const std::string& val);
+
+    void setPath (std::string path) { m_path = path;}
+    void setQuery (std::string query) { m_query = query;}
+    void setFragment (std::string fragment) { m_fragment = fragment;}
+
+    MapType& getParams() {return m_params; }
+    MapType& getCookies() {return m_cookies; }
+    const std::string& getPath() const {return m_path; }
+    const std::string& getQuery() const {return m_query; }
+    std::string getParam(std::string& key, std::string val = "");
+    std::string getCookie(std::string& key, std::string val = "");
+
+    void delParam(std::string& key);
+    void delCookie(std::string& key);
+
+    bool hasParam(std::string& key, std::string* val = nullptr);
+    bool hasCookie(std::string& key, std::string* val = nullptr);
+
+    bool updateHeader() override;
+    std::ostream& dump(std::ostream& os) const override;
+
+    template<class T>               // check and return by value if data exists
+    bool checkGetParamAs(const std::string& key, T& value, const T& def = T())
+    {
+        return checkGetAs(m_params, key, value, def);
+    }
+
+    template<class T> 
+    bool checkGetCookieAs(const std::string& key, T& value, const T& def = T())
+    {
+        return checkGetAs(m_cookies, key, value, def);
+    }
+
+    template<class T>               // return directly if data exists, or return default value T()
+    T GetParamAs(const std::string& key, const T& def = T())
+    {
+        return getAs(m_params, key, def);
+    }
+
+    template<class T>
+    T GetCookieAs(const std::string& key, const T& def = T())
+    {
+        return getAs(m_cookies, key, def);
+    }
 
 private:
     HttpMethod m_method;
-    uint8_t m_version;
-    bool m_close;
-
     std::string m_path;
     std::string m_query;
     std::string m_fragment;
-    std::string m_body;
-
-    MapType m_headers;
     MapType m_params;
     MapType m_cookies;
+};
 
+
+
+class HttpResponse : public HTTP
+{
+public:
+    using ptr = std::shared_ptr<HttpResponse>;
+
+    HttpResponse(uint8_t version, bool close = true);
+
+    HttpStatus getStatus() const {return m_status; }
+    std::string getReason() const {return m_reason; }
+
+    void setStatus(HttpStatus status);
+    void setReason(const std::string& status);
+
+    bool updateHeader() override;
+    std::ostream& dump(std::ostream& os) const override;
+
+private:
+    HttpStatus m_status;
+    std::string m_reason;   
 };
 
 }
