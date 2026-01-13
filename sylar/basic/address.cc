@@ -313,13 +313,13 @@ IPv4Address::IPv4Address(uint32_t address, uint16_t port)
 
 IPv4Address::IPv4Address(const char* address, uint16_t port)
 {
+    memset(&m_addr, 0, sizeof(m_addr));
     m_addr.sin_family = AF_INET;
     if(inet_pton(AF_INET, address, &m_addr.sin_addr.s_addr) != 1)
     {
         M_SYLAR_LOG_ERROR(g_logger) << "inet_ntop converse failed, errno = " << errno 
                 << " " << strerror(errno); 
     }
-    memset(&m_addr, 0, sizeof(m_addr));
     m_addr.sin_port = byteSwapToBigEndian(port);
 }
 

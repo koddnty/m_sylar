@@ -111,6 +111,10 @@ add_executable(socket_test tests/test_socket.cc)
 add_dependencies(socket_test sylar)
 target_link_libraries(socket_test sylar ${LIB_LIB})
 
+add_executable(http_test tests/http_test.cc)
+add_dependencies(http_test sylar)
+target_link_libraries(http_test sylar ${LIB_LIB})
+
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)
 # force_redefine_macro_for_sources(test_yaml)

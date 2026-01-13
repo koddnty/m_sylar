@@ -320,13 +320,13 @@ class HttpResponse : public HTTP
 public:
     using ptr = std::shared_ptr<HttpResponse>;
 
-    HttpResponse(uint8_t version, bool close = true);
+    HttpResponse(uint8_t version = 0x11, bool close = true);
 
     HttpStatus getStatus() const {return m_status; }
     std::string getReason() const {return m_reason; }
 
     void setStatus(HttpStatus status);
-    void setReason(const std::string& status);
+    void setReason(HttpStatus status);
 
     bool updateHeader() override;
     std::ostream& dump(std::ostream& os) const override;

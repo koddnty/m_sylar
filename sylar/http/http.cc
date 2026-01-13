@@ -112,7 +112,9 @@ bool HTTP::hasHeader(std::string& key, std::string* val)
 HttpRequest::HttpRequest(uint8_t version, bool close, HttpMethod method)
     : HTTP(version, close),
       m_method(method)
-{}
+{
+    m_path = "/";
+}
 
 void HttpRequest::setParam(const std::string& key, const std::string& val)
 {
@@ -191,7 +193,7 @@ std::ostream& HttpRequest::dump(std::ostream& os) const
     os << HttpMethodToString(m_method) << " " << m_path
        << (m_query.empty() ? "" : "?") << m_query 
        << (m_fragment.empty() ? "" : "#") << m_fragment
-       << "HTTP/" 
+       << " HTTP/" 
        << (uint32_t)(m_version >> 4) << "." << (uint32_t)(m_version & 0x0F)
        << "\r\n";
     // header
@@ -211,22 +213,25 @@ std::ostream& HttpRequest::dump(std::ostream& os) const
 HttpResponse::HttpResponse(uint8_t version, bool close)
     : HTTP(version, close)
 {
+    setStatus(HttpStatus::OK);
 }
 
 void HttpResponse::setStatus(HttpStatus status)
 {
     m_status = status;
+    m_reason = HttpStatusToString(status);
 }
 
-void HttpResponse::setReason(const std::string& status)
+void HttpResponse::setReason(HttpStatus status)
 {
-    m_reason = status;
+    setStatus(status);
 }
 
 bool HttpResponse::updateHeader()
 {
     setHeader("connection", (m_close ? "close" : "keep-alive"));
     if(!m_body.empty()) {setHeader("Content-Length", std::to_string(m_body.size())); }
+    if(!m_reason.empty()) {}
     return true; 
 }
 
@@ -235,7 +240,7 @@ std::ostream& HttpResponse::dump(std::ostream& os) const
     // request 
     os  << "HTTP/" << (uint32_t)(m_version >> 4) << "." << (uint32_t)(m_version & 0x0F) << " "
         << m_status << " "
-        << m_reason 
+        << (m_reason.empty() ? HttpStatusToString(m_status) : m_reason)
         << "\r\n"; 
     // header
     for(auto& i : m_headers)
