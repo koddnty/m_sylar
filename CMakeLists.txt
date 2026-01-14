@@ -39,6 +39,12 @@ add_library(sylar STATIC
     sylar/basic/address.cc
     sylar/basic/socket.cc
     sylar/http/http.cc
+    sylar/http/http11_parser.rl.cc
+    sylar/http/httpclient_parser.rl.cc
+    sylar/http/bstr/bsafe.c
+    sylar/http/bstr/bstraux.c
+    sylar/http/bstr/bstrlib.c
+    sylar/http/httpParser.cc
 )
 
 target_include_directories(sylar PUBLIC 

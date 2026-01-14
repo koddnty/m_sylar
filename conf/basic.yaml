@@ -49,3 +49,8 @@ system:
 tcp:
   connect:
     timeout: 1000
+
+http:
+  request:
+    buffer_size: 5120           # bit 5 * 1024
+    max_message_size: 33554432  # bit 32 * 1024 * 1024
