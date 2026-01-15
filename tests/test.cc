@@ -1,5 +1,5 @@
-#include "../sylar/log.h"
-#include "../sylar/until.h"
+#include "basic/log.h"
+#include "basic/until.h"
 #include <iostream>
 #include <unistd.h> 
 #include <pthread.h>

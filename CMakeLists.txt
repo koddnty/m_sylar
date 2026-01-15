@@ -26,22 +26,30 @@ find_package(yaml-cpp REQUIRED)
 
 #  add source files
 add_library(sylar STATIC 
-    sylar/log.cc
-    sylar/until.cc
-    sylar/config.cc
-    sylar/thread.cc
-    sylar/fiber.cc
-    sylar/scheduler.cc
-    sylar/ioManager.cc
-    sylar/self_timer.cc    
-    sylar/hook.cc
-    sylar/fdManager.cc
-    sylar/address.cc
-    sylar/socket.cc
+    sylar/basic/log.cc
+    sylar/basic/until.cc
+    sylar/basic/config.cc
+    sylar/basic/thread.cc
+    sylar/basic/fiber.cc
+    sylar/basic/scheduler.cc
+    sylar/basic/ioManager.cc
+    sylar/basic/self_timer.cc    
+    sylar/basic/hook.cc
+    sylar/basic/fdManager.cc
+    sylar/basic/address.cc
+    sylar/basic/socket.cc
+    sylar/http/http.cc
+    sylar/http/http11_parser.rl.cc
+    sylar/http/httpclient_parser.rl.cc
+    sylar/http/bstr/bsafe.c
+    sylar/http/bstr/bstraux.c
+    sylar/http/bstr/bstrlib.c
+    sylar/http/dbg.cc
+    sylar/http/httpParser.cc
 )
 
 target_include_directories(sylar PUBLIC 
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/sylar
 )
 
 # include_directories(
@@ -109,6 +117,14 @@ target_link_libraries(address_test sylar ${LIB_LIB})
 add_executable(socket_test tests/test_socket.cc)
 add_dependencies(socket_test sylar)
 target_link_libraries(socket_test sylar ${LIB_LIB})
+
+add_executable(http_test tests/http_test.cc)
+add_dependencies(http_test sylar)
+target_link_libraries(http_test sylar ${LIB_LIB})
+
+add_executable(httpParser_test tests/httpParser_test.cc)
+add_dependencies(httpParser_test sylar)
+target_link_libraries(httpParser_test sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)
