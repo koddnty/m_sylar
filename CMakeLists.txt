@@ -44,6 +44,7 @@ add_library(sylar STATIC
     sylar/http/bstr/bsafe.c
     sylar/http/bstr/bstraux.c
     sylar/http/bstr/bstrlib.c
+    sylar/http/dbg.cc
     sylar/http/httpParser.cc
 )
 
@@ -120,6 +121,10 @@ target_link_libraries(socket_test sylar ${LIB_LIB})
 add_executable(http_test tests/http_test.cc)
 add_dependencies(http_test sylar)
 target_link_libraries(http_test sylar ${LIB_LIB})
+
+add_executable(httpParser_test tests/httpParser_test.cc)
+add_dependencies(httpParser_test sylar)
+target_link_libraries(httpParser_test sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)

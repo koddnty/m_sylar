@@ -151,7 +151,7 @@ struct CaseInsensitive
 };
 
 
-
+class HttpResponse;
 
 class HTTP
 {
@@ -178,6 +178,8 @@ public:
     bool hasHeader(std::string& key, std::string* val = nullptr);       // val will be set to value if value exists
 
     std::ostream& updateAndDump(std::ostream& os) {updateHeader(); return dump(os); }         // updte http header and dump
+    friend std::ostream& operator<<(std::ostream& os, HttpResponse& resp);
+
     virtual bool updateHeader() = 0;
     virtual std::ostream& dump(std::ostream& os) const = 0;       // it may generate some headers like content-Length
 
@@ -243,6 +245,10 @@ protected:
     MapType m_headers;
     std::string m_body;
 };
+
+inline std::ostream& operator<<(std::ostream& os, HTTP& resp) {
+    return resp.updateAndDump(os);
+}
 
 
 
@@ -314,6 +320,7 @@ private:
 };
 
 
+// 正确：友元函数，两个参数
 
 class HttpResponse : public HTTP
 {
@@ -335,6 +342,8 @@ private:
     HttpStatus m_status;
     std::string m_reason;   
 };
+
+
 
 }
 }

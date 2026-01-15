@@ -114,6 +114,9 @@ HttpRequest::HttpRequest(uint8_t version, bool close, HttpMethod method)
       m_method(method)
 {
     m_path = "/";
+    m_fragment = "";
+    m_path = "";
+    m_query = "";
 }
 
 void HttpRequest::setParam(const std::string& key, const std::string& val)

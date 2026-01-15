@@ -56,10 +56,20 @@ private:
 class HttpResponseParser
 {
 public:
+    enum Error : uint32_t
+    {
+        OK = 0x00000000,
+        // INVALID_METHOD = (1 << 1),
+        INVALID_VERSION = (1 << 2),
+        INVALID_HEADER = (1 << 3)
+    };
+
+public:
     using ptr = std::shared_ptr<HttpResponseParser>;
     HttpResponseParser();
 
     // http request paresr callback functions
+    static void on_field_cb(void *data, const char *field, size_t flen, const char *value, size_t vlen);
     static void on_reason_phrase(void *data, const char *at, size_t length);
     static void on_status_code(void *data, const char *at, size_t length);
     static void on_chunk_size(void *data, const char *at, size_t length);
@@ -67,15 +77,20 @@ public:
     static void on_header_done(void *data, const char *at, size_t length);
     static void on_last_chunk(void *data, const char *at, size_t length);
 
-    size_t execute(const char *data, size_t len, size_t off);
+    size_t execute(char *data, size_t len);
     int isError();
-    int isFinished(http_parser *parser);
+    int isFinished();
 
     HttpResponse::ptr getData() const { return m_response;}
+
+    void setError(Error e) {m_error = (Error)(m_error | e); }
+    void cancelError(Error e) {m_error = (Error)(m_error & ~(e)); }
+    Error gerError() {return m_error; }
 
 private:
     httpclient_parser* m_parser;
     HttpResponse::ptr m_response;
+    Error m_error = Error::OK;
 };
 
 
