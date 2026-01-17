@@ -46,6 +46,7 @@ add_library(sylar STATIC
     sylar/http/bstr/bstrlib.c
     sylar/http/dbg.cc
     sylar/http/httpParser.cc
+    sylar/http/tcpServer.cc
 )
 
 target_include_directories(sylar PUBLIC 

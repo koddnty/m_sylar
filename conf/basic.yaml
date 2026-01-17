@@ -2,11 +2,11 @@ logs:
   - name: system
     level: DEBUG
     appenders:
+      - type: StdoutLogAppender
+        level: DEBUG
       - type: FileLogAppender
         file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/log/system_log.txt
         level : DEBUG
-      - type: StdoutLogAppender
-        level: DEBUG
   - name: test_config
     level: DEBUG
     appenders:
@@ -50,7 +50,12 @@ tcp:
   connect:
     timeout: 1000
 
+
 http:
   request:
     buffer_size: 5120           # bit 5 * 1024
     max_message_size: 33554432  # bit 32 * 1024 * 1024
+  tcpServer:
+    timeout:
+      read: 120000000           # 2 * 60 * 1000 * 1000 us
+      connect: 50000000         # 5 * 1000 * 1000 us

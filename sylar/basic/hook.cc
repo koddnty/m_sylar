@@ -52,7 +52,7 @@ static thread_local bool t_hook_enable = false;
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 static m_sylar::ConfigVar<uint64_t>::ptr g_tcp_connect_timeout =
-    m_sylar::configManager::Lookup("tcp.connect.timeout", (uint64_t)5000, "tcp connect timeout");     // 
+    m_sylar::configManager::Lookup("http.tcpServer.timeout.connect", (uint64_t)5000, "tcp connect timeout");     // 
 
 struct fdTimerInfo
 {
@@ -295,7 +295,7 @@ int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen)
 
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {   
-    uint64_t ms_sleep = m_sylar::g_tcp_connect_timeout->getValue();
+    uint64_t us_sleep = m_sylar::g_tcp_connect_timeout->getValue();
     if(!m_sylar::is_hook_enable())
     {
         return original_connect(sockfd, addr, addrlen);
@@ -328,10 +328,10 @@ int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     auto tim = m_sylar::TimeManager::getInstance();
     int timer_fd = -1;
     std::shared_ptr<bool> is_time_out (new bool(false));
-    // std::cout << ms_sleep << std::endl;
-    if(ms_sleep != (uint64_t)-1)
+    // std::cout << us_sleep << std::endl;
+    if(us_sleep != (uint64_t)-1)
     {
-        timer_fd = tim->addConditionTimer(ms_sleep * 1000, false, [](){}, 
+        timer_fd = tim->addConditionTimer(us_sleep, false, [](){}, 
                 [](){
                     return false;
                 }, 
