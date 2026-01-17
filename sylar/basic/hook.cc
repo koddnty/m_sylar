@@ -52,7 +52,7 @@ static thread_local bool t_hook_enable = false;
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 static m_sylar::ConfigVar<uint64_t>::ptr g_tcp_connect_timeout =
-    m_sylar::configManager::Lookup("http.tcpServer.timeout.connect", (uint64_t)5000, "tcp connect timeout");     // 
+    m_sylar::configManager::Lookup("http.tcpserver.timeout.connect", (uint64_t)5000, "tcp connect timeout");     // 
 
 struct fdTimerInfo
 {

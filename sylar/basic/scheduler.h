@@ -127,7 +127,7 @@ protected:
     size_t m_threadCount = 0;                       // 总线程数
     std::atomic<size_t> m_activeThreadCount = {0};                 // 活跃线程数
     std::atomic<size_t> m_idleThreadCount = {0};                   // 空闲线程数
-    bool m_stopping = true;                        // 主动停止
+    bool m_stopping = true;                         // 主动停止
     bool m_autoStop = false;                        // 自动停止 
 };
 

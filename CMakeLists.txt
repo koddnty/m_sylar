@@ -127,6 +127,10 @@ add_executable(httpParser_test tests/httpParser_test.cc)
 add_dependencies(httpParser_test sylar)
 target_link_libraries(httpParser_test sylar ${LIB_LIB})
 
+add_executable(tcpServer_test tests/tcpServer_test.cc)
+add_dependencies(tcpServer_test sylar)
+target_link_libraries(tcpServer_test sylar ${LIB_LIB})
+
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)
 # force_redefine_macro_for_sources(test_yaml)

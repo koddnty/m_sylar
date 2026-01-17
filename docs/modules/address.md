@@ -11,11 +11,11 @@ address模块提供对ip地址（4、6）和unix地址的封装，能够与socke
 ```txt
 Address -----IPAddress-----IPv4Address
 		 |			   |
-		 |			   ----IPv6Address
+		 |			   L---IPv6Address
 		 |		
          |-----------------UnixAddress
 		 |
-		 ------------------UnknownAddress
+		 L-----------------UnknownAddress
 ```
 
 ### 公共基类 Address
@@ -103,6 +103,8 @@ static std::shared_ptr<IPAddress> LookupAnyIPAddress(const std::string& host, in
 ```
 
 **函数描述**
+
+`host`参数支持ipv4地址和ipv6地址以及网络地址如"baidu.com"
 
 `` Lookup``函数将查询`host`*所有*解析的地址并生成对应的address,返回写入到``result``中， 后三个参数将筛选查询到的地址类型。 
 

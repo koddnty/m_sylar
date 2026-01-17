@@ -219,7 +219,7 @@ bool Socket::bind(const Address::ptr addr)
                                     << "   errno = " << errno << "   e.what() : " << strerror(errno);
         return false;
     }
-    getLocalAddress();
+    // getLocalAddress();
     return true;
 }
 

@@ -18,7 +18,7 @@ namespace m_sylar
 {
 
 m_sylar::ConfigVar<uint64_t>::ptr g_tcpServer_read_timeout = 
-    m_sylar::configManager::Lookup("http.tcpServer.timeout.read", (uint64_t)(2 * 60 * 1000000), "tcp server read timeOut to hold a connect");
+    m_sylar::configManager::Lookup("http.tcpserver.timeout.read", (uint64_t)(2 * 60 * 1000000), "tcp server read timeOut to hold a connect");
 
 Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");    
 
@@ -52,13 +52,13 @@ bool TcpServer::bind(std::vector<Address::ptr>& addrs, std::vector<Address::ptr>
     bool rt;
     for(auto& addr : addrs)
     {
-        Socket::ptr sock = Socket::CreateTCPSocket();
+        Socket::ptr sock = Socket::CreateTCP(addr);
         if(!sock->bind(addr))
         {
             M_SYLAR_LOG_ERROR(g_logger) << "bind failed, server name : " << m_name 
                                         << " errno : " << errno << " error : " << strerror(errno)
-                                        << " local address : \n      " << sock->getLocalAddress()->toString()
-                                        << " remote address : \n     " << addr->toString();
+                                        << " \nlocal address :       " << sock->getLocalAddress()->toString()
+                                        << " \nremote address :      " << addr->toString();
 
             failed.push_back(addr);
             rt = false;
@@ -68,13 +68,14 @@ bool TcpServer::bind(std::vector<Address::ptr>& addrs, std::vector<Address::ptr>
         {
             M_SYLAR_LOG_ERROR(g_logger) << "listen failed, server name : " << m_name 
                                         << " errno : " << errno << " error : " << strerror(errno)
-                                        << " addr : \n       " << addr->toString()
-                                        << " local address : \n      " << sock->getLocalAddress()->toString()
-                                        << " remote address : \n      " << sock->getRemoteAddress()->toString();
+                                        << " \naddr :        " << addr->toString()
+                                        << " \nlocal address :       " << sock->getLocalAddress()->toString()
+                                        << " \nremote address :       " << sock->getRemoteAddress()->toString();
             failed.push_back(addr);
             rt = false;
             continue;
         }
+        M_SYLAR_LOG_INFO(g_logger) << "bind and listen successed, socket : " << addr->toString();
         m_sockets.push_back(sock);
     }
     return rt;
