@@ -84,6 +84,7 @@ public:
     int Protocol() const {return m_protocol;}
 
     std::ostream& dump(std::ostream& os) const;
+    std::string toString() const ;
     int getSocket() const {return m_sock_fd;}
 
     bool cancelRead();

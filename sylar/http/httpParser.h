@@ -38,13 +38,16 @@ public:
 
     size_t execute(char *data, size_t len);
     int isError();
-    int isFinished(http_parser *parser);
+    int isFinished();
 
     HttpRequest::ptr getData() const { return m_requset;}
 
     void setError(Error e) {m_error = (Error)(m_error | e); }
     void cancelError(Error e) {m_error = (Error)(m_error & ~(e)); }
     Error gerError() {return m_error; }
+
+    static uint64_t getBufferSize();
+    static uint64_t getMaxReqSize();
 private:
     http_parser* m_parser;
     HttpRequest::ptr m_requset;

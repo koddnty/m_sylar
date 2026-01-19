@@ -45,6 +45,8 @@ system:
     unkkxx: 78987
     unjjbb: 78987
 
+fiber:
+  stacksize: 524288
 
 tcp:
   connect:

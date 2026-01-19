@@ -10,6 +10,7 @@
 #include <cstring>
 #include <memory>
 #include <netinet/in.h>
+#include <sstream>
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 #include <sys/uio.h>
@@ -161,7 +162,7 @@ Socket::ptr Socket::accept()
 
 bool Socket::init(int sock_fd)
 {   // initialize a socket that created outside after connect or generate from accept
-    FdCtx::ptr fd_ctx = FdMgr::GetInstance()->get(sock_fd);
+    FdCtx::ptr fd_ctx = FdMgr::GetInstance()->get(sock_fd, true);       // 使用true来使fdmanager管理新连接
     if(fd_ctx && fd_ctx->is_socket() && !fd_ctx->is_closed())
     {
         m_sock_fd = sock_fd;
@@ -470,7 +471,6 @@ Address::ptr Socket::getLocalAddress()
 std::ostream& Socket::dump(std::ostream& os) const
 {
     os  << "socket family : " << m_family 
-        << "\naddress : " << m_local_address->toString()
         << "\nprotocol : " << m_protocol
         << "\nsocket fd : " << m_sock_fd
         << "\ntype : " << m_type;
@@ -484,6 +484,13 @@ std::ostream& Socket::dump(std::ostream& os) const
         os << "\n remote address : \n" << m_remote_address->toString();
     }
     return os;
+}
+
+std::string Socket::toString() const
+{
+    std::stringstream ss;
+    dump(ss);
+    return ss.str();
 }
 
 bool Socket::cancelRead()

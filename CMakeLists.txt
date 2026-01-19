@@ -47,6 +47,7 @@ add_library(sylar STATIC
     sylar/http/dbg.cc
     sylar/http/httpParser.cc
     sylar/http/tcpServer.cc
+    sylar/http/httpSession.cc
 )
 
 target_include_directories(sylar PUBLIC 

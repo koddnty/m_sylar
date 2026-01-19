@@ -76,6 +76,7 @@ static ssize_t do_io(int fd, Original_fun func, const char* fun_name,
     if(!fd_ctx)
     {
         // 非socket
+        // M_SYLAR_LOG_DEBUG(g_logger) << "fd_Ctx is null, not a socket, fd = " << fd;
         return func(fd, std::forward<Args>(args)...);
     }
     if (fd_ctx->is_closed())
@@ -110,6 +111,7 @@ retry:
         int timer_fd = -1;
         if(time_out != (uint64_t)-1)
         {
+            std::cout << "超时设置:" << time_out << "\n";
             timer_fd = tim->addConditionTimer(time_out, false, [](){}, 
                 [wfdtino](){
                     if(wfdtino.lock() && wfdtino.lock()->is_cancelled)

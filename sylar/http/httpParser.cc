@@ -163,10 +163,21 @@ int HttpRequestParser::isError()
     return m_error || http_parser_has_error(m_parser);
 }
 
-int HttpRequestParser::isFinished(http_parser *parser)
+int HttpRequestParser::isFinished()
 {
-    return http_parser_is_finished(parser);
+    return http_parser_is_finished(m_parser);
 }
+
+uint64_t HttpRequestParser::getBufferSize()
+{
+    return s_http_request_buffer_size;
+}
+
+uint64_t HttpRequestParser::getMaxReqSize()
+{
+    return s_http_request_max_size;
+}
+
 
 
 

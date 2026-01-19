@@ -1,6 +1,8 @@
 #include "fdManager.h"
+#include "basic/log.h"
 #include "hook.h"
 #include <asm-generic/socket.h>
+#include <cstddef>
 #include <fcntl.h>
 #include <mutex>
 #include <shared_mutex>
@@ -8,6 +10,7 @@
 
 namespace m_sylar
 {
+static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 FdCtx::FdCtx(int fd)
 {
@@ -113,36 +116,56 @@ FdManager::~FdManager()
 
 }
 
-FdCtx::ptr FdManager::get(int fd, bool auto_create)
+FdCtx::ptr FdManager::get(int fd, bool auto_create) 
 {
     std::shared_lock<std::shared_mutex> rlock (m_rwMutex);
     // 无需创建fdctx
-    if(m_fdCtxs.size() <= fd)
+    // if(m_fdCtxs.size() <= fd)
+    // {
+    //     if(auto_create == false)
+    //     {
+    //         return nullptr;
+    //     }
+    // } 
+    // else
+    // {
+    //     if(m_fdCtxs[fd])
+    //     {
+    //         return m_fdCtxs[fd];
+    //     }
+    // }
+
+    if(!auto_create)
     {
-        if(auto_create == false)
+        if(fd == 6 && m_fdCtxs[6] == nullptr)
         {
-            return nullptr;
+            std::cout << "---------------------";
         }
-    } 
-    else
-    {
-        if(m_fdCtxs[fd])
-        {
-            return m_fdCtxs[fd];
-        }
+        return (fd < m_fdCtxs.size() ? m_fdCtxs[fd] : nullptr);
     }
+    else if (fd < m_fdCtxs.size() && m_fdCtxs[fd])
+    {  
+        return m_fdCtxs[fd];
+    }
+
     rlock.unlock();
 
     // 需创建fdctx
+    // M_SYLAR_LOG_DEBUG(g_logger) << "create a new fdctx, fd=" << fd;
     FdCtx::ptr new_ctx (new FdCtx(fd));
-    m_fdCtxs.resize(fd * 1.5);          // 扩容
     std::unique_lock<std::shared_mutex> wlock(m_rwMutex);
+    if (fd < m_fdCtxs.size() && m_fdCtxs[fd]) 
+    {   // 重新检查
+        return m_fdCtxs[fd];
+    }
+    m_fdCtxs.resize(fd * 1.5);          // 扩容
     m_fdCtxs[fd] = new_ctx;
     return new_ctx;
 }
 
 void FdManager::del(int fd)
 {
+    // M_SYLAR_LOG_DEBUG(g_logger) << "delete a fd, fd=" << fd;
     std::unique_lock<std::shared_mutex> wlock(m_rwMutex);
     if(m_fdCtxs.size() <= fd)
     {

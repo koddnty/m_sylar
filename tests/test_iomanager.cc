@@ -12,10 +12,10 @@
 m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 
+int count = 0;
 void test1_fiber1()
 {
-    M_SYLAR_LOG_INFO(g_logger) << "test1_fiber1";
-    std::cout << "test1_fiber1" << std::endl;
+    count++;
 }
 
 void test1()
@@ -87,9 +87,21 @@ void test2()
     iom.stop();
 }
 
+void test3()
+{
+    m_sylar::IOManager iom ("test_ioManager", 10);
+    for(int i = 0; i < 1000; i++)
+    {
+        iom.schedule(test1_fiber1);
+    }
+    sleep(2);
+    iom.stop();
+    std::cout << count << std::endl;
+
+}
+
 int main(void) 
 {
-    
-    test1();
+    test3();
     return  0;
 }

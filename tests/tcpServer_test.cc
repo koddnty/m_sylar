@@ -1,5 +1,6 @@
 #include "basic/address.h"
 #include "http/tcpServer.h"
+#include "http/httpSession.h"
 #include "basic/log.h"
 #include "basic/ioManager.h"
 #include <iostream>
@@ -17,6 +18,8 @@ int test()
     m_sylar::UnixAddress::ptr host_addr2 (new m_sylar::UnixAddress("/tmp/unix_addr"));
 
     m_sylar::TcpServer::ptr server (new m_sylar::TcpServer());
+    // m_sylar::http::HttpServer::ptr server (new m_sylar::http::HttpServer());
+
 
     std::vector<m_sylar::Address::ptr> addrs;
     std::vector<m_sylar::Address::ptr> fails;
@@ -34,7 +37,10 @@ int test()
 
 int main(void)
 {
-    m_sylar::IOManager iom ("main", 12);
+    // YAML::Node root = YAML::LoadFile("/home/koddnty/user/projects/sylar/m_sylar/m_sylar/conf/basic.yaml");
+    // m_sylar::configManager::LoadFromYaml(root);
+    
+    m_sylar::IOManager iom ("main", 7);
     // test();
     iom.schedule(test);
     sleep(1000);

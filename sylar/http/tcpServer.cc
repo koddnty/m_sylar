@@ -75,7 +75,9 @@ bool TcpServer::bind(std::vector<Address::ptr>& addrs, std::vector<Address::ptr>
             rt = false;
             continue;
         }
-        M_SYLAR_LOG_INFO(g_logger) << "bind and listen successed, socket : " << addr->toString();
+
+        M_SYLAR_LOG_INFO(g_logger) << "bind and listen successed, address : " << addr->toString()
+                                   << "\n socket fd=" << sock->toString();
         m_sockets.push_back(sock);
     }
     return rt;
@@ -124,6 +126,7 @@ void TcpServer::setName(std::string name)
 void TcpServer::handleClient(Socket::ptr client)
 {
     M_SYLAR_LOG_DEBUG(g_logger) << "new client";
+    sleep(2);
 }
 
 void TcpServer::startAccept(Socket::ptr sock)
@@ -137,9 +140,9 @@ void TcpServer::startAccept(Socket::ptr sock)
         }
         else 
         {
-            M_SYLAR_LOG_WARN(g_logger) << "accept failed, errno : " << errno << " error : " << strerror(errno)
-                                       << "\n remote address: " << sock->getRemoteAddress() 
-                                       << "\n local address:  " << sock->getLocalAddress(); 
+            M_SYLAR_LOG_WARN(g_logger) << "accept failed, errno : " << errno << " error : " << strerror(errno);
+                                    //    << "\n remote address: " << sock->getRemoteAddress() 
+                                    //    << "\n local address:  " << sock->getLocalAddress(); 
         }
     }
          
