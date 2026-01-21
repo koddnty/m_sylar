@@ -111,7 +111,7 @@ retry:
         int timer_fd = -1;
         if(time_out != (uint64_t)-1)
         {
-            std::cout << "超时设置:" << time_out << "\n";
+            // std::cout << "超时设置:" << time_out << "\n";
             timer_fd = tim->addConditionTimer(time_out, false, [](){}, 
                 [wfdtino](){
                     if(wfdtino.lock() && wfdtino.lock()->is_cancelled)

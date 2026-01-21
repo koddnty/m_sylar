@@ -165,7 +165,7 @@ public:
     HttpStatus getStatus() const {return HttpStatus::HTTP_VERSION_NOT_SUPPORTED; }
     const std::string& getBody() const {return m_body; }
     MapType& getHeaders()  {return m_headers; }
-    std::string getHeader(std::string& key, std::string val = "");
+    std::string getHeader(const std::string& key, const std::string& val = "");
 
     // void setStatus(HttpStatus)
     void setVersion(uint8_t version) {m_version = version; }

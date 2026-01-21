@@ -274,7 +274,7 @@ bool Socket::listen(int backlog)
 
 bool Socket::close()
 {
-    if(!m_isConnected && m_sock_fd == -1)
+    if(!m_isConnected || m_sock_fd == -1)
     {
         return true;
     }

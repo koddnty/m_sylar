@@ -48,6 +48,8 @@ public:
 
     static uint64_t getBufferSize();
     static uint64_t getMaxReqSize();
+    static uint64_t getRecvTimeOut();
+    static uint64_t getSendTimeOut();
 private:
     http_parser* m_parser;
     HttpRequest::ptr m_requset;

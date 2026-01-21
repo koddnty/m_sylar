@@ -1,6 +1,8 @@
 #include "http.h"
+#include "basic/log.h"
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 #include <string>
 
 namespace m_sylar
@@ -71,7 +73,7 @@ HTTP::HTTP(uint8_t version, bool close)
     , m_version(version)
 {}
 
-std::string HTTP::getHeader(std::string& key, std::string val)
+std::string HTTP::getHeader(const std::string& key, const std::string& val)
 {
     auto it = m_headers.find(key);
     if(it != m_headers.end())
@@ -233,8 +235,12 @@ void HttpResponse::setReason(HttpStatus status)
 bool HttpResponse::updateHeader()
 {
     setHeader("connection", (m_close ? "close" : "keep-alive"));
-    if(!m_body.empty()) {setHeader("Content-Length", std::to_string(m_body.size())); }
-    if(!m_reason.empty()) {}
+    if(!m_body.empty()) {
+        // M_SYLAR_LOG_DEBUG(g_logger) << 
+        // std::cout << "content-Length:" << std::to_string(m_body.size());
+        setHeader("Content-Length", std::to_string(m_body.size())); 
+    }
+    if(!m_reason.empty()) {setReason(m_status);}
     return true; 
 }
 

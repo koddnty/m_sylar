@@ -47,7 +47,7 @@ add_library(sylar STATIC
     sylar/http/dbg.cc
     sylar/http/httpParser.cc
     sylar/http/tcpServer.cc
-    sylar/http/httpSession.cc
+    sylar/http/httpServer.cc
 )
 
 target_include_directories(sylar PUBLIC 
@@ -131,6 +131,10 @@ target_link_libraries(httpParser_test sylar ${LIB_LIB})
 add_executable(tcpServer_test tests/tcpServer_test.cc)
 add_dependencies(tcpServer_test sylar)
 target_link_libraries(tcpServer_test sylar ${LIB_LIB})
+
+add_executable(httpServer_test tests/httpServer_test.cc)
+add_dependencies(httpServer_test sylar)
+target_link_libraries(httpServer_test sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)

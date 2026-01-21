@@ -1,6 +1,6 @@
 #include "basic/address.h"
 #include "http/tcpServer.h"
-#include "http/httpSession.h"
+#include "http/httpServer.h"
 #include "basic/log.h"
 #include "basic/ioManager.h"
 #include <iostream>
@@ -17,8 +17,8 @@ int test()
     host_addr->setPort(8033);
     m_sylar::UnixAddress::ptr host_addr2 (new m_sylar::UnixAddress("/tmp/unix_addr"));
 
-    m_sylar::TcpServer::ptr server (new m_sylar::TcpServer());
-    // m_sylar::http::HttpServer::ptr server (new m_sylar::http::HttpServer());
+    // m_sylar::TcpServer::ptr server (new m_sylar::TcpServer());
+    m_sylar::http::HttpServer::ptr server (new m_sylar::http::HttpServer());
 
 
     std::vector<m_sylar::Address::ptr> addrs;
