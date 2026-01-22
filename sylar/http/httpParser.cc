@@ -176,7 +176,7 @@ void HttpRequestParser::on_header_done(void *data, const char *at, size_t length
 size_t HttpRequestParser::execute(char *data, size_t len)
 {
     size_t offset = http_parser_execute(m_parser, data, len, 0);
-    memmove(data, data + offset, (len - offset));
+    // memmove(data, data + offset, (len - offset));
     return offset;
 }
 

@@ -136,6 +136,12 @@ add_executable(httpServer_test tests/httpServer_test.cc)
 add_dependencies(httpServer_test sylar)
 target_link_libraries(httpServer_test sylar ${LIB_LIB})
 
+
+
+add_executable(performance_test_scheduler tests/performance_tests/scheduler_exchange.cc)
+add_dependencies(performance_test_scheduler sylar)
+target_link_libraries(performance_test_scheduler sylar ${LIB_LIB})
+
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)
 # force_redefine_macro_for_sources(test_yaml)

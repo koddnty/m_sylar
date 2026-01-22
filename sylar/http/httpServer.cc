@@ -46,14 +46,18 @@ bool  HttpSession::setResponse()
 int HttpSession::recvRequest()
 {
     uint64_t buffer_size = m_request_parser->getBufferSize();
-    size_t offset = 0;
+    // buffer_size = 20;
+    size_t offset = buffer_size;
     ssize_t message_len = 0;
     int total_length = 0;
     while(true)
     {
         // 接受缓冲区信息
-        message_len = m_socket->recv(m_buffer + offset, buffer_size - offset, 0);
+        // message_len = m_socket->recv(m_buffer + buffer_size - offset, offset, 0);
+        message_len = m_socket->recv(m_buffer, buffer_size, 0);
         total_length += message_len;
+        std::cout << "---=---=---total length = " << total_length << std::endl;
+        M_SYLAR_LOG_DEBUG(g_logger) << "message:\n" << std::string(m_buffer, message_len);
         if(message_len == 0)
         {   // 连接关闭
             return 0;
@@ -70,7 +74,7 @@ int HttpSession::recvRequest()
         }
 
         // 处理接收到的信息
-        offset = m_request_parser->execute(m_buffer, offset + message_len);
+        offset = m_request_parser->execute(m_buffer, total_length);
         if(m_request_parser->isError())
         { // 错误检测
             M_SYLAR_LOG_WARN(g_logger) << "[httpSession] Invalid http request, socket:" << m_socket->toString();
@@ -79,15 +83,17 @@ int HttpSession::recvRequest()
 
         if(m_request_parser->isFinished())
         {   // 完成处理
+            M_SYLAR_LOG_DEBUG(g_logger) << "[httpSession] recv success, total length = " << total_length;
             return total_length;
         }
-        else if(offset == 0)
+        else if(offset == total_length - buffer_size)
         {   // buffer太小且超限制
             M_SYLAR_LOG_WARN(g_logger) << "[httpSession] HTTP parsing stalled - possible malicious request";
             return -1;
         }
     }
-    return 0;
+    M_SYLAR_LOG_DEBUG(g_logger) << "[httpSession] recv success, total length = " << total_length;
+    return total_length;
 }
 
 int HttpSession::sendResp()
@@ -165,12 +171,12 @@ void HttpServer::handleClient(Socket::ptr client)
         HttpSession::ptr session(new HttpSession(client));
         // 获取并处理请求报文
         int rt = session->recvRequest();
-        if(rt == 0) {return; /* 连接关闭 */}
+        if(rt == 0) {break; /* 连接关闭 */}
         else if(rt < 0)
         {
             M_SYLAR_LOG_WARN(g_logger) << "recv http request failed"
                                        << "\nclient:" << client->toString();
-            return;
+            break;
         } 
         // M_SYLAR_LOG_INFO(g_logger) << "request:\n" << *(session->getRequest());       
 
