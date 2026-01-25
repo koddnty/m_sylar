@@ -5,7 +5,7 @@ project(m_sylar)
 # add_definitions(-D__FILE__="\"$(notdir $(abspath $<))\"")
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++17 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
 
 # set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
@@ -46,6 +46,11 @@ add_library(sylar STATIC
     sylar/http/bstr/bstrlib.c
     sylar/http/dbg.cc
     sylar/http/httpParser.cc
+    sylar/http/tcpServer.cc
+    sylar/http/httpServer.cc
+
+    sylar/lab/fiber.cc
+    sylar/lab/schedule.cc
 )
 
 target_include_directories(sylar PUBLIC 
@@ -125,6 +130,22 @@ target_link_libraries(http_test sylar ${LIB_LIB})
 add_executable(httpParser_test tests/httpParser_test.cc)
 add_dependencies(httpParser_test sylar)
 target_link_libraries(httpParser_test sylar ${LIB_LIB})
+
+add_executable(tcpServer_test tests/tcpServer_test.cc)
+add_dependencies(tcpServer_test sylar)
+target_link_libraries(tcpServer_test sylar ${LIB_LIB})
+
+add_executable(httpServer_test tests/httpServer_test.cc)
+add_dependencies(httpServer_test sylar)
+target_link_libraries(httpServer_test sylar ${LIB_LIB})
+
+add_executable(performance_test_scheduler tests/performance_tests/scheduler_exchange.cc)
+add_dependencies(performance_test_scheduler sylar)
+target_link_libraries(performance_test_scheduler sylar ${LIB_LIB})
+
+add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
+add_dependencies(scheduleCoro20_test sylar)
+target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)

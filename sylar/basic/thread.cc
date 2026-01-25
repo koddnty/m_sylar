@@ -1,5 +1,7 @@
 #include "thread.h"
 #include "log.h"
+#include <cerrno>
+#include <cstring>
 #include <semaphore.h>
 
 namespace m_sylar{
@@ -20,10 +22,11 @@ Semaphore::Semaphore(int count)
 
 Semaphore::~Semaphore()
 {
-    if(sem_close(&m_semaphore))
+    if(sem_destroy(&m_semaphore))
     {
-        M_SYLAR_LOG_ERROR(g_logger) << "sem_close failed";
+        M_SYLAR_LOG_ERROR(g_logger) << "sem_close failed" << " errorno : " << errno << " error : " << strerror(errno);
     }
+    // std::cout << "-------success--------\n";
 }
 
 void Semaphore::wait()

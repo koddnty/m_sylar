@@ -2,11 +2,11 @@ logs:
   - name: system
     level: DEBUG
     appenders:
+      - type: StdoutLogAppender
+        level: DEBUG
       - type: FileLogAppender
         file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/log/system_log.txt
         level : DEBUG
-      - type: StdoutLogAppender
-        level: DEBUG
   - name: test_config
     level: DEBUG
     appenders:
@@ -45,12 +45,23 @@ system:
     unkkxx: 78987
     unjjbb: 78987
 
+fiber:
+  stacksize: 524288
 
 tcp:
   connect:
     timeout: 1000
 
+
 http:
   request:
-    buffer_size: 5120           # bit 5 * 1024
-    max_message_size: 33554432  # bit 32 * 1024 * 1024
+    buffer_size: 5120           # bit 5 * 1024          单次recv大小（单次buffer无法解析将丢弃)
+    max_message_size: 33554432  # bit 32 * 1024 * 1024  单次request请求最大o大小
+  server:
+    recv_timeout: 25000000      # 25 * 1000 * 100 us    recv 超时时间 (httpServer)
+    send_timeout: 10000000      # 10 * 1000 * 100 us    send 超时时间 (httpServer)
+  tcpserver:
+    timeout:
+      read: 120000000           # 2 * 60 * 1000 * 1000 us   
+      connect: 50000000         # 5 * 1000 * 1000 us        connect 连接超时时间
+

@@ -35,7 +35,7 @@ public:
     void schedule (Fiber_or_Func f, int threadId = -1) {
         bool need_tickle = false;
         {
-            std::unique_lock<std::mutex> m_mutex;
+            std::unique_lock<std::mutex> lock (m_mutex);
             need_tickle = schedulerNoLock(f, threadId);
         }
         if (need_tickle) {
@@ -47,7 +47,7 @@ public:
     void schedule(InputOperator begin, InputOperator end){
         bool need_tickle = false;
         {
-            std::unique_lock<std::mutex> m_mutex;
+            std::unique_lock<std::mutex> lock (m_mutex);
             while (begin != end) {
                 need_tickle = schedulerNoLock((&*begin), -1) || need_tickle;       // 第一次学到，新写法，get了
                 begin++;
@@ -57,6 +57,8 @@ public:
             tickle();   
         }
     }
+
+    int getTaskCount() const {return m_tasks.size(); }
 
 private:
     // 单例添加函数，同时检测判断是否需要唤醒线程。
@@ -127,7 +129,7 @@ protected:
     size_t m_threadCount = 0;                       // 总线程数
     std::atomic<size_t> m_activeThreadCount = {0};                 // 活跃线程数
     std::atomic<size_t> m_idleThreadCount = {0};                   // 空闲线程数
-    bool m_stopping = true;                        // 主动停止
+    bool m_stopping = true;                         // 主动停止
     bool m_autoStop = false;                        // 自动停止 
 };
 

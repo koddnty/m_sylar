@@ -528,7 +528,7 @@ UnixAddress::UnixAddress(const std::string& path)
     }
 
     memcpy(m_addr.sun_path, path.c_str(), path_len);
-    m_addr_size += offsetof(sockaddr_un, sun_path);
+    m_addr_size += offsetof(sockaddr_un, sun_path) + path_len;
 }
 
 UnixAddress::UnixAddress(const sockaddr_un& addr, int path_len)
