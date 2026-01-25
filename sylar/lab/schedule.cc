@@ -50,9 +50,10 @@ SchedulerCoro20* SchedulerCoro20::GetThis()
 void SchedulerCoro20::run()
 {
     setThis();
-    TaskCoro20 curr_task;
     while(true)
     {
+        
+        TaskCoro20 curr_task;
         // 取任务
         {
             std::unique_lock<std::shared_mutex> r_lock(m_mutex);
@@ -64,7 +65,10 @@ void SchedulerCoro20::run()
             }
         }
         // 执行任务
-        curr_task.resume();
+        if(curr_task.isLegal())
+        {
+            curr_task.resume();
+        }
         // 下一步，结束-idle-下一个任务
         if(m_Stop || (m_tasks.size() == 0 && m_autoStop))
         {
@@ -77,7 +81,7 @@ void SchedulerCoro20::run()
         else
         {
             TaskCoro20 idle_task(std::bind(&SchedulerCoro20::idle, this));
-            std::cout << "task resume\n";
+            // std::cout << "task resume\n";
             idle_task.resume();
         }
     }
