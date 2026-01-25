@@ -52,7 +52,7 @@ static thread_local bool t_hook_enable = false;
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 static m_sylar::ConfigVar<uint64_t>::ptr g_tcp_connect_timeout =
-    m_sylar::configManager::Lookup("tcp.connect.timeout", (uint64_t)5000, "tcp connect timeout");     // 
+    m_sylar::configManager::Lookup("http.tcpserver.timeout.connect", (uint64_t)5000, "tcp connect timeout");     // 
 
 struct fdTimerInfo
 {
@@ -76,6 +76,7 @@ static ssize_t do_io(int fd, Original_fun func, const char* fun_name,
     if(!fd_ctx)
     {
         // 非socket
+        // M_SYLAR_LOG_DEBUG(g_logger) << "fd_Ctx is null, not a socket, fd = " << fd;
         return func(fd, std::forward<Args>(args)...);
     }
     if (fd_ctx->is_closed())
@@ -110,6 +111,7 @@ retry:
         int timer_fd = -1;
         if(time_out != (uint64_t)-1)
         {
+            // std::cout << "超时设置:" << time_out << "\n";
             timer_fd = tim->addConditionTimer(time_out, false, [](){}, 
                 [wfdtino](){
                     if(wfdtino.lock() && wfdtino.lock()->is_cancelled)
@@ -295,7 +297,7 @@ int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen)
 
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {   
-    uint64_t ms_sleep = m_sylar::g_tcp_connect_timeout->getValue();
+    uint64_t us_sleep = m_sylar::g_tcp_connect_timeout->getValue();
     if(!m_sylar::is_hook_enable())
     {
         return original_connect(sockfd, addr, addrlen);
@@ -328,10 +330,10 @@ int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     auto tim = m_sylar::TimeManager::getInstance();
     int timer_fd = -1;
     std::shared_ptr<bool> is_time_out (new bool(false));
-    // std::cout << ms_sleep << std::endl;
-    if(ms_sleep != (uint64_t)-1)
+    // std::cout << us_sleep << std::endl;
+    if(us_sleep != (uint64_t)-1)
     {
-        timer_fd = tim->addConditionTimer(ms_sleep * 1000, false, [](){}, 
+        timer_fd = tim->addConditionTimer(us_sleep, false, [](){}, 
                 [](){
                     return false;
                 }, 

@@ -22,8 +22,16 @@ static ConfigVar<uint64_t>::ptr g_http_request_buffer_size =
 static ConfigVar<uint64_t>::ptr g_http_request_max_size = 
     m_sylar::configManager::Lookup("http.request.max_message_size", (uint64_t)1024 * 1024 * 5, "max size of a request");
 
+static ConfigVar<uint64_t>::ptr g_http_request_recv_timeout = 
+    m_sylar::configManager::Lookup("http.server.recv_timeout", (uint64_t)25 * 1000 * 1000, "time out to recv message");
+
+static ConfigVar<uint64_t>::ptr g_http_request_send_timeout = 
+    m_sylar::configManager::Lookup("http.server.send_timeout", (uint64_t)10 * 1000 * 1000, "time out to send message");
+
 static uint64_t s_http_request_buffer_size = 0;
 static uint64_t s_http_request_max_size = 0;
+static uint64_t s_http_request_recv_timeout = -1;
+static uint64_t s_http_request_send_timeout = -1;
 
 // update config values
 struct _configInitilizer
@@ -32,6 +40,9 @@ struct _configInitilizer
     {
         s_http_request_buffer_size = g_http_request_buffer_size->getValue();
         s_http_request_max_size = g_http_request_max_size->getValue();
+        s_http_request_recv_timeout = g_http_request_recv_timeout->getValue();
+        s_http_request_send_timeout = g_http_request_send_timeout->getValue();
+        
         g_http_request_buffer_size->addListener(1234 ,
             [](const uint64_t& ov, const uint64_t& nv){
                 s_http_request_buffer_size = nv;
@@ -40,6 +51,17 @@ struct _configInitilizer
         g_http_request_max_size->addListener(1235 ,
             [](const uint64_t& ov, const uint64_t& nv){
                 s_http_request_max_size = nv;
+            }
+        );
+        g_http_request_recv_timeout->addListener(1236 ,
+            [](const uint64_t& ov, const uint64_t& nv){
+                s_http_request_recv_timeout = nv;
+                // std::cout << "ov : " << ov << " nv :" << nv;
+            }
+        );        
+        g_http_request_send_timeout->addListener(1237 ,
+            [](const uint64_t& ov, const uint64_t& nv){
+                s_http_request_send_timeout = nv;
             }
         );
     }
@@ -154,7 +176,7 @@ void HttpRequestParser::on_header_done(void *data, const char *at, size_t length
 size_t HttpRequestParser::execute(char *data, size_t len)
 {
     size_t offset = http_parser_execute(m_parser, data, len, 0);
-    memmove(data, data + offset, (len - offset));
+    // memmove(data, data + offset, (len - offset));
     return offset;
 }
 
@@ -163,11 +185,30 @@ int HttpRequestParser::isError()
     return m_error || http_parser_has_error(m_parser);
 }
 
-int HttpRequestParser::isFinished(http_parser *parser)
+int HttpRequestParser::isFinished()
 {
-    return http_parser_is_finished(parser);
+    return http_parser_is_finished(m_parser);
 }
 
+uint64_t HttpRequestParser::getBufferSize()
+{
+    return s_http_request_buffer_size;
+}
+
+uint64_t HttpRequestParser::getMaxReqSize()
+{
+    return s_http_request_max_size;
+}
+
+uint64_t HttpRequestParser::getRecvTimeOut()
+{
+    return s_http_request_recv_timeout;
+}
+
+uint64_t HttpRequestParser::getSendTimeOut()
+{
+    return s_http_request_send_timeout;
+}
 
 
     

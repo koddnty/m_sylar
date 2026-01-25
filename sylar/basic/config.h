@@ -334,7 +334,7 @@ public:
         {
             std::unique_lock<std::shared_mutex> w_lock (get_config_rwMutex());
             if(std::string::npos != name.find_first_not_of("qwertyuiopasdfghjklzxcvbnm1234567890._")){
-                M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "Lookup name invalid " << name;
+                M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "[configer] Lookup name invalid " << name;
                 throw std::invalid_argument(name);
             }
             typename ConfigVar<T>::ptr v(new ConfigVar<T>(name, description, defaultValue));

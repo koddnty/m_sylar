@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <memory>
 #include "http.h"
-#include "http/http11_parser.h"
+#include "http11_parser.h"
 #include "httpclient_parser.h"
 
 namespace m_sylar
@@ -38,13 +38,18 @@ public:
 
     size_t execute(char *data, size_t len);
     int isError();
-    int isFinished(http_parser *parser);
+    int isFinished();
 
     HttpRequest::ptr getData() const { return m_requset;}
 
     void setError(Error e) {m_error = (Error)(m_error | e); }
     void cancelError(Error e) {m_error = (Error)(m_error & ~(e)); }
     Error gerError() {return m_error; }
+
+    static uint64_t getBufferSize();
+    static uint64_t getMaxReqSize();
+    static uint64_t getRecvTimeOut();
+    static uint64_t getSendTimeOut();
 private:
     http_parser* m_parser;
     HttpRequest::ptr m_requset;

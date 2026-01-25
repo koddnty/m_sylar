@@ -69,6 +69,7 @@ namespace m_sylar {
     }
     // 线程池停止
     void Scheduler::stop() {
+        sleep(2);
         m_autoStop = true;
         if (m_rootFiber && m_threadCount == 0 
             && (m_rootFiber->getState() == Fiber::TERM 

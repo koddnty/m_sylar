@@ -404,7 +404,7 @@ void IOManager::idle()
             else {
                 // 错误
                 M_SYLAR_LOG_ERROR(g_logger) << "epoll_wait failed, errno:" << errno << " error " << strerror(errno);
-                break;
+                return;
             }
         } while(true);
 

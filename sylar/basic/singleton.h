@@ -11,8 +11,6 @@ public:
         static T c;
         return &c;
     }
-private:
-
 };
 
 template <typename T, typename X, int N = 0>
