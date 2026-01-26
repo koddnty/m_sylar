@@ -47,6 +47,7 @@ public:
     void setTask(std::function<void()> cb);
     void setHandle(HandlePtr handle);       
 
+    void reset();
     void resume();
     
     bool isLegal();

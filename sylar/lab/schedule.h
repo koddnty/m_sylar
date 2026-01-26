@@ -37,23 +37,29 @@ public:
     template<typename Func_or_Handle>
     void schedule(Func_or_Handle cb)
     {
-        std::unique_lock<std::shared_mutex> w_lock(m_mutex);
-        if(!cb)
         {
-            M_SYLAR_LOG_ERROR(g_logger) << "[scheduleCoro20]cb is nullptr";
-            return;
+            std::unique_lock<std::shared_mutex> w_lock(m_mutex);
+            if(!cb)
+            {
+                M_SYLAR_LOG_ERROR(g_logger) << "[scheduleCoro20]cb is nullptr";
+                return;
+            }
+            scheduleNoLock(cb);
         }
-        scheduleNoLock(cb);
+        tickle();
     }
 
     template<typename InputOperator>
     void schedule(InputOperator begin, InputOperator end)
     {
-        std::unique_lock<std::shared_mutex> w_lock(m_mutex);
-        for(;begin != end; begin++)
         {
-            scheduleNoLock(*begin);
+            std::unique_lock<std::shared_mutex> w_lock(m_mutex);
+            for(;begin != end; begin++)
+            {
+                scheduleNoLock(*begin);
+            }
         }
+        tickle();
     }
 
 private:
@@ -71,11 +77,11 @@ private:
 
 public:
     void run();
-    void idle();
+    virtual void idle();
     virtual void tickle();
-    void autoStop();
-    void stop();
-    bool isStopping();
+    virtual void autoStop();
+    virtual void stop();
+    virtual bool isStopping();
 
 protected:
     std::string m_name;                                             // schedule名称

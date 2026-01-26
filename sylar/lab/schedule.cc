@@ -7,6 +7,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <string>
+#include <thread>
 
 namespace m_sylar
 {
@@ -16,6 +17,7 @@ static thread_local SchedulerCoro20* tl_schedulerCoro20;        // 当前线程�
 SchedulerCoro20::SchedulerCoro20 (const std::string& name, size_t thread_num )
     : m_name(name), m_threads_count(thread_num)
     , m_autoStop(false), m_Stop(false)
+    , m_activeThreadCount(thread_num)
 {
 }
 
@@ -85,7 +87,6 @@ void SchedulerCoro20::run()
             idle_task.resume();
         }
     }
-
     // 线程池终止 执行清理
     std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     m_threads_count--;  // 减少线程池内部线程数量。
@@ -93,8 +94,13 @@ void SchedulerCoro20::run()
 
 void SchedulerCoro20::idle()
 {
+    m_idleThreadCount++;
+    m_activeThreadCount--;
     M_SYLAR_LOG_DEBUG(g_logger) << "thread is idle";
     sleep(1);
+    m_idleThreadCount--;
+    m_activeThreadCount++;
+
 }
 
 void SchedulerCoro20::tickle()
