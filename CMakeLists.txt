@@ -51,6 +51,8 @@ add_library(sylar STATIC
 
     sylar/lab/fiber.cc
     sylar/lab/schedule.cc
+    sylar/lab/iomanager.cc
+
 )
 
 target_include_directories(sylar PUBLIC 
@@ -146,6 +148,10 @@ target_link_libraries(performance_test_scheduler sylar ${LIB_LIB})
 add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
 add_dependencies(scheduleCoro20_test sylar)
 target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
+
+add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
+add_dependencies(iomanagerCoro20_test sylar)
+target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)

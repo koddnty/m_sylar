@@ -100,7 +100,6 @@ void SchedulerCoro20::idle()
     sleep(1);
     m_idleThreadCount--;
     m_activeThreadCount++;
-
 }
 
 void SchedulerCoro20::tickle()
@@ -128,7 +127,7 @@ void SchedulerCoro20::stop()
     m_Stop = true;
     while(m_threads_count)
     {
-        sleep(10000);
+        usleep(10000);
         tickle();
     }
 }

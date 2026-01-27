@@ -2,10 +2,12 @@
 #include "basic/hook.h"
 #include "basic/log.h"
 #include "basic/macro.h"
+#include "http/http.h"
 #include "lab/fiber.h"
 #include "lab/schedule.h"
 #include <cerrno>
 #include <cinttypes>
+#include <cstdint>
 #include <cstring>
 #include <exception>
 #include <functional>
@@ -230,12 +232,75 @@ void IOManagerCoro20::cancelAll(int fd)
 
 void IOManagerCoro20::idle()
 {
+    const static int MAX_EVENT_NUM = 64;
+    static const int MAX_TIMEOUT = 5000;
 
+
+    // 等待epoll
+    bool is_have_event = false;
+    epoll_event* events = new epoll_event[MAX_EVENT_NUM];
+    do
+    {
+        int rt = 0;
+        m_idleThreadCount++;
+        m_activeThreadCount--;
+        do {
+            rt = epoll_wait(m_epollFd, events, MAX_EVENT_NUM, MAX_TIMEOUT);
+
+            if(rt == -1 && errno == EINTR)
+            {
+                continue;
+            }
+            else if(rt == -1)
+            {
+                M_SYLAR_LOG_ERROR(g_logger) << "[iomanagerCoro20] faied to wait epoll fd:"
+                                << "\n errno=" << errno << " error:" << strerror(errno);
+                return;
+            }
+            else
+            {
+                break;
+            }
+        } while(!isStopping());
+        m_idleThreadCount--;
+        m_activeThreadCount++;
+        
+        // 任务处理
+        for(int i = 0; i < rt; i++)
+        {
+            if(events[i].data.fd == m_eventFd)
+            {   // 新任务fd
+                uint64_t buffer = 0;
+                while(read(m_eventFd, &buffer, sizeof(buffer)) > 0);
+                is_have_event = true;
+            }
+            else
+            {   // io 回调fd, 同时删除对应回调
+                int io_fd = events[i].data.fd;
+                
+                m_fd_contexts[io_fd]->trigger((Event)events[i].events);
+
+                // delEvent(io_fd, (Event)events[i].events);
+            }
+        }
+    } while(!is_have_event);
+
+    // 回退至running
+    delete[] events;
 }
 
 void IOManagerCoro20::tickle()
 {
-
+    if(m_idleThreadCount > 0)
+    {
+        int64_t buffer = 1;
+        if(1 == write(m_eventFd, &buffer, sizeof(buffer)))
+        {
+            M_SYLAR_LOG_ERROR(g_logger) << "[iomanagerCoro20]failed to tickle othres while write eventFd"
+                                        << "\nerrno=" << errno << " error:" << strerror(errno);
+            return;
+        }
+    }
 }
 
 
@@ -243,6 +308,20 @@ void IOManagerCoro20::tickle()
 // {
 
 // }
+
+IOManagerCoro20::FdContext::FdContext(int fd)
+{
+    m_fd = fd;
+    m_cb_read.reset();
+    m_cb_write.reset();
+    m_event = Event::NONE;
+}
+
+IOManagerCoro20::FdContext::~FdContext()
+{
+
+}
+
 
 void IOManagerCoro20::FdContext::trigger(Event event)
 {

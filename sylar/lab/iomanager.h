@@ -13,7 +13,7 @@ namespace m_sylar
 {
 
 
-class IOManagerCoro20 : SchedulerCoro20
+class IOManagerCoro20 : public SchedulerCoro20
 {
 public:
     using ptr = std::shared_ptr<IOManagerCoro20>;
