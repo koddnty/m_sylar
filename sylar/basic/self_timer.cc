@@ -1,5 +1,4 @@
 #include "self_timer.h"
-#include "ioManager.h"
 #include "log.h"
 #include "macro.h"
 #include <cstddef>

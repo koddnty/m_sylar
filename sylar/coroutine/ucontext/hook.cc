@@ -1,4 +1,4 @@
-#include "hook.h"
+#include "coroutine/ucontext/hook.h"
 #include <asm-generic/errno.h>
 #include <asm-generic/socket.h>
 #include <cerrno>
@@ -11,12 +11,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include "fdManager.h"
-#include "fiber.h"
-#include "ioManager.h"
-#include "config.h"
-#include "log.h"
-#include "self_timer.h"
+#include "basic/fdManager.h"
+#include "coroutine/ucontext/fiber.h"
+#include "coroutine/ucontext/ioManager.h"
+#include "basic/config.h"
+#include "basic/log.h"
+#include "basic/self_timer.h"
 
 
 namespace m_sylar

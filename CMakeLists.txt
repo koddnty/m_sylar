@@ -15,6 +15,8 @@ set ( LIB_LIB
     yaml-cpp::yaml-cpp
 )
 
+option(SYLAR_USE_CORO20 "Use C++20 coroutine implementation, OFF if NOT" OFF)       # 底层协程实现配置
+
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__FILENAME__='\"$(subst  ${CMAKE_SOURCE_DIR}/,,$(abspath $<))\"'")
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -U__FILE__ -D__FILE__='\"$(subst $(dir $<),,$<)\"'")
 # add_compile_options(-U__FILE__)
@@ -25,19 +27,50 @@ find_package(yaml-cpp REQUIRED)
 # add_library(sylar SHARED ${LIB_SRC})
 
 #  add source files
-add_library(sylar STATIC 
+# add_library(sylar STATIC 
+#     sylar/basic/log.cc
+#     sylar/basic/until.cc
+#     sylar/basic/config.cc
+#     sylar/basic/thread.cc
+#     sylar/basic/fiber.cc
+#     sylar/basic/scheduler.cc
+#     sylar/basic/ioManager.cc
+#     sylar/basic/self_timer.cc    
+#     sylar/basic/hook.cc
+#     sylar/basic/fdManager.cc
+#     sylar/basic/address.cc
+#     sylar/basic/socket.cc
+#     sylar/http/http.cc
+#     sylar/http/http11_parser.rl.cc
+#     sylar/http/httpclient_parser.rl.cc
+#     sylar/http/bstr/bsafe.c
+#     sylar/http/bstr/bstraux.c
+#     sylar/http/bstr/bstrlib.c
+#     sylar/http/dbg.cc
+#     sylar/http/httpParser.cc
+#     sylar/http/tcpServer.cc
+#     sylar/http/httpServer.cc
+#     sylar/lab/fiber.cc
+#     sylar/lab/schedule.cc
+#     sylar/lab/iomanager.cc
+
+# )
+
+
+# 基础模块
+set(BASIC_SOURCES
     sylar/basic/log.cc
     sylar/basic/until.cc
     sylar/basic/config.cc
     sylar/basic/thread.cc
-    sylar/basic/fiber.cc
-    sylar/basic/scheduler.cc
-    sylar/basic/ioManager.cc
-    sylar/basic/self_timer.cc    
-    sylar/basic/hook.cc
+    sylar/basic/self_timer.cc
     sylar/basic/fdManager.cc
     sylar/basic/address.cc
     sylar/basic/socket.cc
+)
+
+# HTTP 模块
+set(HTTP_SOURCES
     sylar/http/http.cc
     sylar/http/http11_parser.rl.cc
     sylar/http/httpclient_parser.rl.cc
@@ -48,12 +81,49 @@ add_library(sylar STATIC
     sylar/http/httpParser.cc
     sylar/http/tcpServer.cc
     sylar/http/httpServer.cc
-
-    sylar/lab/fiber.cc
-    sylar/lab/schedule.cc
-    sylar/lab/iomanager.cc
-
 )
+
+# UCONTEXT 协程模块
+set(UCONTEXT_SOURCES 
+
+    sylar/coroutine/ucontext/fiber.cc
+    sylar/coroutine/ucontext/scheduler.cc
+    sylar/coroutine/ucontext/ioManager.cc
+    sylar/coroutine/ucontext/hook.cc
+)
+
+# cpp20Coroutine 协程模块
+set(CORO20_SOURCES
+    sylar/coroutine/coro20/fiber.cc
+    sylar/coroutine/coro20/scheduler.cc
+    sylar/coroutine/coro20/ioManager.cc
+    sylar/coroutine/coro20/hook.cc
+)
+
+# 选择模块
+if(SYLAR_USE_CORO20)
+    message("use cpp20 coroutine implementation")
+    add_definitions(-DSYLAR_USE_CORO20)
+
+    set(COROUTINE_SOURCES ${CORO20_SOURCES})
+    set(CMAKE_CXX_STANDARD 20)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+else()
+    message("use ucontext coroutine implementation")
+
+    set(COROUTINE_SOURCES ${UCONTEXT_SOURCES})
+
+endif()
+
+
+add_library(sylar STATIC 
+    ${BASIC_SOURCES}
+    ${HTTP_SOURCES}
+    ${COROUTINE_SOURCES}
+)
+
+
 
 target_include_directories(sylar PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/sylar
@@ -145,13 +215,13 @@ add_executable(performance_test_scheduler tests/performance_tests/scheduler_exch
 add_dependencies(performance_test_scheduler sylar)
 target_link_libraries(performance_test_scheduler sylar ${LIB_LIB})
 
-add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
-add_dependencies(scheduleCoro20_test sylar)
-target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
+# add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
+# add_dependencies(scheduleCoro20_test sylar)
+# target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
 
-add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
-add_dependencies(iomanagerCoro20_test sylar)
-target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
+# add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
+# add_dependencies(iomanagerCoro20_test sylar)
+# target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)

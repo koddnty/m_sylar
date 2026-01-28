@@ -1,9 +1,9 @@
 #pragma once
 
-#include "thread.h"
-#include "log.h"
-#include "config.h"
-#include "macro.h"
+#include "basic/thread.h"
+#include "basic/log.h"
+#include "basic/config.h"
+#include "basic/macro.h"
 #include <memory>
 #include <ucontext.h>
 #include <functional>

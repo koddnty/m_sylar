@@ -1,9 +1,9 @@
 #pragma once
 #include <dlfcn.h>
 #include <sys/socket.h>
-#include "fiber.h"
-#include "ioManager.h"
-#include "self_timer.h"
+#include "coroutine/ucontext/fiber.h"
+#include "coroutine/ucontext/ioManager.h"
+#include "basic/self_timer.h"
 
 namespace m_sylar
 {
