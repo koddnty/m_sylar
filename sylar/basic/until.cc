@@ -21,12 +21,16 @@ std::string getThreadName (){
 }
 
 uint64_t getFiberId(){
+#ifdef SYLAR_USE_CORO20
+    return -1;
+#else
     uint64_t fiberId = 0;
     auto fiber = Fiber::GetThisFiber();
     if(fiber){
         fiberId = fiber->getFiberId();
     }
     return fiberId;
+#endif
 }
    
 

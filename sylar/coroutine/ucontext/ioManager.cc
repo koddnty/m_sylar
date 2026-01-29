@@ -255,7 +255,7 @@ bool IOManager::cancelEvent(int fd, Event event)
     fd_ctx->trigger(event);
     --m_pendding_event_count;
     
-    // 新事件复写回FdContext
+    // 剩余事件复写回FdContext
     fd_ctx->event = new_event;
     FdContext::EventContext& event_ctx = fd_ctx->getEventContext(event);
     fd_ctx->resetEventContext(event_ctx);   
@@ -322,6 +322,11 @@ bool IOManager::cancelAll(int fd)
     return true;    
 }
 
+IOManager* IOManager::getInstance()
+{
+    return dynamic_cast<IOManager*>(Scheduler::GetThis());
+}
+
 size_t IOManager::fdContextResize(size_t size)
 {
     try 
@@ -345,10 +350,10 @@ size_t IOManager::fdContextResize(size_t size)
     return size;
 }
 
-IOManager* IOManager::getInstance()
-{
-    return dynamic_cast<IOManager*>(Scheduler::GetThis());
-}
+// IOManager* IOManager::getInstance()
+// {
+//     return dynamic_cast<IOManager*>(Scheduler::GetThis());
+// }
 
 void IOManager::tickle()
 {

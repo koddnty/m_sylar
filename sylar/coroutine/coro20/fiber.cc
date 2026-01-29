@@ -74,7 +74,7 @@ void TaskCoro20::resume()
 }
 
 bool TaskCoro20::isLegal()
-{
+{   // 如果任务是有效任务返回true
     // if(m_status == UNSET)
     // {
     //     return false;

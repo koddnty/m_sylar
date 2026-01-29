@@ -1,5 +1,4 @@
-#include "coroutine/coro20/scheduler.h"
-// #include "coroutine/corobase.h"
+#include "coroutine/corobase.h"
 #include "basic/log.h"
 #include <atomic>
 #include <ostream>
@@ -16,7 +15,7 @@ void func()
 
 int main(void)
 {
-    m_sylar::SchedulerCoro20 scheduler("test_coro_schedule", 12) ;
+    m_sylar::Scheduler scheduler("test_coro_schedule", 12) ;
     scheduler.start();
 
 

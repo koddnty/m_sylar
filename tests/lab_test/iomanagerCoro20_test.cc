@@ -1,4 +1,4 @@
-#include "coroutine/coro20/ioManager.h"
+#include "coroutine/corobase.h"
 #include "basic/log.h"
 
 
@@ -10,7 +10,7 @@ void func()
 
 int main(void)
 {
-    m_sylar::IOManagerCoro20 iom("main", 1);
+    m_sylar::IOManager iom("main", 1);
     iom.schedule(func);
     iom.stop();
     return 0;

@@ -57,23 +57,20 @@ private:
 public:
     // 1 success 0 retry -1 failed
     int addEvent(int fd, Event event, std::function<void()> cb_func = nullptr);     // 添加事件
-
     bool delEvent(int fd, Event event);                                             // 删除事件
-    
     bool cancelEvent(int fd, Event event);                                          // 取消事件
-
     bool cancelAll(int fd);                                                         // 取消全部事件
 
-    size_t fdContextResize(size_t size);
 
     static IOManager* getInstance();
 
 protected:
     void tickle() override;
-
     bool stopping() override;
-
     void idle() override;
+
+private:
+    size_t fdContextResize(size_t size);
 
 private:
     int m_epollFd;                                          // epoll文件描述符

@@ -12,44 +12,45 @@
 namespace m_sylar
 {
 
-static thread_local SchedulerCoro20* tl_schedulerCoro20;        // 当前线程调度器指针
+static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+static thread_local Scheduler* tl_Scheduler;        // 当前线程调度器指针
 
-SchedulerCoro20::SchedulerCoro20 (const std::string& name, size_t thread_num )
+Scheduler::Scheduler (const std::string& name, size_t thread_num )
     : m_name(name), m_threads_count(thread_num)
     , m_autoStop(false), m_Stop(false)
     , m_activeThreadCount(thread_num)
 {
 }
 
-SchedulerCoro20::~SchedulerCoro20()
+Scheduler::~Scheduler()
 {
     stop();     // 强制停止
 }
     
-void SchedulerCoro20::start()
+void Scheduler::start()
 {   
     M_SYLAR_ASSERT2(!m_tasks.size() && !m_threads.size(), "m_tasks is not null or threadsCount is not 0");
     std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     for(int i = 0; i < m_threads_count; i++)
     {
-        Thread::ptr new_thread(new m_sylar::Thread(std::bind(&SchedulerCoro20::run, this),
+        Thread::ptr new_thread(new m_sylar::Thread(std::bind(&Scheduler::run, this),
                                 m_name + "_" + std::to_string(i)));
         m_threads.push_back(new_thread);
     }
     M_SYLAR_ASSERT(m_threads.size() == m_threads_count  );
 }
 
-void SchedulerCoro20::setThis()
+void Scheduler::setThis()
 {
-    tl_schedulerCoro20 = this;
+    tl_Scheduler = this;
 }
 
-SchedulerCoro20* SchedulerCoro20::GetThis()
+Scheduler* Scheduler::GetThis()
 {
-    return tl_schedulerCoro20;
+    return tl_Scheduler;
 }
 
-void SchedulerCoro20::run()
+void Scheduler::run()
 {
     setThis();
     while(true)
@@ -82,7 +83,7 @@ void SchedulerCoro20::run()
         }
         else
         {
-            TaskCoro20 idle_task(std::bind(&SchedulerCoro20::idle, this));
+            TaskCoro20 idle_task(std::bind(&Scheduler::idle, this));
             // std::cout << "task resume\n";
             idle_task.resume();
         }
@@ -92,7 +93,7 @@ void SchedulerCoro20::run()
     m_threads_count--;  // 减少线程池内部线程数量。
 }
 
-void SchedulerCoro20::idle()
+void Scheduler::idle()
 {
     m_idleThreadCount++;
     m_activeThreadCount--;
@@ -102,12 +103,12 @@ void SchedulerCoro20::idle()
     m_activeThreadCount++;
 }
 
-void SchedulerCoro20::tickle()
+void Scheduler::tickle()
 {
     // M_SYLAR_LOG_DEBUG(g_logger) << "tickle othres";
 }
 
-void SchedulerCoro20::autoStop()
+void Scheduler::autoStop()
 {
     m_autoStop = true;
     while(m_tasks.size())
@@ -122,7 +123,7 @@ void SchedulerCoro20::autoStop()
     
 }
 
-void SchedulerCoro20::stop()
+void Scheduler::stop()
 {
     m_Stop = true;
     while(m_threads_count)
@@ -132,7 +133,7 @@ void SchedulerCoro20::stop()
     }
 }
 
-bool SchedulerCoro20::isStopping()
+bool Scheduler::isStopping()
 {
     return m_Stop || m_autoStop;
 }

@@ -14,21 +14,21 @@
 
 namespace m_sylar
 {
-static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+// static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
-class SchedulerCoro20
+class Scheduler
 {
 public:
-    using ptr = std::shared_ptr<SchedulerCoro20>;
+    using ptr = std::shared_ptr<Scheduler>;
 
-    SchedulerCoro20 (const std::string& name, size_t thread_num = 1);
-    virtual ~SchedulerCoro20 ();
+    Scheduler (const std::string& name, size_t thread_num = 1);
+    virtual ~Scheduler ();
 
     void start();
     void setThis();
 
     std::string getName () {return m_name;}
-    static SchedulerCoro20* GetThis();                              // 获取当前线程
+    static Scheduler* GetThis();                              // 获取当前线程
     int getTaskCount() const {return m_tasks.size(); }
 
 
@@ -37,11 +37,6 @@ public:
     {
         {
             std::unique_lock<std::shared_mutex> w_lock(m_mutex);
-            if(!cb)
-            {
-                M_SYLAR_LOG_ERROR(g_logger) << "[scheduleCoro20]cb is nullptr";
-                return;
-            }
             scheduleNoLock(cb);
         }
         tickle();
@@ -62,8 +57,10 @@ public:
 
 private:
     template<typename Func_or_Handle>
-    void scheduleNoLock(Func_or_Handle task)
+    void scheduleNoLock(Func_or_Handle f)
     {
+        TaskCoro20 task(f);
+        if(!task.isLegal()) {return;}
         if(m_autoStop)
         {
             return;

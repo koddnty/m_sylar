@@ -18,19 +18,19 @@
 
 namespace m_sylar
 {
+static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
-
-IOManagerCoro20::IOManagerCoro20(const std::string& name, int thread_num)
-    : SchedulerCoro20(name, thread_num)
+IOManager::IOManager(const std::string& name, int thread_num)
+    : Scheduler(name, thread_num)
 {
-    // m_scheduler = SchedulerCoro20::GetThis();
+    // m_scheduler = Scheduler::GetThis();
     // M_SYLAR_ASSERT2(m_scheduler, "set scheduler failed");
     m_eventFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     m_epollFd = epoll_create(1);
 
     if(m_epollFd <= 0 || m_eventFd <= 0)
     {
-        M_SYLAR_LOG_ERROR(g_logger) << "[iomanagerCoro20]failed to create eventfd or epollfd, errno=" << errno << " error:" << strerror(errno);
+        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]failed to create eventfd or epollfd, errno=" << errno << " error:" << strerror(errno);
         return;
     }
 
@@ -39,20 +39,20 @@ IOManagerCoro20::IOManagerCoro20(const std::string& name, int thread_num)
     event.data.fd = m_eventFd;
     if(epoll_ctl(m_epollFd, EPOLL_CTL_ADD, m_eventFd, &event))
     {
-        M_SYLAR_LOG_ERROR(g_logger) << "[iomanagerCoro20]failed to registe eventfd to epoll, errno=" << errno << " error:" << strerror(errno);
+        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]failed to registe eventfd to epoll, errno=" << errno << " error:" << strerror(errno);
     }
 
     m_fd_contexts.resize(64);
     start();
 }
 
-IOManagerCoro20::~IOManagerCoro20()
+IOManager::~IOManager()
 {
     close(m_eventFd);
     close(m_epollFd);
 }
 
-void IOManagerCoro20::addEvent(int fd, Event event, TaskCoro20 task)
+int IOManager::addEvent(int fd, Event event, TaskCoro20 task)
 {
     bool is_have = false;
     Event total_event = event;
@@ -78,9 +78,9 @@ void IOManagerCoro20::addEvent(int fd, Event event, TaskCoro20 task)
     }
     if(rt)
     {   // 错误检查
-        M_SYLAR_LOG_ERROR(g_logger) << "[iomanagerCoro20]faield to addEvent"
+        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]faield to addEvent"
                                     << "errno=" << errno << " error:" << strerror(errno);
-        return;
+        return -1;
     }
     rt = 0;
     
@@ -97,14 +97,21 @@ void IOManagerCoro20::addEvent(int fd, Event event, TaskCoro20 task)
         fd_ctx->m_cb_write = task;
     }
     contextSet(fd, fd_ctx);
+    return 0;
 }
 
-void IOManagerCoro20::delEvent(int fd, Event event)
+int IOManager::addEvent(int fd, Event event, std::function<void()> cb_func)
+{
+    TaskCoro20 task(cb_func);
+    return addEvent(fd, event, task);
+}
+
+bool IOManager::delEvent(int fd, Event event)
 {
     FdContext::ptr original_fd_ctx = m_fd_contexts[fd];
     if(!original_fd_ctx)
     {
-        return;
+        return false;
     }
     // m_fd_contexts[fd] = event;
     Event total_event = (Event)(original_fd_ctx->m_event & ~event);
@@ -124,9 +131,9 @@ void IOManagerCoro20::delEvent(int fd, Event event)
     }
     if(rt)
     {   // 错误检查
-        M_SYLAR_LOG_ERROR(g_logger) << "[iomanagerCoro20]faield to delEvent"
+        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]faield to delEvent"
                                     << "errno=" << errno << " error:" << strerror(errno);
-        return;
+        return false;
     }
     rt = 0;
     
@@ -148,14 +155,15 @@ void IOManagerCoro20::delEvent(int fd, Event event)
     {
         m_fd_contexts[fd] = nullptr;
     }
+    return true;
 }
 
-void IOManagerCoro20::cancelEvent(int fd, Event event)
+bool IOManager::cancelEvent(int fd, Event event)
 {
     FdContext::ptr original_fd_ctx = m_fd_contexts[fd];
     if(!original_fd_ctx)
     {
-        return;
+        return false;
     }
     // m_fd_contexts[fd] = event;
     Event total_event = (Event)(original_fd_ctx->m_event & ~event);
@@ -175,9 +183,9 @@ void IOManagerCoro20::cancelEvent(int fd, Event event)
     }
     if(rt)
     {   // 错误检查
-        M_SYLAR_LOG_ERROR(g_logger) << "[iomanagerCoro20]faield to delEvent"
+        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]faield to delEvent"
                                     << "errno=" << errno << " error:" << strerror(errno);
-        return;
+        return false;
     }
     rt = 0;
     
@@ -201,14 +209,16 @@ void IOManagerCoro20::cancelEvent(int fd, Event event)
     {
         m_fd_contexts[fd] = nullptr;
     }
+
+    return true;
 }
 
-void IOManagerCoro20::cancelAll(int fd)
+bool IOManager::cancelAll(int fd)
 {
     FdContext::ptr original_fd_ctx = m_fd_contexts[fd];
     if(!original_fd_ctx)
     {
-        return;
+        return false;
     }
     // m_fd_contexts[fd] = event;
     
@@ -217,9 +227,9 @@ void IOManagerCoro20::cancelAll(int fd)
     rt = epoll_ctl(m_epollFd, EPOLL_CTL_DEL, fd, nullptr);
     if(rt)
     {   // 错误检查
-        M_SYLAR_LOG_ERROR(g_logger) << "[iomanagerCoro20]faield to delEvent"
+        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]faield to delEvent"
                                     << "errno=" << errno << " error:" << strerror(errno);
-        return;
+        return false;
     }
     rt = 0;
     
@@ -228,9 +238,10 @@ void IOManagerCoro20::cancelAll(int fd)
 
     // fdcontex 修改
     m_fd_contexts[fd] = nullptr;
+    return true;
 }
 
-void IOManagerCoro20::idle()
+void IOManager::idle()
 {
     const static int MAX_EVENT_NUM = 64;
     static const int MAX_TIMEOUT = 5000;
@@ -253,7 +264,7 @@ void IOManagerCoro20::idle()
             }
             else if(rt == -1)
             {
-                M_SYLAR_LOG_ERROR(g_logger) << "[iomanagerCoro20] faied to wait epoll fd:"
+                M_SYLAR_LOG_ERROR(g_logger) << "[IOManager] faied to wait epoll fd:"
                                 << "\n errno=" << errno << " error:" << strerror(errno);
                 return;
             }
@@ -289,14 +300,14 @@ void IOManagerCoro20::idle()
     delete[] events;
 }
 
-void IOManagerCoro20::tickle()
+void IOManager::tickle()
 {
     if(m_idleThreadCount > 0)
     {
         int64_t buffer = 1;
         if(1 == write(m_eventFd, &buffer, sizeof(buffer)))
         {
-            M_SYLAR_LOG_ERROR(g_logger) << "[iomanagerCoro20]failed to tickle othres while write eventFd"
+            M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]failed to tickle othres while write eventFd"
                                         << "\nerrno=" << errno << " error:" << strerror(errno);
             return;
         }
@@ -304,12 +315,12 @@ void IOManagerCoro20::tickle()
 }
 
 
-// void IOManagerCoro20::FdContext::reset()
+// void IOManager::FdContext::reset()
 // {
 
 // }
 
-IOManagerCoro20::FdContext::FdContext(int fd)
+IOManager::FdContext::FdContext(int fd)
 {
     m_fd = fd;
     m_cb_read.reset();
@@ -317,13 +328,13 @@ IOManagerCoro20::FdContext::FdContext(int fd)
     m_event = Event::NONE;
 }
 
-IOManagerCoro20::FdContext::~FdContext()
+IOManager::FdContext::~FdContext()
 {
 
 }
 
 
-void IOManagerCoro20::FdContext::trigger(Event event)
+void IOManager::FdContext::trigger(Event event)
 {
     if(event & Event::READ && m_cb_read.isLegal())
     {
@@ -335,7 +346,7 @@ void IOManagerCoro20::FdContext::trigger(Event event)
     }
 }
 
-int IOManagerCoro20::contextSet(int fd, FdContext::ptr fd_ctx)
+int IOManager::contextSet(int fd, FdContext::ptr fd_ctx)
 {
     std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     if(fd > m_fd_contexts.size())
@@ -346,7 +357,7 @@ int IOManagerCoro20::contextSet(int fd, FdContext::ptr fd_ctx)
         }
         catch(const std::exception& e)
         {
-            M_SYLAR_LOG_ERROR(g_logger) << "[iomanagerCoro20]failed to resize m_fd_contexts"
+            M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]failed to resize m_fd_contexts"
                                         << "\noriginal size=" << m_fd_contexts.size()
                                         << "\non  set  size=" << (int)(fd * 1.5)
                                         << "\nerror" << e.what();

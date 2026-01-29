@@ -11,26 +11,30 @@ namespace m_sylar
 {
 
 
-class IOManagerCoro20 : public SchedulerCoro20
+class IOManager : public Scheduler
 {
 public:
-    using ptr = std::shared_ptr<IOManagerCoro20>;
+    using ptr = std::shared_ptr<IOManager>;
 
     enum Event
     {   
-        NONE = 0,
+        NONE = 0x0,
         READ = EPOLLIN,
         WRITE = EPOLLOUT
     };
 
-    // IOManagerCoro20(SchedulerCoro20* scheduler = SchedulerCoro20::GetThis());
-    IOManagerCoro20(const std::string& name, int thread_num = 1);
-    ~IOManagerCoro20();
+    // IOManager(Scheduler* scheduler = Scheduler::GetThis());
+    IOManager(const std::string& name, int thread_num = 1);
+    ~IOManager();
 
-    void addEvent(int fd, Event event, TaskCoro20 task);
-    void delEvent(int fd, Event event);
-    void cancelEvent(int fd, Event event);
-    void cancelAll(int fd);
+    int addEvent(int fd, Event event, TaskCoro20 task);
+    int addEvent(int fd, Event event, std::function<void()> cb_func = nullptr);     // 添加事件
+
+    bool delEvent(int fd, Event event);
+    bool cancelEvent(int fd, Event event);
+    bool cancelAll(int fd);
+
+    static IOManager* getInstance();
 
   
 private:
@@ -61,7 +65,7 @@ private:
 private:
     int m_eventFd;
     int m_epollFd;
-    // SchedulerCoro20* m_scheduler;
+    // Scheduler* m_scheduler;
     std::vector<FdContext::ptr> m_fd_contexts;
 };
 
