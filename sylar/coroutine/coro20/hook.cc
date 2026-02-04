@@ -142,6 +142,7 @@ retry:
         else
         {
             m_sylar::Fiber::YieldToHold();      // 交出控制权，等待addEvent或者addConditionTimer唤醒
+
             if(fdtino->is_cancelled)
             {
                 // 超时

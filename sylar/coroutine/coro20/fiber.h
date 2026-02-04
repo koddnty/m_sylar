@@ -5,32 +5,12 @@
 #include <memory>
 #include <coroutine>
 #include "basic/log.h"
+#include "basic/macro.h"
+#include "coroutine/coro20/task.hpp"
 
 
 namespace m_sylar
 {
-
-class RTValue
-{
-public:
-    class promise_type
-    {
-    public:
-        RTValue get_return_object() {
-            return {};
-        }       // 1
-        std::suspend_never initial_suspend () {
-            return {};
-        }      // 2 
-        std::suspend_never final_suspend() noexcept {
-            return {};
-        }        // 7
-        void unhandled_exception() {}       
-        
-        void return_void() { 
-        };          // 6
-    };
-};
 
 
 class TaskCoro20
@@ -40,10 +20,12 @@ public:
     using ptr = std::shared_ptr<TaskCoro20>;
 
     TaskCoro20() {m_status = UNSET;}
+    TaskCoro20(std::function<Task<>()> cb);
     TaskCoro20(std::function<void()> cb);
     TaskCoro20(HandlePtr handle);
     ~TaskCoro20();         
 
+    void setTask(std::function<Task<>()> cb);
     void setTask(std::function<void()> cb);
     void setHandle(HandlePtr handle);       
 
@@ -62,11 +44,13 @@ private:
         TERM = 3            // 结束
     };
 
-    RTValue FiberFunc(std::function<void()> cb);
+    // Task<> FiberFunc(std::function<void()> cb);
+
+    void task()
 private:
-    std::function<void()> m_task;
-    Status m_status;        // 协程状态
-    HandlePtr m_handler;      // 协程句柄 
+    std::function<Task<>()> m_task;
+    Status m_status;            // 协程状态
+    HandlePtr m_handler;        // 协程句柄 
 };
 
 }

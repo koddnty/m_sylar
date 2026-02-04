@@ -12,7 +12,7 @@ set ( LIB_LIB
     yaml-cpp::yaml-cpp
 )
 
-option(SYLAR_USE_CORO20 "Use C++20 coroutine implementation, OFF if NOT" ON)       # 底层协程实现配置
+option(SYLAR_USE_CORO20 "Use C++20 coroutine implementation, OFF if NOT" OFF)       # 底层协程实现配置
 
 find_package(yaml-cpp REQUIRED)
 
@@ -94,6 +94,14 @@ target_include_directories(sylar PUBLIC
 #     ${CMAKE_CURRENT_SOURCE_DIR}/sylar
 # )
 
+
+add_executable(task_test tests/lab_test/task_test.cc)
+add_dependencies(task_test sylar)
+target_link_libraries(task_test sylar ${LIB_LIB})
+
+# add_executable(test tests/test.cc)
+# add_dependencies(test sylar)
+# target_link_libraries(test sylar ${LIB_LIB})
 
 # add_executable(test tests/test.cc)
 # add_dependencies(test sylar)
