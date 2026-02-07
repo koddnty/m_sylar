@@ -87,30 +87,6 @@ void TaskCoro20::resume()
 
 bool TaskCoro20::isLegal()
 {   // 如果任务是有效任务返回true
-    // if(m_status == UNSET)
-    // {
-    //     return false;
-    // }
-    // if(m_status == INIT)
-    // {
-    //     return !!m_task;
-    // }
-    // else if(m_status == SUSPEND)
-    // {
-    //     return !!m_handler;
-    // }
-    // else if(m_status == EXEC)
-    // {
-    //     return !!m_handler || !!m_task;
-    // }
-    // else if(m_status == TERM)
-    // {
-    //     return true;
-    // }
-    // else
-    // {
-    //     return false;
-    // }
 
     switch(m_status)
     {

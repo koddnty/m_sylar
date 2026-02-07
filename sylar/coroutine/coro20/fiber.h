@@ -13,6 +13,7 @@ namespace m_sylar
 {
 
 
+template<typename ResultType>
 class TaskCoro20
 {
 public:
@@ -20,19 +21,43 @@ public:
     using ptr = std::shared_ptr<TaskCoro20>;
 
     TaskCoro20() {m_status = UNSET;}
-    TaskCoro20(std::function<Task<>()> cb);
+    TaskCoro20(std::function<Task<ResultType>()> cb);
     TaskCoro20(std::function<void()> cb);
     TaskCoro20(HandlePtr handle);
     ~TaskCoro20();         
 
-    void setTask(std::function<Task<>()> cb);
+    void setTask(std::function<Task<ResultType>()> cb);
     void setTask(std::function<void()> cb);
     void setHandle(HandlePtr handle);       
 
     void reset();
     void resume();
     
-    bool isLegal();
+    bool isLegal()
+    {   // 如果任务是有效任务返回true
+        switch(m_status)
+        {
+            case UNSET:
+                return false;
+                break;
+            case INIT:
+                return !!m_task;
+                break;
+            case SUSPEND:
+                return !!m_handler;
+                break;
+            case EXEC:
+                return !!m_handler;
+                break;
+            case TERM:
+                return false;
+                break;
+            default:
+                return false;
+        }
+    }
+
+    ResultType getResult();
 
 private:
     enum Status
@@ -46,9 +71,9 @@ private:
 
     // Task<> FiberFunc(std::function<void()> cb);
 
-    void task()
+    // void task()
 private:
-    std::function<Task<>()> m_task;
+    std::function<Task<ResultType>()> m_task;
     Status m_status;            // 协程状态
     HandlePtr m_handler;        // 协程句柄 
 };

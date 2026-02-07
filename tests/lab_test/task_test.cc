@@ -21,6 +21,9 @@ Task<int> simple_task3() {
   co_return 3;
 }
 
+
+
+
 Task<int> simple_task() {
   std::cout << "task start ..."  << std::endl;
   auto result2 = co_await simple_task2();
@@ -30,10 +33,52 @@ Task<int> simple_task() {
   co_return 1 + result2 + result3;
 }
 
+// template<typename _ResultType = int>
+// template<>
+// class m_sylar::TaskAwaiter<int>
+// {
+// public: 
+//     TaskAwaiter(Task<int>&& task)
+//         : m_task(std::move(task)) {}
+
+// public: 
+//     virtual bool await_ready()
+//     {
+//         return false;
+//     } 
+
+//     virtual void await_suspend(std::coroutine_handle<TaskPromise<int>> handle)
+//     {
+//         // 实现协程恢逻辑
+//         // m_task.finally([handle](Result<_ResultType> result){
+//         //     handle.resume();
+//         // });
+//     }
+
+//     int await_resume()
+//     {
+//         return m_task.getResult();
+//     }
+
+// private:    
+//     Task<int> m_task;       // 子协程任务
+// };
+
+
+Task<int> test_2()
+{
+  co_return 1;
+}
+
+Task<int> test_getResult()
+{
+    int value = co_await test_2();
+    co_return value;
+}
+
 int main(void)
 {
     Task<int> t = simple_task();
     std::cout << t.getResult() << std::endl;
-
     return 0;
 }
