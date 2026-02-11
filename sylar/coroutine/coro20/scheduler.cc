@@ -33,7 +33,7 @@ void Scheduler::start()
     std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     for(int i = 0; i < m_threads_count; i++)
     {
-        Thread::ptr new_thread(new m_sylar::Thread(std::bind(&Scheduler::run, this),
+        Thread::ptr new_thread(new m_sylar::Thread(std::bind(&Scheduler::ThreadInit, this),
                                 m_name + "_" + std::to_string(i)));
         m_threads.push_back(new_thread);
     }
@@ -50,7 +50,17 @@ Scheduler* Scheduler::GetThis()
     return tl_Scheduler;
 }
 
-void Scheduler::run()
+void Scheduler::ThreadInit()
+{
+    Task t = run();
+    while(!t.getHandle().done())
+    {
+        M_SYLAR_LOG_WARN(g_logger) << "main fiber expectly suspend";
+        t.getHandle().resume();
+    }
+}
+
+Task<void, BaseExecutor> Scheduler::run()
 {
     setThis();
     while(true)

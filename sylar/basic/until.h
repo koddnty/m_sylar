@@ -1,14 +1,13 @@
 #pragma once
-
 #include <thread>
 #include <unistd.h>
-#include <sys/syscall.h>
+#include <syscall.h>
 #include <cstdint>
 #include <vector>
 #include <execinfo.h>
 #include <filesystem>
 #include <string>
-#include <sys/time.h>
+#include <time.h>
 
 namespace m_sylar{
 

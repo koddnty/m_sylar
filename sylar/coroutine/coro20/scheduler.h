@@ -71,7 +71,8 @@ private:
     }
 
 public:
-    void run();
+    void ThreadInit();
+    Task<void, BaseExecutor> run();
     virtual void idle();
     virtual void tickle();
     virtual void autoStop();

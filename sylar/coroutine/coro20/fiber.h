@@ -13,7 +13,7 @@ namespace m_sylar
 {
 
 
-template<typename ResultType>
+// template<typename int>
 class TaskCoro20
 {
 public:
@@ -21,12 +21,12 @@ public:
     using ptr = std::shared_ptr<TaskCoro20>;
 
     TaskCoro20() {m_status = UNSET;}
-    TaskCoro20(std::function<Task<ResultType>()> cb);
+    TaskCoro20(std::function<Task<int>()> cb);
     TaskCoro20(std::function<void()> cb);
     TaskCoro20(HandlePtr handle);
     ~TaskCoro20();         
 
-    void setTask(std::function<Task<ResultType>()> cb);
+    void setTask(std::function<Task<int>()> cb);
     void setTask(std::function<void()> cb);
     void setHandle(HandlePtr handle);       
 
@@ -57,7 +57,7 @@ public:
         }
     }
 
-    ResultType getResult();
+    int getResult();
 
 private:
     enum Status
@@ -69,14 +69,57 @@ private:
         TERM = 3            // 结束
     };
 
-    // Task<> FiberFunc(std::function<void()> cb);
+    // Task<> Fiberunc(std::function<void()> cb);
 
     // void task()
 private:
-    std::function<Task<ResultType>()> m_task;
+    std::function<Task<int>()> m_task;
     Status m_status;            // 协程状态
     HandlePtr m_handler;        // 协程句柄 
 };
+
+
+
+
+// template<typename ResultType, typename Executer>
+class Fiberf
+{
+public: 
+    using ptr = std::shared_ptr<Fiberf>;
+    enum class Type
+    {
+        UNKNOWN = 0,
+        CORO = 1,
+        FUNC = 2,
+    };
+
+public: 
+    Fiberf(std::function<void()> && task)
+        : m_task(std::move(task)){ }
+
+    Fiberf(std::coroutine_handle<> handle)
+        : m_handle(std::move(handle)) {}
+
+
+private:    
+    Type m_type;
+    std::function<void()> m_task;
+    std::coroutine_handle<> m_handle;
+};
+
+
+class suspendExecuter : public AbstractExecuter
+{   // 挂起当前协程
+public:
+    virtual void execute(std::function<void()> &&func) override
+    { 
+        // 注册协程回调任务
+        Fiberf task(std::move(func));
+        
+    }
+};
+
+
 
 }
 
