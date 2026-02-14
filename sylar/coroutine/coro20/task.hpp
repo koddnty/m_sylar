@@ -2,6 +2,7 @@
 #include <condition_variable>
 #include <iostream>
 #include <coroutine>
+#include <any>
 #include <exception>
 #include <functional>
 #include <list>
@@ -17,6 +18,11 @@ template<typename ResultType, typename Executer>
 class TaskPromise;
 template<typename Executer>
 class InitialAwaiter;
+
+class ITask {
+public: 
+    virtual ~ITask() = default;
+};
 
 
 class AbstractExecuter
@@ -81,7 +87,7 @@ private:
 
 
 template<typename ResultType, typename Executer = BaseExecutor>
-class Task
+class Task : public ITask
 {
 public: 
     using promise_type = TaskPromise<ResultType, Executer>;
@@ -97,10 +103,11 @@ public:
     Task(Task& other) = delete;
     Task& operator=(Task& other) = delete;
 
-    ~Task()
+    ~Task() override
     {
         if(m_handler)
         {
+            std::cout << "handle destory:" << &m_handler << std::endl;
             m_handler.destroy();
         }
     }
@@ -172,12 +179,16 @@ class TaskPromise
 public:
     ~TaskPromise()
     {
+        std::cout << "~taskpromies " << this << std::endl;
         delete m_executer;
     }
 
     Task<ResultType, Executer> get_return_object()
     {
+        std::cout << "TaskPromise generate: " << this << std::endl; 
         m_executer = new Executer();    // taskpromise负责execute控制
+        // Task<ResultType, Executer> task (std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer);
+        // m_task = &task;
         return Task<ResultType, Executer>(std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer);
     }
 
@@ -191,6 +202,7 @@ public:
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         m_result = Result<ResultType>(std::current_exception());
+        lock.unlock();
         m_completion.notify_all();
         notifyAllCbs();
     }
@@ -199,6 +211,7 @@ public:
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         m_result = Result<ResultType>(std::move(value));
+        lock.unlock();
         m_completion.notify_all();
         notifyAllCbs();
     }
@@ -206,13 +219,19 @@ public:
     template<typename _ResultType, typename _Executer>  // co_await协程返回值类型，与ResultType 有所区分
     TaskAwaiter<_ResultType, _Executer> await_transform (Task<_ResultType, _Executer>&& task) 
     {   // 需要控制子任务生命周期
-        return TaskAwaiter<_ResultType, _Executer>(std::move(task));
+        // return TaskAwaiter<_ResultType, _Executer>(std::move(task));     
+        // auto* m_child_task = std::any_cast<Task<_ResultType, _Executer>>(&task);   
+        Task<_ResultType, _Executer>* task_ptr = new Task<_ResultType, _Executer>(std::move(task));
+        m_child_task_ptr.reset(task_ptr);
+        TaskAwaiter<_ResultType, _Executer> child_task (task_ptr);
+        return child_task;        
     }
 
     template<typename AwaiterImpl>
     AwaiterImpl await_transform(AwaiterImpl awaiter) 
     {   // 为传入的awaiter设置调度器
         awaiter.install_executor(m_executer);
+
         return awaiter;
     }
 
@@ -255,6 +274,9 @@ private:
     std::mutex m_mutex;
     std::condition_variable m_completion;
     Executer* m_executer;
+    // ITask m_child_task;
+    std::unique_ptr<ITask> m_child_task_ptr;
+ 
 
     std::list<std::function<void(Result<ResultType>)>> m_callbacks;
 };
@@ -265,6 +287,16 @@ template<typename _ResultType>
 class Awaiter
 {
 public:
+    Awaiter()
+    {
+        std::cout << "Base Awaiter: " << this << std::endl;
+    }
+
+    ~Awaiter()
+    {
+        std::cout << this << " ~awaiter " << std::endl;
+    }
+
     bool await_ready()
     {
         return false;
@@ -275,7 +307,6 @@ public:
     {   // 控制协程是否完成后恢复自己
         m_handle = handle;
         on_suspend();
-        
     }
 
     _ResultType await_resume()
@@ -306,9 +337,7 @@ public:
 
 protected:
     virtual void on_suspend()
-    {
-        // resume_unsafe();
-    }
+    {}
 
     virtual void before_resume() 
     {}
@@ -318,26 +347,32 @@ protected:
     std::optional<Result<_ResultType>> m_result{}; 
 
     void resume(_ResultType value) {
+        if(m_handle.done()){
+            std::cout << "handle is done" << std::endl;
+        }
         dispatch([this, value]() {
             // 将 value 封装到 _result 当中，await_resume 时会返回 value
             m_result = Result<_ResultType>(static_cast<_ResultType>(value));
+            std::cout << "resume handle "<< &m_handle << std::endl;
             m_handle.resume();
         });
     }
 
     void resume_unsafe() {
-        dispatch([this]() { m_handle.resume(); });
+        dispatch([this]() { 
+            std::cout << "resume handle "<< &m_handle << std::endl;
+            m_handle.resume();
+        });
     }
 
     void resume_exception(std::exception_ptr&& e)
     {
         dispatch([this, e](){
             m_result = Result<_ResultType>(e);
+            std::cout << "resume handle "<< &m_handle << std::endl;
             m_handle.resume();
         });
     }
-
-
 
 private:
     std::coroutine_handle<> m_handle;
@@ -347,11 +382,19 @@ private:
 
 
 template<typename _ResultType, typename _Executer>
-class TaskAwaiter
-{
+class TaskAwaiter       
+{   // co_await Task时获得的awaiter,由子任务模板构成，在子任务运行完毕后会恢复当前任务
 public: 
-    TaskAwaiter(Task<_ResultType, _Executer>&& task)
-        : m_task(std::move(task)) {}
+    TaskAwaiter(Task<_ResultType, _Executer>* task)
+        : m_task(task) {
+        std::cout << "TaskAwaiter: " << this << std::endl;
+    }
+
+    ~TaskAwaiter()
+    {
+            std::cout << "~TaskAwaiter: " << this << std::endl;
+    }
+
 
 public:
     bool await_ready()
@@ -361,26 +404,25 @@ public:
 
     // TaskPromise<_ResultType, _Executer>
     void await_suspend(std::coroutine_handle<> handle)
-    {   // 控制协程是否完成后恢复自己
-        m_task.getExecuter()->execute([handle, this](){
-            // handle.resume();
-            m_task.finally([handle](Result<_ResultType> result){
-                handle.resume();
-            });
+    {   // 控制子协程是否完成后恢复自己
+        // m_task.getExecuter()->execute([handle, this](){
+        m_task->finally([handle](Result<_ResultType> result){
+            std::cout << "resume handle "<< &handle << std::endl;
+            handle.resume();
         });
+        // });
     }
 
     _ResultType await_resume()
     {
-        return m_task.getResult();
+        return m_task->getResult();
     }
 
-
-
 private:    
-    Task<_ResultType, _Executer> m_task;        // 子协程任务
-    // _Executer* m_executer;                   // 调度器
+    Task<_ResultType, _Executer>* m_task;           // 子协程任务
+    // _Executer* m_executer;                       // 调度器
 };
+
 
 
 template<typename Executer>
@@ -395,6 +437,7 @@ public:
     void await_suspend(std::coroutine_handle<> handle) 
     {
         m_executer->initialExecute([handle](){
+            std::cout << "resume handle "<< &handle << std::endl;
             handle.resume();
         });
     }
@@ -407,7 +450,7 @@ private:
 
 
 
-// void 类型
+// void 篇特化
 template<>
 class Result<void>
 {
@@ -434,7 +477,7 @@ private:
 
 
 template<typename Executer>
-class Task<void, Executer>
+class Task<void, Executer> : public ITask
 {
 public: 
     using promise_type = TaskPromise<void, Executer>;
@@ -454,6 +497,7 @@ public:
     {
         if(m_handler)
         {
+            std::cout << "destory:" << &m_handler << std::endl;
             m_handler.destroy();
         }
     }
@@ -527,11 +571,13 @@ class TaskPromise<void, Executer>
 public:
     ~TaskPromise()
     {
+        std::cout << "~TaskPromise"  << this << std::endl;  
         delete m_executer;
     }
 
     Task<void, Executer> get_return_object()
     {
+        std::cout << "TaskPromise generate: " << this << std::endl; 
         m_executer = new Executer();    // taskpromise负责execute控制
         return Task<void, Executer>(std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer);
     }
@@ -546,6 +592,7 @@ public:
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         m_result = Result<void>(std::current_exception());
+        lock.unlock();
         m_completion.notify_all();
         notifyAllCbs();
     }
@@ -554,6 +601,7 @@ public:
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         m_result = Result<void>();
+        lock.unlock();
         m_completion.notify_all();
         notifyAllCbs();
     }
@@ -561,7 +609,18 @@ public:
     template<typename _ResultType, typename _Executer>  // co_await协程返回值类型，与ResultType 有所区分
     TaskAwaiter<_ResultType, _Executer> await_transform (Task<_ResultType, _Executer>&& task) 
     {   // 需要控制子任务生命周期
-        return TaskAwaiter<_ResultType, _Executer>(std::move(task));
+        Task<_ResultType, _Executer>* task_ptr = new Task<_ResultType, _Executer>(std::move(task));
+        m_child_task_ptr.reset(task_ptr);
+        TaskAwaiter<_ResultType, _Executer> child_task (task_ptr);
+        return child_task;   
+        // return TaskAwaiter<_ResultType, _Executer>(std::move(task));
+    }
+
+    template<typename AwaiterImpl>
+    AwaiterImpl await_transform(AwaiterImpl awaiter) 
+    {   // 为传入的awaiter设置调度器
+        awaiter.install_executor(m_executer);
+        return awaiter;
     }
 
 
@@ -599,6 +658,145 @@ private:
     std::mutex m_mutex;
     std::condition_variable m_completion;
     Executer* m_executer;
+    std::unique_ptr<ITask> m_child_task_ptr;
     std::list<std::function<void(Result<void>)>> m_callbacks;
 };
+
+
+template<typename _Executer>
+class TaskAwaiter<void, _Executer>
+{
+public: 
+    TaskAwaiter(Task<void, _Executer>* task)
+        : m_task(task) {
+        std::cout << "TaskAwaiter: " << this << std::endl;
+    }
+    ~TaskAwaiter()
+    {
+            std::cout << "~TaskAwaiter: " << this << std::endl;
+    }
+
+public:
+    bool await_ready()
+    {
+        return false;
+    } 
+
+    // TaskPromise<_ResultType, _Executer>
+    void await_suspend(std::coroutine_handle<> handle)
+    {   // 控制协程是否完成后恢复自己
+        // m_task.getExecuter()->execute([handle, this](){
+            // handle.resume();
+        m_task->finally([handle](Result<void> result){
+            std::cout << "resume handle "<< &handle << std::endl;
+            handle.resume();
+        });
+        // });
+    }
+
+    void await_resume()
+    {
+        m_task->getResult();
+    }
+
+private:    
+    Task<void, _Executer>* m_task;       // 子协程任务
+    // _Executer* m_executer;                   // 调度器
+};
+
+
+template<>
+class Awaiter<void>
+{
+public:
+    Awaiter()
+    {
+            std::cout << "Base Awaiter: " << this << std::endl;
+    }
+
+    ~Awaiter()
+    {
+            std::cout << "~Base Awaiter: " << this << std::endl;
+    }
+
+    bool await_ready()
+    {
+        return false;
+    } 
+
+    // TaskPromise<_ResultType, _Executer>
+    void await_suspend(std::coroutine_handle<> handle)
+    {   // 控制协程是否完成后恢复自己
+        m_handle = handle;
+        on_suspend();
+        
+    }
+
+    void await_resume()
+    {
+        // if (!m_result.has_value()) {
+        //     throw std::runtime_error("No result available");
+        // }
+        before_resume();
+        m_result->getOrThrow();
+    }    
+
+    void install_executor(AbstractExecuter* executer) 
+    {
+        m_executer = executer;
+    }
+
+    void dispatch(std::function<void()> &&func)
+    {
+        if(m_executer)
+        {
+            m_executer->execute(std::move(func));
+        }
+        else
+        {
+            func();
+        }
+    }
+
+protected:
+    virtual void on_suspend()
+    {}
+
+    virtual void before_resume() 
+    {}
+
+protected:
+    // 结果对子类可见，方便灵活操作
+    std::optional<Result<void>> m_result{}; 
+
+    void resume() {
+
+        dispatch([this]() {
+            // 将 value 封装到 _result 当中，await_resume 时会返回 value
+            std::cout << "resume handle "<< &m_handle << std::endl;
+            m_handle.resume();
+        });
+    }
+
+    void resume_unsafe() {
+        dispatch([this]() { 
+            std::cout << "resume handle "<< &m_handle << std::endl;
+            m_handle.resume();
+        });
+    }
+
+    void resume_exception(std::exception_ptr&& e)
+    {
+        dispatch([this, e](){
+            m_result = Result<void>(e);
+            std::cout << "resume handle "<< &m_handle << std::endl;
+            m_handle.resume();
+        });
+    }
+
+private:
+    std::coroutine_handle<> m_handle;
+    AbstractExecuter* m_executer = NULL;
+};
+
 }
