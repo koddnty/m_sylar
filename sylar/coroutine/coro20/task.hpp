@@ -33,7 +33,7 @@ public:
 
     virtual void execute(std::function<void()> &&func)
     {
-        std::cout << "默认调度函数" << std::endl;
+        
         func();
     }
 
@@ -107,7 +107,7 @@ public:
     {
         if(m_handler)
         {
-            std::cout << "handle destory:" << &m_handler << std::endl;
+            
             m_handler.destroy();
         }
     }
@@ -179,13 +179,13 @@ class TaskPromise
 public:
     ~TaskPromise()
     {
-        std::cout << "~taskpromies " << this << std::endl;
+        
         delete m_executer;
     }
 
     Task<ResultType, Executer> get_return_object()
     {
-        std::cout << "TaskPromise generate: " << this << std::endl; 
+         
         m_executer = new Executer();    // taskpromise负责execute控制
         // Task<ResultType, Executer> task (std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer);
         // m_task = &task;
@@ -289,12 +289,12 @@ class Awaiter
 public:
     Awaiter()
     {
-        std::cout << "Base Awaiter: " << this << std::endl;
+        
     }
 
     ~Awaiter()
     {
-        std::cout << this << " ~awaiter " << std::endl;
+        
     }
 
     bool await_ready()
@@ -348,19 +348,19 @@ protected:
 
     void resume(_ResultType value) {
         if(m_handle.done()){
-            std::cout << "handle is done" << std::endl;
+            
         }
         dispatch([this, value]() {
             // 将 value 封装到 _result 当中，await_resume 时会返回 value
             m_result = Result<_ResultType>(static_cast<_ResultType>(value));
-            std::cout << "resume handle "<< &m_handle << std::endl;
+            
             m_handle.resume();
         });
     }
 
     void resume_unsafe() {
         dispatch([this]() { 
-            std::cout << "resume handle "<< &m_handle << std::endl;
+            
             m_handle.resume();
         });
     }
@@ -369,7 +369,7 @@ protected:
     {
         dispatch([this, e](){
             m_result = Result<_ResultType>(e);
-            std::cout << "resume handle "<< &m_handle << std::endl;
+            
             m_handle.resume();
         });
     }
@@ -387,12 +387,12 @@ class TaskAwaiter
 public: 
     TaskAwaiter(Task<_ResultType, _Executer>* task)
         : m_task(task) {
-        std::cout << "TaskAwaiter: " << this << std::endl;
+        
     }
 
     ~TaskAwaiter()
     {
-            std::cout << "~TaskAwaiter: " << this << std::endl;
+            
     }
 
 
@@ -407,7 +407,7 @@ public:
     {   // 控制子协程是否完成后恢复自己
         // m_task.getExecuter()->execute([handle, this](){
         m_task->finally([handle](Result<_ResultType> result){
-            std::cout << "resume handle "<< &handle << std::endl;
+            
             handle.resume();
         });
         // });
@@ -437,7 +437,7 @@ public:
     void await_suspend(std::coroutine_handle<> handle) 
     {
         m_executer->initialExecute([handle](){
-            std::cout << "resume handle "<< &handle << std::endl;
+            
             handle.resume();
         });
     }
@@ -497,7 +497,7 @@ public:
     {
         if(m_handler)
         {
-            std::cout << "destory:" << &m_handler << std::endl;
+            
             m_handler.destroy();
         }
     }
@@ -571,13 +571,13 @@ class TaskPromise<void, Executer>
 public:
     ~TaskPromise()
     {
-        std::cout << "~TaskPromise"  << this << std::endl;  
+          
         delete m_executer;
     }
 
     Task<void, Executer> get_return_object()
     {
-        std::cout << "TaskPromise generate: " << this << std::endl; 
+         
         m_executer = new Executer();    // taskpromise负责execute控制
         return Task<void, Executer>(std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer);
     }
@@ -669,11 +669,11 @@ class TaskAwaiter<void, _Executer>
 public: 
     TaskAwaiter(Task<void, _Executer>* task)
         : m_task(task) {
-        std::cout << "TaskAwaiter: " << this << std::endl;
+        
     }
     ~TaskAwaiter()
     {
-            std::cout << "~TaskAwaiter: " << this << std::endl;
+            
     }
 
 public:
@@ -688,7 +688,7 @@ public:
         // m_task.getExecuter()->execute([handle, this](){
             // handle.resume();
         m_task->finally([handle](Result<void> result){
-            std::cout << "resume handle "<< &handle << std::endl;
+            
             handle.resume();
         });
         // });
@@ -711,12 +711,12 @@ class Awaiter<void>
 public:
     Awaiter()
     {
-            std::cout << "Base Awaiter: " << this << std::endl;
+            
     }
 
     ~Awaiter()
     {
-            std::cout << "~Base Awaiter: " << this << std::endl;
+            
     }
 
     bool await_ready()
@@ -773,14 +773,14 @@ protected:
 
         dispatch([this]() {
             // 将 value 封装到 _result 当中，await_resume 时会返回 value
-            std::cout << "resume handle "<< &m_handle << std::endl;
+            
             m_handle.resume();
         });
     }
 
     void resume_unsafe() {
         dispatch([this]() { 
-            std::cout << "resume handle "<< &m_handle << std::endl;
+            
             m_handle.resume();
         });
     }
@@ -789,7 +789,7 @@ protected:
     {
         dispatch([this, e](){
             m_result = Result<void>(e);
-            std::cout << "resume handle "<< &m_handle << std::endl;
+            
             m_handle.resume();
         });
     }
