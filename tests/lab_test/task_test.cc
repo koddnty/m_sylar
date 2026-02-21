@@ -1,5 +1,6 @@
 #include "coroutine/coro20/task.hpp"
 #include "basic/log.h"
+#include "coroutine/coro20/fiber.h"
 // #include "coroutine/coro20/ioManager.h"
 #include <iostream>
 #include <ostream>
@@ -299,58 +300,58 @@ private:
   uint64_t m_time;
 };
 
-Task<void> msleep(uint64_t time)
+Task<int> msleep(uint64_t time)
 {
   std::cout << "[msleep sleep 10s begin]" << std::endl;
   co_await SleepAwaiter(time);
   std::cout << "[msleep sleep 10s end]" << std::endl;
-  co_return;
+  co_return 1;
 }
 
 
-class TaskBeginExecuter : public AbstractExecuter
-{ // 此调度器在任务创建时挂起任务， 执行期间不挂起任务
-public:
-    virtual void execute(std::function<void()> &&func)
-    {
-        func();
-    }
+// class TaskBeginExecuter : public AbstractExecuter
+// { // 此调度器在任务创建时挂起任务， 执行期间不挂起任务
+// public:
+//     virtual void execute(std::function<void()> &&func)
+//     {
+//         func();
+//     }
 
-    virtual void initialExecute(std::function<void()> &&func)
-    {
-    }
-};
+//     virtual void initialExecute(std::function<void()> &&func)
+//     {
+//     }
+// };
 
 
-class F
-{
-public:
-  F(std::function<Task<void, TaskBeginExecuter>()> task)
-    : m_task(task()){}
+// class F
+// {
+// public:
+//   F(std::function<Task<void, TaskBeginExecuter>()> task)
+//     : m_task(task()){}
 
-  F(std::function<void()> task)
-    :  m_func_task(task), m_task(std::bind(&F::runner, this)()){ }
+//   F(std::function<void()> task)
+//     :  m_func_task(task), m_task(std::bind(&F::runner, this)()){ }
 
-  void start()
-  {
-    if(m_task.getHandle().done())
-    {
-      M_SYLAR_LOG_ERROR(g_logger) << "[coroutine]resume a finished handle";
-    }
-    m_task.getHandle().resume();
-  }
+//   void start()
+//   {
+//     if(m_task.getHandle().done())
+//     {
+//       M_SYLAR_LOG_ERROR(g_logger) << "[coroutine]resume a finished handle";
+//     }
+//     m_task.getHandle().resume();
+//   }
 
-private:
-  Task<void, TaskBeginExecuter> runner()
-  {
-    m_func_task();
-    co_return;
-  };
+// private:
+//   Task<void, TaskBeginExecuter> runner()
+//   {
+//     m_func_task();
+//     co_return;
+//   };
 
-private:
-  std::function<void()> m_func_task = nullptr;
-  Task<void, TaskBeginExecuter> m_task;
-};
+// private:
+//   std::function<void()> m_func_task = nullptr;
+//   Task<void, TaskBeginExecuter> m_task;
+// };
 
 Task<void, TaskBeginExecuter> coro()
 {
@@ -371,7 +372,7 @@ void func()
 
 void test_C()
 {
-  F t(static_cast<std::function<Task<void, TaskBeginExecuter>()>>(coro));
+  TaskCoro20 t(static_cast<std::function<Task<void, TaskBeginExecuter>()>>(coro));
   std::cout << "coroutine task start" << std::endl;
   t.start();
   std::cout << "coroutine task started" << std::endl;
@@ -381,7 +382,7 @@ void test_C()
 
 void test_F()
 {
-  F t(static_cast<std::function<void()>>(func));
+  TaskCoro20 t(static_cast<std::function<void()>>(func));
   std::cout << "function task started" << std::endl;
   t.start();
   std::cout << "function task started" << std::endl;
@@ -594,6 +595,8 @@ int main(void)
   // test_awaiter();
   // test_F();
   test_task();
+  std::cout << "test_task returned, but task still running..." << std::endl;
+  sleep(15);
 
 
 

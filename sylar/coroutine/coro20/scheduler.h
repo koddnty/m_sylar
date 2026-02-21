@@ -60,14 +60,14 @@ private:
     void scheduleNoLock(Func_or_Handle f)
     {
         TaskCoro20 task(f);
-        if(!task.isLegal()) {return;}
+        if(task.isFinished()) {return;}
         if(m_autoStop)
         {
             return;
         }
-        TaskCoro20 t(task);
-        M_SYLAR_ASSERT2(t.isLegal(), "[scheduleCoro20] illegal Task");
-        m_tasks.push_back(t);
+        // TaskCoro20 t(task);
+        M_SYLAR_ASSERT2(!task.isFinished(), "[scheduleCoro20] illegal Task");
+        m_tasks.push_back(task);
     }
 
 public:

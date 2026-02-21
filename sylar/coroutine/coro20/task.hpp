@@ -6,6 +6,7 @@
 #include <exception>
 #include <functional>
 #include <list>
+#include <assert.h>
 #include <mutex>
 #include <optional>
 #include <utility>
@@ -19,8 +20,35 @@ class TaskPromise;
 template<typename Executer>
 class InitialAwaiter;
 
+
+class FinalAwaiter
+{   // 结束时由决定是否挂起或销毁
+public:
+    FinalAwaiter(bool* is_have_task)
+        : m_is_have_task(is_have_task) { }
+
+    bool await_ready() noexcept {
+        // if(!m_is_have_task)
+        // {
+        //     return true;
+        // }
+        // assert(m_is_have_task);
+        // std::cout << "have task ?:"<< *m_is_have_task << std::endl;
+        std::cout << "returnValue:" << !(*m_is_have_task) << std::endl;
+        return !(*m_is_have_task);
+    }
+
+    void await_suspend(std::coroutine_handle<> handle) noexcept { }
+
+    void await_resume() noexcept {}
+
+private:
+    bool* m_is_have_task;
+};
+
+
 class ITask {
-public: 
+public:
     virtual ~ITask() = default;
 };
 
@@ -33,7 +61,7 @@ public:
 
     virtual void execute(std::function<void()> &&func)
     {
-        
+
         func();
     }
 
@@ -45,7 +73,7 @@ public:
 
 class BaseExecutor : public AbstractExecuter
 {
-public: 
+public:
     virtual void execute(std::function<void()>&& func) override
     {   // 协程中间挂起恢复逻辑
         func();
@@ -61,7 +89,7 @@ public:
 template<typename ResultType>
 class Result
 {
-public: 
+public:
     Result(ResultType&& result)
         : m_result(std::move(result)) {}
 
@@ -89,15 +117,23 @@ private:
 template<typename ResultType, typename Executer = BaseExecutor>
 class Task : public ITask
 {
-public: 
+public:
     using promise_type = TaskPromise<ResultType, Executer>;
 
-    Task(std::coroutine_handle<promise_type> handle, Executer* executer)        // 从promoise获得executer
-        : m_handler(handle), m_executer(executer) {}
+    Task() {}
+
+    Task(std::coroutine_handle<promise_type> handle, Executer* executer, bool* is_have_task = nullptr)        // 从promoise获得executer
+        : m_handler(handle), m_executer(executer) {
+            if(is_have_task)
+            {
+                m_is_have_task = is_have_task;
+            }
+        }
 
     Task(Task&& other)
         : m_handler(std::exchange(other.m_handler, {}))
-        , m_executer(other.m_executer) {}
+        , m_executer(other.m_executer)
+        , m_is_have_task(other.m_is_have_task) {}
 
     // 禁用拷贝构造
     Task(Task& other) = delete;
@@ -105,9 +141,9 @@ public:
 
     ~Task() override
     {
-        if(m_handler)
+        *m_is_have_task = false;
+        if(m_handler && m_handler.done())
         {
-            
             m_handler.destroy();
         }
     }
@@ -119,7 +155,7 @@ public:
     }
 
     Task& then(std::function<void(Result<ResultType>)> cb)
-    {   
+    {
         m_handler.promise().setCompleteCb(cb);
         return *this;
     }
@@ -135,7 +171,7 @@ public:
                 }
                 catch(std::exception& e)
                 {
-                    func(Result<ResultType>(e));   
+                    func(Result<ResultType>(e));
                 }
             }
         );
@@ -150,7 +186,7 @@ public:
                 try
                 {
                     result.getOrThrow();
-                    func(result);   
+                    func(result);
                 }
                 catch(std::exception& e)
                 {
@@ -166,10 +202,11 @@ public:
         return m_handler;
     }
 
-    Executer* getExecuter() const {return m_executer;} 
+    Executer* getExecuter() const {return m_executer;}
 private:
     std::coroutine_handle<promise_type> m_handler;
     Executer* m_executer;
+    bool* m_is_have_task = nullptr;
 };
 
 
@@ -179,24 +216,28 @@ class TaskPromise
 public:
     ~TaskPromise()
     {
-        
+
         delete m_executer;
     }
 
     Task<ResultType, Executer> get_return_object()
     {
-         
+
         m_executer = new Executer();    // taskpromise负责execute控制
         // Task<ResultType, Executer> task (std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer);
         // m_task = &task;
-        return Task<ResultType, Executer>(std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer);
+        m_is_have_task = true;
+        return Task<ResultType, Executer>(std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer, &m_is_have_task);
     }
 
-    InitialAwaiter<Executer> initial_suspend() {        // 直接由execute调用    
+    InitialAwaiter<Executer> initial_suspend() {        // 直接由execute调用
         return InitialAwaiter<Executer>(m_executer);
     }
 
-    std::suspend_always final_suspend() noexcept { return {};}
+
+    FinalAwaiter final_suspend() noexcept {
+        return FinalAwaiter(&m_is_have_task);
+    }
 
     void unhandled_exception()
     {
@@ -217,30 +258,30 @@ public:
     }
 
     template<typename _ResultType, typename _Executer>  // co_await协程返回值类型，与ResultType 有所区分
-    TaskAwaiter<_ResultType, _Executer> await_transform (Task<_ResultType, _Executer>&& task) 
+    TaskAwaiter<_ResultType, _Executer> await_transform (Task<_ResultType, _Executer>&& task)
     {   // 需要控制子任务生命周期
-        // return TaskAwaiter<_ResultType, _Executer>(std::move(task));     
-        // auto* m_child_task = std::any_cast<Task<_ResultType, _Executer>>(&task);   
+        // return TaskAwaiter<_ResultType, _Executer>(std::move(task));
+        // auto* m_child_task = std::any_cast<Task<_ResultType, _Executer>>(&task);
         Task<_ResultType, _Executer>* task_ptr = new Task<_ResultType, _Executer>(std::move(task));
         m_child_task_ptr.reset(task_ptr);
         TaskAwaiter<_ResultType, _Executer> child_task (task_ptr);
-        return child_task;        
+        return child_task;
     }
 
     template<typename AwaiterImpl>
-    AwaiterImpl await_transform(AwaiterImpl awaiter) 
+    AwaiterImpl await_transform(AwaiterImpl awaiter)
     {   // 为传入的awaiter设置调度器
         awaiter.install_executor(m_executer);
 
         return awaiter;
     }
 
-public: 
+public:
     ResultType getResult()      // 获取协程运行结果
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         if(!m_result.has_value())
-        {   
+        {
             m_completion.wait(lock);
         }
         return m_result.value().getOrThrow();
@@ -276,9 +317,9 @@ private:
     Executer* m_executer;
     // ITask m_child_task;
     std::unique_ptr<ITask> m_child_task_ptr;
- 
-
     std::list<std::function<void(Result<ResultType>)>> m_callbacks;
+    bool m_is_have_task = false;
+
 };
 
 
@@ -289,18 +330,18 @@ class Awaiter
 public:
     Awaiter()
     {
-        
+
     }
 
     ~Awaiter()
     {
-        
+
     }
 
     bool await_ready()
     {
         return false;
-    } 
+    }
 
     // TaskPromise<_ResultType, _Executer>
     void await_suspend(std::coroutine_handle<> handle)
@@ -316,9 +357,9 @@ public:
         // }
         before_resume();
         return m_result->getOrThrow();
-    }    
+    }
 
-    void install_executor(AbstractExecuter* executer) 
+    void install_executor(AbstractExecuter* executer)
     {
         m_executer = executer;
     }
@@ -339,28 +380,28 @@ protected:
     virtual void on_suspend()
     {}
 
-    virtual void before_resume() 
+    virtual void before_resume()
     {}
 
 protected:
     // 结果对子类可见，方便灵活操作
-    std::optional<Result<_ResultType>> m_result{}; 
+    std::optional<Result<_ResultType>> m_result{};
 
     void resume(_ResultType value) {
         if(m_handle.done()){
-            
+
         }
         dispatch([this, value]() {
             // 将 value 封装到 _result 当中，await_resume 时会返回 value
             m_result = Result<_ResultType>(static_cast<_ResultType>(value));
-            
+
             m_handle.resume();
         });
     }
 
     void resume_unsafe() {
-        dispatch([this]() { 
-            
+        dispatch([this]() {
+
             m_handle.resume();
         });
     }
@@ -369,7 +410,7 @@ protected:
     {
         dispatch([this, e](){
             m_result = Result<_ResultType>(e);
-            
+
             m_handle.resume();
         });
     }
@@ -382,17 +423,17 @@ private:
 
 
 template<typename _ResultType, typename _Executer>
-class TaskAwaiter       
+class TaskAwaiter
 {   // co_await Task时获得的awaiter,由子任务模板构成，在子任务运行完毕后会恢复当前任务
-public: 
+public:
     TaskAwaiter(Task<_ResultType, _Executer>* task)
         : m_task(task) {
-        
+
     }
 
     ~TaskAwaiter()
     {
-            
+
     }
 
 
@@ -400,14 +441,14 @@ public:
     bool await_ready()
     {
         return false;
-    } 
+    }
 
     // TaskPromise<_ResultType, _Executer>
     void await_suspend(std::coroutine_handle<> handle)
     {   // 控制子协程是否完成后恢复自己
         // m_task.getExecuter()->execute([handle, this](){
         m_task->finally([handle](Result<_ResultType> result){
-            
+
             handle.resume();
         });
         // });
@@ -418,7 +459,7 @@ public:
         return m_task->getResult();
     }
 
-private:    
+private:
     Task<_ResultType, _Executer>* m_task;           // 子协程任务
     // _Executer* m_executer;                       // 调度器
 };
@@ -427,17 +468,17 @@ private:
 
 template<typename Executer>
 class InitialAwaiter
-{
+{   // 开始时由execute决定是否挂起
 public:
     InitialAwaiter(Executer* executer)
         : m_executer(executer) {}
 
     bool await_ready(){ return false; }
 
-    void await_suspend(std::coroutine_handle<> handle) 
+    void await_suspend(std::coroutine_handle<> handle)
     {
         m_executer->initialExecute([handle](){
-            
+
             handle.resume();
         });
     }
@@ -446,7 +487,9 @@ public:
 
 private:
     Executer* m_executer;
-};  
+};
+
+
 
 
 
@@ -454,7 +497,7 @@ private:
 template<>
 class Result<void>
 {
-public: 
+public:
     Result() {}
 
     Result(const std::exception_ptr& e)
@@ -479,25 +522,33 @@ private:
 template<typename Executer>
 class Task<void, Executer> : public ITask
 {
-public: 
+public:
     using promise_type = TaskPromise<void, Executer>;
 
-    Task(std::coroutine_handle<promise_type> handle, Executer* executer)        // 从promoise获得executer
-        : m_handler(handle), m_executer(executer) {}
+    Task() {}
+
+    Task(std::coroutine_handle<promise_type> handle, Executer* executer, bool* is_have_task = nullptr)        // 从promoise获得executer
+        : m_handler(handle), m_executer(executer) {
+            if(is_have_task)
+            {
+                m_is_have_task = is_have_task;
+            }
+        }
 
     Task(Task&& other)
         : m_handler(std::exchange(other.m_handler, {}))
-        , m_executer(other.m_executer) {}
+        , m_executer(other.m_executer)
+        , m_is_have_task(other.m_is_have_task) {}
 
     // 禁用拷贝构造
     Task(Task& other) = delete;
     Task& operator=(Task& other) = delete;
 
-    ~Task()
+    ~Task() override
     {
-        if(m_handler)
+        *m_is_have_task = false;
+        if(m_handler && m_handler.done())
         {
-            
             m_handler.destroy();
         }
     }
@@ -510,7 +561,7 @@ public:
     }
 
     Task& then(std::function<void(Result<void>)> cb)
-    {   
+    {
         m_handler.promise().setCompleteCb(cb);
         return *this;
     }
@@ -527,7 +578,7 @@ public:
                 catch(std::exception& e)
                 {
                     Result<void> r(e);
-                    func(r);   
+                    func(r);
                 }
             }
         );
@@ -542,7 +593,7 @@ public:
                 try
                 {
                     result.getOrThrow();
-                    func(result);   
+                    func(result);
                 }
                 catch(std::exception& e)
                 {
@@ -558,10 +609,11 @@ public:
         return m_handler;
     }
 
-    Executer* getExecuter() const {return m_executer;} 
+    Executer* getExecuter() const {return m_executer;}
 private:
     std::coroutine_handle<promise_type> m_handler;
     Executer* m_executer;
+    bool* m_is_have_task = nullptr;
 };
 
 
@@ -571,22 +623,26 @@ class TaskPromise<void, Executer>
 public:
     ~TaskPromise()
     {
-          
+
         delete m_executer;
     }
 
     Task<void, Executer> get_return_object()
     {
-         
+
         m_executer = new Executer();    // taskpromise负责execute控制
-        return Task<void, Executer>(std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer);
+        m_is_have_task = true;
+        return Task<void, Executer>(std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer, &m_is_have_task);
     }
 
-    InitialAwaiter<Executer> initial_suspend() {        // 直接由execute调用    
+    InitialAwaiter<Executer> initial_suspend() {        // 直接由execute调用
         return InitialAwaiter<Executer>(m_executer);
     }
 
-    std::suspend_always final_suspend() noexcept { return {};}
+    FinalAwaiter final_suspend() noexcept {
+        // std::cout << "final_suspend: " << this << std::endl;
+        return FinalAwaiter(&m_is_have_task);
+    }
 
     void unhandled_exception()
     {
@@ -607,17 +663,17 @@ public:
     }
 
     template<typename _ResultType, typename _Executer>  // co_await协程返回值类型，与ResultType 有所区分
-    TaskAwaiter<_ResultType, _Executer> await_transform (Task<_ResultType, _Executer>&& task) 
+    TaskAwaiter<_ResultType, _Executer> await_transform (Task<_ResultType, _Executer>&& task)
     {   // 需要控制子任务生命周期
         Task<_ResultType, _Executer>* task_ptr = new Task<_ResultType, _Executer>(std::move(task));
         m_child_task_ptr.reset(task_ptr);
         TaskAwaiter<_ResultType, _Executer> child_task (task_ptr);
-        return child_task;   
+        return child_task;
         // return TaskAwaiter<_ResultType, _Executer>(std::move(task));
     }
 
     template<typename AwaiterImpl>
-    AwaiterImpl await_transform(AwaiterImpl awaiter) 
+    AwaiterImpl await_transform(AwaiterImpl awaiter)
     {   // 为传入的awaiter设置调度器
         awaiter.install_executor(m_executer);
         return awaiter;
@@ -625,7 +681,7 @@ public:
 
 
 
-public: 
+public:
     void getResult()      // 获取协程运行结果
     {
     }
@@ -660,27 +716,28 @@ private:
     Executer* m_executer;
     std::unique_ptr<ITask> m_child_task_ptr;
     std::list<std::function<void(Result<void>)>> m_callbacks;
+    bool m_is_have_task = false;
 };
 
 
 template<typename _Executer>
 class TaskAwaiter<void, _Executer>
 {
-public: 
+public:
     TaskAwaiter(Task<void, _Executer>* task)
         : m_task(task) {
-        
+
     }
     ~TaskAwaiter()
     {
-            
+
     }
 
 public:
     bool await_ready()
     {
         return false;
-    } 
+    }
 
     // TaskPromise<_ResultType, _Executer>
     void await_suspend(std::coroutine_handle<> handle)
@@ -688,7 +745,7 @@ public:
         // m_task.getExecuter()->execute([handle, this](){
             // handle.resume();
         m_task->finally([handle](Result<void> result){
-            
+
             handle.resume();
         });
         // });
@@ -699,7 +756,7 @@ public:
         m_task->getResult();
     }
 
-private:    
+private:
     Task<void, _Executer>* m_task;       // 子协程任务
     // _Executer* m_executer;                   // 调度器
 };
@@ -711,25 +768,25 @@ class Awaiter<void>
 public:
     Awaiter()
     {
-            
+
     }
 
     ~Awaiter()
     {
-            
+
     }
 
     bool await_ready()
     {
         return false;
-    } 
+    }
 
     // TaskPromise<_ResultType, _Executer>
     void await_suspend(std::coroutine_handle<> handle)
     {   // 控制协程是否完成后恢复自己
         m_handle = handle;
         on_suspend();
-        
+
     }
 
     void await_resume()
@@ -739,9 +796,9 @@ public:
         // }
         before_resume();
         m_result->getOrThrow();
-    }    
+    }
 
-    void install_executor(AbstractExecuter* executer) 
+    void install_executor(AbstractExecuter* executer)
     {
         m_executer = executer;
     }
@@ -762,25 +819,25 @@ protected:
     virtual void on_suspend()
     {}
 
-    virtual void before_resume() 
+    virtual void before_resume()
     {}
 
 protected:
     // 结果对子类可见，方便灵活操作
-    std::optional<Result<void>> m_result{}; 
+    std::optional<Result<void>> m_result{};
 
     void resume() {
 
         dispatch([this]() {
             // 将 value 封装到 _result 当中，await_resume 时会返回 value
-            
+
             m_handle.resume();
         });
     }
 
     void resume_unsafe() {
-        dispatch([this]() { 
-            
+        dispatch([this]() {
+
             m_handle.resume();
         });
     }
@@ -789,7 +846,7 @@ protected:
     {
         dispatch([this, e](){
             m_result = Result<void>(e);
-            
+
             m_handle.resume();
         });
     }

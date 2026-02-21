@@ -65,22 +65,24 @@ Task<void, BaseExecutor> Scheduler::run()
     setThis();
     while(true)
     {
-        
-        TaskCoro20 curr_task;
+        std::shared_ptr<TaskCoro20> curr_task;
         // 取任务
         {
             std::unique_lock<std::shared_mutex> r_lock(m_mutex);
             auto it = m_tasks.begin();
             if(it != m_tasks.end())
             {
-                curr_task = *it;
+                curr_task.reset(new TaskCoro20(std::move(*it)));
                 m_tasks.erase(it);
+                // curr_task->finally([curr_task](Result<void> result)->void{
+                //     return ;
+                // });
             }
         }
         // 执行任务
-        if(curr_task.isLegal())
+        if(curr_task && curr_task->isLegal())
         {
-            curr_task.resume();
+            curr_task->start();
         }
         // 下一步，结束-idle-下一个任务
         if(m_Stop || (m_tasks.size() == 0 && m_autoStop))
