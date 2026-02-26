@@ -34,7 +34,7 @@ public:
         // }
         // assert(m_is_have_task);
         // std::cout << "have task ?:"<< *m_is_have_task << std::endl;
-        std::cout << "returnValue:" << !(*m_is_have_task) << std::endl;
+        // std::cout << "returnValue:" << !(*m_is_have_task) << std::endl;
         return !(*m_is_have_task);
     }
 
@@ -43,7 +43,7 @@ public:
     void await_resume() noexcept {}
 
 private:
-    bool* m_is_have_task;
+    bool* m_is_have_task;       
 };
 
 
@@ -141,11 +141,22 @@ public:
 
     ~Task() override
     {
-        *m_is_have_task = false;
+        if(m_is_have_task != nullptr)
+        {
+            *m_is_have_task = false;
+        }
         if(m_handler && m_handler.done())
         {
             m_handler.destroy();
         }
+    }
+
+    Task<ResultType, Executer>& operator=(Task<ResultType, Executer>&& other)
+    {
+        m_handler = std::move(other.m_handler);
+        m_executer = std::move(other.m_executer);
+        m_is_have_task = other.m_is_have_task;
+        return *this;
     }
 
 public:
@@ -206,7 +217,7 @@ public:
 private:
     std::coroutine_handle<promise_type> m_handler;
     Executer* m_executer;
-    bool* m_is_have_task = nullptr;
+    bool* m_is_have_task = nullptr;             // 如果不为空，则应指向promise_type管理的变量，表明是否有外部task正在使用当前协程
 };
 
 
@@ -546,11 +557,23 @@ public:
 
     ~Task() override
     {
-        *m_is_have_task = false;
+        if(m_is_have_task != nullptr)
+        {
+            *m_is_have_task = false;
+        }
         if(m_handler && m_handler.done())
         {
             m_handler.destroy();
         }
+    }
+
+
+    Task<void, Executer>& operator=(Task<void, Executer>&& other)
+    {
+        m_handler = std::move(other.m_handler);
+        m_executer = std::move(other.m_executer);
+        m_is_have_task = other.m_is_have_task;
+        return *this;
     }
 
 public:

@@ -1,3 +1,4 @@
+#pragma once
 #include "coroutine/coro20/fiber.h"
 #include "coroutine/coro20/scheduler.h"
 #include "basic/fdManager.h"

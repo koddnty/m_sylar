@@ -12,7 +12,7 @@ set ( LIB_LIB
     yaml-cpp::yaml-cpp
 )
 
-option(SYLAR_USE_CORO20 "Use C++20 coroutine implementation, OFF if NOT" OFF)       # 底层协程实现配置
+option(SYLAR_USE_CORO20 "Use C++20 coroutine implementation, OFF if NOT" ON)       # 底层协程实现配置
 
 find_package(yaml-cpp REQUIRED)
 
@@ -23,10 +23,10 @@ set(BASIC_SOURCES
     sylar/basic/until.cc
     sylar/basic/config.cc
     sylar/basic/thread.cc
-    sylar/basic/self_timer.cc
-    sylar/basic/fdManager.cc
-    sylar/basic/address.cc
-    sylar/basic/socket.cc
+    # sylar/basic/self_timer.cc
+    # sylar/basic/fdManager.cc
+    # sylar/basic/address.cc
+    # sylar/basic/socket.cc
 )
 
 # HTTP 模块
@@ -56,8 +56,8 @@ set(UCONTEXT_SOURCES
 set(CORO20_SOURCES
     sylar/coroutine/coro20/fiber.cc
     sylar/coroutine/coro20/scheduler.cc
-    sylar/coroutine/coro20/ioManager.cc
-    sylar/coroutine/coro20/hook.cc
+    # sylar/coroutine/coro20/ioManager.cc
+    # sylar/coroutine/coro20/hook.cc
 )
 
 # 选择模块
@@ -79,7 +79,7 @@ endif()
 
 add_library(sylar STATIC 
     ${BASIC_SOURCES}
-    ${HTTP_SOURCES}
+    # ${HTTP_SOURCES}
     ${COROUTINE_SOURCES}
 )
 
@@ -95,9 +95,9 @@ target_include_directories(sylar PUBLIC
 # )
 
 
-add_executable(task_test tests/lab_test/task_test.cc)
-add_dependencies(task_test sylar)
-target_link_libraries(task_test sylar ${LIB_LIB})
+# add_executable(task_test tests/lab_test/task_test.cc)
+# add_dependencies(task_test sylar)
+# target_link_libraries(task_test sylar ${LIB_LIB})
 
 # add_executable(test tests/test.cc)
 # add_dependencies(test sylar)
@@ -183,9 +183,9 @@ target_link_libraries(task_test sylar ${LIB_LIB})
 # add_dependencies(performance_test_scheduler sylar)
 # target_link_libraries(performance_test_scheduler sylar ${LIB_LIB})
 
-# add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
-# add_dependencies(scheduleCoro20_test sylar)
-# target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
+add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
+add_dependencies(scheduleCoro20_test sylar)
+target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
 
 # add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
 # add_dependencies(iomanagerCoro20_test sylar)

@@ -13,73 +13,6 @@ namespace m_sylar
 {
 
 
-// template<typename int>
-class TaskCoro20_old
-{
-public:
-    using HandlePtr = std::shared_ptr<std::coroutine_handle<>>;
-    using ptr = std::shared_ptr<TaskCoro20_old>;
-
-    TaskCoro20_old() {m_status = UNSET;}
-    TaskCoro20_old(std::function<Task<int>()> cb);
-    TaskCoro20_old(std::function<void()> cb);
-    TaskCoro20_old(HandlePtr handle);
-    ~TaskCoro20_old();         
-
-    void setTask(std::function<Task<int>()> cb);
-    void setTask(std::function<void()> cb);
-    void setHandle(HandlePtr handle);       
-
-
-          
-    void reset();
-    void resume();
-    
-    bool isLegal()
-    {   // 如果任务是有效任务返回true
-        switch(m_status)
-        {
-            case UNSET:
-                return false;
-                break;
-            case INIT:
-                return !!m_task;
-                break;
-            case SUSPEND:
-                return !!m_handler;
-                break;
-            case EXEC:
-                return !!m_handler;
-                break;
-            case TERM:
-                return false;
-                break;
-            default:
-                return false;
-        }
-    }
-
-    int getResult();
-
-private:
-    enum Status
-    {
-        UNSET = -1,         // 默认构造状态
-        INIT = 0,           // 未进行调用过，无handle
-        SUSPEND = 1,        // handle已经注册
-        EXEC = 2,           // 运行中
-        TERM = 3            // 结束
-    };
-
-    // Task<> Fiberunc(std::function<void()> cb);
-    // void task()
-private:
-    std::function<Task<int>()> m_task;
-    Status m_status;            // 协程状态
-    HandlePtr m_handler;        // 协程句柄 
-};
-
-
 class TaskBeginExecuter : public AbstractExecuter
 {   // 此调度器在任务创建时挂起任务， 执行期间不挂起任务
 public:
@@ -99,47 +32,123 @@ class TaskCoro20
 public:
     using ptr = std::shared_ptr<TaskCoro20>;
     
-    TaskCoro20(std::function<Task<void, TaskBeginExecuter>()> task)
-        : m_task(task()){}
+    TaskCoro20(std::function<Task<void, TaskBeginExecuter>()> task)     // 协程任务
+        : m_task(task()){
+        m_type = CORO;
+    }    
 
-    TaskCoro20(std::function<void()> task)
-        : m_func_task(task), m_task(std::bind(&TaskCoro20::runner, this)()){ }
+    TaskCoro20(std::function<void()> task)      // 函数任务
+        : m_func_task(task){ 
+        m_type = FUNC;
+    }
 
-    TaskCoro20(TaskCoro20&& other)
-        : m_task(std::move(other.m_task)) { }
+    TaskCoro20(TaskCoro20&& other)          // 移动构造函数
+        : m_func_task(other.m_func_task), m_task(std::move(other.m_task))
+        , m_is_inited(other.m_is_inited), m_type(other.m_type) { }
     
-    TaskCoro20() {}
+    TaskCoro20() {
+        m_is_inited = false;
+    }
 
+    void reset(TaskCoro20&& other)
+    {
+        m_type = other.m_type;
+        m_is_inited = other.m_is_inited;
+        m_task = std::move(other.m_task);
+    }
 
     void start()
     {
-        if(m_task.getHandle().done())
+        // std::cout << "called start" << std::endl;
+        if(m_type == CORO)
         {
-            std::cout << "[coroutine]resume a finished handle" << std::endl;
+            if(m_task.getHandle().done())
+            {
+                std::cout << "[coroutine]resume a finished handle" << std::endl;
+            }
+            m_task.getHandle().resume();
         }
-        m_task.getHandle().resume();
+        else if (m_type == FUNC)
+        {
+            m_func_task();
+            m_finished = true;
+        }
+        else
+        {
+            std::cout << "[CORO20fiber]: UNKNOWN " << m_type << "Task type"  << std::endl;
+        }
     }
 
-    bool isFinished()
+    bool isFinished()       // 协程成功完成时返回true
     {
-        return m_task.getHandle().done();
+        if(! isLegal()) {return false;}
+        bool is_finished = false;
+        if(m_type == CORO)
+        {
+            is_finished = m_task.getHandle().done();
+        }
+        else if(m_type == FUNC)
+        {
+            is_finished = m_finished;
+        }
+        else 
+        {
+            is_finished = true;
+        }
+        return is_finished;
     }
+
+    bool isLegal() { 
+        bool taskState;
+        if(m_type == CORO)
+        {
+            taskState = !!m_task.getHandle();
+        }
+        else if(m_type == FUNC)
+        {
+            taskState = !!m_func_task;
+        }
+        else 
+        {
+            taskState = false;
+        }
+        return m_is_inited && taskState;
+     }
 
     void finally(std::function<void(Result<void>)>&& func)
     {
         m_task.finally(std::move(func));
     }
 
+public:
+    TaskCoro20& operator=(TaskCoro20&& other) = default;
+    // {
+    //     m_task = std::move(other.m_task);
+    //     m_type = other.m_type;
+    //     m_is_inited = other.m_is_inited;
+    //     return *this;
+    // }
+
 private:
-  Task<void, TaskBeginExecuter> runner()
-  {
-        m_func_task();
+    Task<void, TaskBeginExecuter> runner(std::function<void()>& func)
+    {
+        func();
         co_return;
-  };
+    };
+
+    enum Type
+    {
+        UNKNOWN = 0,
+        CORO = 1,
+        FUNC = 2,
+    };
 
 private:
     std::function<void()> m_func_task = nullptr;
     Task<void, TaskBeginExecuter> m_task;
+    bool m_is_inited = true;            // 是否是可运行的协程
+    Type m_type = Type::UNKNOWN;                // 
+    bool m_finished = false;            // 普通函数任务是否运行完毕
 };
 
 

@@ -37,7 +37,7 @@ public:
     {
         {
             std::unique_lock<std::shared_mutex> w_lock(m_mutex);
-            scheduleNoLock(cb);
+            scheduleNoLock(std::move(cb));
         }
         tickle();
     }
@@ -49,15 +49,15 @@ public:
             std::unique_lock<std::shared_mutex> w_lock(m_mutex);
             for(;begin != end; begin++)
             {
-                scheduleNoLock(*begin);
+                scheduleNoLock(std::move(*begin));
             }
         }
         tickle();
     }
 
 private:
-    template<typename Func_or_Handle>
-    void scheduleNoLock(Func_or_Handle f)
+    template<typename Func_or_Handle>           // 参数是普通函数或者协程函数
+    void scheduleNoLock(Func_or_Handle&& f)
     {
         TaskCoro20 task(f);
         if(task.isFinished()) {return;}
@@ -67,12 +67,13 @@ private:
         }
         // TaskCoro20 t(task);
         M_SYLAR_ASSERT2(!task.isFinished(), "[scheduleCoro20] illegal Task");
-        m_tasks.push_back(task);
+        // m_tasks.push_back(task);
+        m_tasks.push_back(std::move(task));
     }
 
 public:
     void ThreadInit();
-    Task<void, BaseExecutor> run();
+    void run();
     virtual void idle();
     virtual void tickle();
     virtual void autoStop();
