@@ -122,7 +122,7 @@ void Scheduler::tickle()
 }
 
 void Scheduler::autoStop()
-{
+{   // 注意，autoStop会截断正在运行的协程
     m_autoStop = true;
     while(m_tasks.size())
     {

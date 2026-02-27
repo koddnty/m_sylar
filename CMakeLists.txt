@@ -23,7 +23,7 @@ set(BASIC_SOURCES
     sylar/basic/until.cc
     sylar/basic/config.cc
     sylar/basic/thread.cc
-    # sylar/basic/self_timer.cc
+    sylar/basic/self_timer.cc
     # sylar/basic/fdManager.cc
     # sylar/basic/address.cc
     # sylar/basic/socket.cc
@@ -56,7 +56,7 @@ set(UCONTEXT_SOURCES
 set(CORO20_SOURCES
     sylar/coroutine/coro20/fiber.cc
     sylar/coroutine/coro20/scheduler.cc
-    # sylar/coroutine/coro20/ioManager.cc
+    sylar/coroutine/coro20/ioManager.cc
     # sylar/coroutine/coro20/hook.cc
 )
 
@@ -95,9 +95,9 @@ target_include_directories(sylar PUBLIC
 # )
 
 
-# add_executable(task_test tests/lab_test/task_test.cc)
-# add_dependencies(task_test sylar)
-# target_link_libraries(task_test sylar ${LIB_LIB})
+add_executable(task_test tests/lab_test/task_test.cc)
+add_dependencies(task_test sylar)
+target_link_libraries(task_test sylar ${LIB_LIB})
 
 # add_executable(test tests/test.cc)
 # add_dependencies(test sylar)
@@ -187,9 +187,9 @@ add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
 add_dependencies(scheduleCoro20_test sylar)
 target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
 
-# add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
-# add_dependencies(iomanagerCoro20_test sylar)
-# target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
+add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
+add_dependencies(iomanagerCoro20_test sylar)
+target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)

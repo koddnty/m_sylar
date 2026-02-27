@@ -33,7 +33,7 @@ public:
     using ptr = std::shared_ptr<TaskCoro20>;
     
     TaskCoro20(std::function<Task<void, TaskBeginExecuter>()> task)     // 协程任务
-        : m_task(task()){
+        :  m_coro_task(task), m_task(task()){
         m_type = CORO;
     }    
 
@@ -55,6 +55,14 @@ public:
         m_type = other.m_type;
         m_is_inited = other.m_is_inited;
         m_task = std::move(other.m_task);
+    }
+
+    void reset()
+    {
+        m_func_task = nullptr;
+        m_coro_task = nullptr;
+        m_is_inited = false;
+        m_type = UNKNOWN;
     }
 
     void start()
@@ -122,6 +130,29 @@ public:
 
 public:
     TaskCoro20& operator=(TaskCoro20&& other) = default;
+    TaskCoro20& operator=(const TaskCoro20& other)
+    {
+        m_type = other.m_type;
+        if(m_type == CORO)
+        {
+            m_coro_task = other.m_coro_task;
+            m_task = m_coro_task();
+            m_is_inited = other.m_is_inited;
+            m_finished = false;
+        }
+        else if(m_type == FUNC)
+        {
+            m_func_task = other.m_func_task;
+            m_is_inited = other.m_is_inited;
+            m_finished = false;
+        }
+        else
+        {
+            std::cout << "[CORO20fiber]: UNKNOWN " << m_type << "Task type"  << std::endl;
+        }
+        return *this;
+    }
+        
     // {
     //     m_task = std::move(other.m_task);
     //     m_type = other.m_type;
@@ -144,11 +175,14 @@ private:
     };
 
 private:
+    // 任务函数备份用作任务拷贝
     std::function<void()> m_func_task = nullptr;
+    std::function<Task<void, TaskBeginExecuter>()> m_coro_task = nullptr;
     Task<void, TaskBeginExecuter> m_task;
+    // 任务状态信息
     bool m_is_inited = true;            // 是否是可运行的协程
-    Type m_type = Type::UNKNOWN;                // 
     bool m_finished = false;            // 普通函数任务是否运行完毕
+    Type m_type = Type::UNKNOWN;                // 任务类型
 };
 
 

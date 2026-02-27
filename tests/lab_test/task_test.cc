@@ -376,7 +376,7 @@ void test_C()
   std::cout << "coroutine task start" << std::endl;
   t.start();
   std::cout << "coroutine task started" << std::endl;
-  sleep(5);
+  // sleep(5);
   return;
 }
 
@@ -386,7 +386,7 @@ void test_F()
   std::cout << "function task started" << std::endl;
   t.start();
   std::cout << "function task started" << std::endl;
-  sleep(5);
+  // sleep(5);
   return;
 }
 
@@ -396,7 +396,7 @@ void test_task()
   test_F();
   std::cout << "------test coroutine task" << std::endl;
   test_C();
-  sleep(10);
+  // sleep(10);
   std::cout << "------test end------" << std::endl;
   return;
 }
@@ -596,6 +596,8 @@ int main(void)
   // test_F();
   test_task();
   std::cout << "test_task returned, but task still running..." << std::endl;
+  iom->autoStop();
+  std::cout << "autoStoped" << std::endl;
   sleep(15);
 
 

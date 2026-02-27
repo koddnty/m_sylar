@@ -103,7 +103,7 @@ int IOManager::addEvent(int fd, Event event, TaskCoro20 task)
 int IOManager::addEvent(int fd, Event event, std::function<void()> cb_func)
 {
     TaskCoro20 task(cb_func);
-    return addEvent(fd, event, task);
+    return addEvent(fd, event, std::move(task));
 }
 
 bool IOManager::delEvent(int fd, Event event)
@@ -241,6 +241,11 @@ bool IOManager::cancelAll(int fd)
     return true;
 }
 
+IOManager* IOManager::getInstance()
+{
+    return dynamic_cast<IOManager*>(Scheduler::GetThis());
+}
+
 void IOManager::idle()
 {
     const static int MAX_EVENT_NUM = 64;
@@ -291,7 +296,7 @@ void IOManager::idle()
                 
                 m_fd_contexts[io_fd]->trigger((Event)events[i].events);
 
-                // delEvent(io_fd, (Event)events[i].events);
+                // delEvent(io_fd, (Event)events[i].events);《<<...>>》
             }
         }
     } while(!is_have_event);
@@ -335,14 +340,14 @@ IOManager::FdContext::~FdContext()
 
 
 void IOManager::FdContext::trigger(Event event)
-{
+{   // 回调触发
     if(event & Event::READ && m_cb_read.isLegal())
     {
-        m_cb_read.resume();
+        m_cb_read.start();
     }
     if(event & Event::WRITE && m_cb_write.isLegal())
     {
-        m_cb_write.resume();
+        m_cb_write.start();
     }
 }
 

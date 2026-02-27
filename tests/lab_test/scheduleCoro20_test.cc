@@ -33,13 +33,15 @@ void test_func_task()
 
 void func_task()
 {
-    std::cout << " func task running..." << std::endl;
+    // std::cout << " func task running..." << std::endl;
+    count++;
     return;
 }
 
 m_sylar::Task<void, m_sylar::TaskBeginExecuter> task()
 {
-    std::cout << "a coroutine task started" << std::endl;
+    // std::cout << "a coroutine task started" << std::endl;
+    count++;
     co_return;
 }
 
@@ -50,11 +52,19 @@ void test_coroutine_task()
     scheduler.start();
     std::cout << "schedule task ..." << std::endl;
     // scheduler.schedule(task);
-    scheduler.schedule(static_cast<std::function<m_sylar::Task<void, m_sylar::TaskBeginExecuter>()>>(task));
-    // scheduler.schedule(func_task);
-    scheduler.schedule(static_cast<std::function<void()>>(func_task));
+    // scheduler.schedule(static_cast<std::function<m_sylar::Task<void, m_sylar::TaskBeginExecuter>()>>(task));
+    // // scheduler.schedule(func_task);
+    // scheduler.schedule(static_cast<std::function<void()>>(func_task));
+
+    for(int i = 0; i < 100000; i++)
+    {
+        scheduler.schedule(func_task);
+        // scheduler.schedule(static_cast<std::function<m_sylar::Task<void, m_sylar::TaskBeginExecuter>()>>(task));
+    }
+
     std::cout << "schedule task finished" << std::endl;
     scheduler.autoStop();
+    std::cout << count << std::endl;
 }
 
 int main(void)
