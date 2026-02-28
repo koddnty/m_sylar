@@ -13,7 +13,7 @@ void func()
 int main(void)
 {
     m_sylar::IOManager iom("test_scheduler", 12);
-    int total = 10000 * 10000;
+    int total = 10000;
     // int total = 10000;
     auto start = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < total; i++)
@@ -27,21 +27,20 @@ int main(void)
     // iom.schedule(func);
     int countbegin = count;
     std::cout << "begin : ----\n";
-    int sec = 60;
+    int sec = 15;
     // sleep(sec);
-    sleep(1);
-    std::cout << "task count" << iom.getTaskCount() << std::endl;
-    sleep(2);
-    std::cout << "task count" << iom.getTaskCount() << std::endl;
-    sleep(4);
-    std::cout << "task count" << iom.getTaskCount() << std::endl;
+    // sleep(1);
+    // std::cout << "task count" << iom.getTaskCount() << std::endl;
+    // sleep(2);
+    // std::cout << "task count" << iom.getTaskCount() << std::endl;
+    // sleep(4);
+    // std::cout << "task count" << iom.getTaskCount() << std::endl;
 
-    sleep(400);
+    sleep(sec);
     std::cout << "end : ----" << countbegin << "  " << count << "\n";
     std::cout << "count " << count - countbegin << " in " << sec << "secs";  
 
-    iom.stop();
-    // std::cout << "count " << count << " in " << sec << "secs";  
+    iom.autoStop();
     
     return 0;
 }

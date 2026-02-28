@@ -53,6 +53,9 @@ void test1()
 
     M_SYLAR_LOG_INFO(g_logger) << " 连接开始";
     int ct_rt = connect(sockfd, (sockaddr*) &server_addr, sizeof(server_addr));
+    ct_rt = connect(sockfd, (sockaddr*) &server_addr, sizeof(server_addr));
+    ct_rt = connect(sockfd, (sockaddr*) &server_addr, sizeof(server_addr));
+    ct_rt = connect(sockfd, (sockaddr*) &server_addr, sizeof(server_addr));
     M_SYLAR_LOG_INFO(g_logger) << " 连接完毕";
 
 

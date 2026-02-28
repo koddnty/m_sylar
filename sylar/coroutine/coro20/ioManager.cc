@@ -53,7 +53,7 @@ IOManager::~IOManager()
 }
 
 int IOManager::addEvent(int fd, Event event, TaskCoro20 task)
-{
+{   // 错误 -1, 成功 0
     bool is_have = false;
     Event total_event = event;
     // 检查原有事件
@@ -296,7 +296,7 @@ void IOManager::idle()
                 
                 m_fd_contexts[io_fd]->trigger((Event)events[i].events);
 
-                // delEvent(io_fd, (Event)events[i].events);《<<...>>》
+                // delEvent(io_fd, (Event)events[i].events);
             }
         }
     } while(!is_have_event);

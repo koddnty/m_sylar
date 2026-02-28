@@ -337,7 +337,7 @@ private:
 
 template<typename _ResultType>
 class Awaiter
-{
+{   // Awaiter抽象类，用于co_awaiter，并带有自动的句柄管理
 public:
     Awaiter()
     {
@@ -399,6 +399,12 @@ protected:
     std::optional<Result<_ResultType>> m_result{};
 
     void resume(_ResultType value) {
+        if(m_is_resumed)
+        {
+            std::cout << "[Task Awaiter] ERROR: resumed twice in one awaiter" << std::endl;
+            return;
+        }
+        m_is_resumed = true;
         if(m_handle.done()){
 
         }
@@ -429,6 +435,7 @@ protected:
 private:
     std::coroutine_handle<> m_handle;
     AbstractExecuter* m_executer = NULL;
+    bool m_is_resumed = false;
 };
 
 

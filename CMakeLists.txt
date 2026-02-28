@@ -24,9 +24,9 @@ set(BASIC_SOURCES
     sylar/basic/config.cc
     sylar/basic/thread.cc
     sylar/basic/self_timer.cc
-    # sylar/basic/fdManager.cc
-    # sylar/basic/address.cc
-    # sylar/basic/socket.cc
+    sylar/basic/fdManager.cc
+    sylar/basic/address.cc
+    sylar/basic/socket.cc
 )
 
 # HTTP 模块
@@ -57,7 +57,7 @@ set(CORO20_SOURCES
     sylar/coroutine/coro20/fiber.cc
     sylar/coroutine/coro20/scheduler.cc
     sylar/coroutine/coro20/ioManager.cc
-    # sylar/coroutine/coro20/hook.cc
+    sylar/coroutine/coro20/hook.cc
 )
 
 # 选择模块
@@ -79,7 +79,7 @@ endif()
 
 add_library(sylar STATIC 
     ${BASIC_SOURCES}
-    # ${HTTP_SOURCES}
+    ${HTTP_SOURCES}
     ${COROUTINE_SOURCES}
 )
 
@@ -179,17 +179,17 @@ target_link_libraries(task_test sylar ${LIB_LIB})
 # add_dependencies(httpServer_test sylar)
 # target_link_libraries(httpServer_test sylar ${LIB_LIB})
 
-# add_executable(performance_test_scheduler tests/performance_tests/scheduler_exchange.cc)
-# add_dependencies(performance_test_scheduler sylar)
-# target_link_libraries(performance_test_scheduler sylar ${LIB_LIB})
+add_executable(performance_test_scheduler tests/performance_tests/scheduler_exchange.cc)
+add_dependencies(performance_test_scheduler sylar)
+target_link_libraries(performance_test_scheduler sylar ${LIB_LIB})
 
-add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
-add_dependencies(scheduleCoro20_test sylar)
-target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
+# add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
+# add_dependencies(scheduleCoro20_test sylar)
+# target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
 
-add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
-add_dependencies(iomanagerCoro20_test sylar)
-target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
+# add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
+# add_dependencies(iomanagerCoro20_test sylar)
+# target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)

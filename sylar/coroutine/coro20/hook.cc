@@ -1,4 +1,3 @@
-#include "coroutine/coro20/hook.h"
 #include <asm-generic/errno.h>
 #include <asm-generic/socket.h>
 #include <cerrno>
@@ -13,7 +12,9 @@
 #include <sys/ioctl.h>
 #include "basic/fdManager.h"
 #include "coroutine/coro20/fiber.h"
+#include "coroutine/coro20/hook.h"
 #include "coroutine/coro20/ioManager.h"
+#include "coroutine/coro20/task.hpp"
 #include "basic/config.h"
 #include "basic/log.h"
 #include "basic/self_timer.h"
@@ -60,14 +61,93 @@ public:
     int is_cancelled = 0;
 };
 
+
+// template<typename Original_fun>
+class io_Awaiter : public Awaiter<int>
+{   // do_io使用的Awiater,自动注册iomanager并在有信息时恢复协程。
+    // 返回-1代表失败，-2代表应重试
+public:
+    // doIo_Awaiter(int fd, m_sylar::IOManager::Event event, std::function<void()> deal_func)
+    //     : m_fd(fd), m_event(event), m_deal_func(deal_func) {}
+
+    io_Awaiter(int fd, m_sylar::IOManager::Event event, uint64_t timo = -1)
+        : m_fd(fd), m_timo(timo), m_event(event) {}
+
+    
+
+    void on_suspend()override
+    {
+        m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
+        m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
+        std::shared_ptr<fdTimerInfo> fdtino (new fdTimerInfo);
+        std::weak_ptr<fdTimerInfo> wfdtino (fdtino);
+        
+        // 回调事件注册
+        int rt = iom->addEvent(m_fd, m_event, [this](){  // 回调函数，当有io事件可用或超时时恢复协程
+            resume(m_state);
+        });
+        if(rt == -1)
+        {   // 注册失败，删除event, 取消定时器
+            // iom->delEvent(m_fd, m_event);
+            m_state = ERROR;
+            return;
+        }
+
+
+        // 设置取消定时器
+        if(m_timo != (uint64_t)-1){
+            m_time_fd = tim->addConditionTimer(m_timo, false, [](){}, 
+                [wfdtino](){
+                    if(wfdtino.lock() && wfdtino.lock()->is_cancelled)
+                    {
+                        // 事件已执行
+                        return true;
+                    }
+                    // 事件未执行
+                    return false;
+                }, 
+                [fdtino, iom, this](){
+                    // 设置取消fd
+                    fdtino->is_cancelled = ETIMEDOUT;
+                    m_state = TIMO;    // 超时
+                    iom->cancelEvent(m_fd, m_event);    // 恢复协程
+                });
+        }
+    }
+
+    void before_resume() override
+    {
+        if(m_time_fd > 0)
+        {   // 删除定时器
+            m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
+            tim->cancelTimer(m_time_fd);
+        }
+    }
+
+    enum State
+    {
+        UNDEFINED = -2,
+        ERROR = -1,
+        READY = 0,
+        TIMO = 1
+    };
+
+private:
+    int m_state = READY;    // 0 事件可行， 1 超时， -1 出现错误 -2 未定义
+    int m_fd;
+    int m_time_fd = -1;
+    uint64_t m_timo;
+    m_sylar::IOManager::Event m_event;
+};
+
 template<typename Original_fun, typename ... Args>
-static ssize_t do_io(int fd, Original_fun func, const char* fun_name, 
+static Task<ssize_t> do_io(int fd, Original_fun func, const char* fun_name, 
     uint32_t event, int type, Args&& ... args)
-{
+{   // 文件描述符 原io函数 原函数名称 事件(读/写) 定时器任务类型(读/写) io函数其他参数
     if(!m_sylar::is_hook_enable())
     {
         // std::cout << "NOHOOK" << std::endl;
-        return func(fd, std::forward<Args>(args)...);
+        co_return func(fd, std::forward<Args>(args)...);
     }
     
     // std::cout << "HOOKED" << std::endl;
@@ -77,21 +157,20 @@ static ssize_t do_io(int fd, Original_fun func, const char* fun_name,
     {
         // 非socket
         // M_SYLAR_LOG_DEBUG(g_logger) << "fd_Ctx is null, not a socket, fd = " << fd;
-        return func(fd, std::forward<Args>(args)...);
+        co_return func(fd, std::forward<Args>(args)...);
     }
     if (fd_ctx->is_closed())
     {
         errno = EBADFD;
-        return -1;
+        co_return -1;
     }
     if(!fd_ctx->is_socket() || fd_ctx->getUserNoblock())
     {
-        return func(fd, std::forward<Args>(args) ...);
+        co_return func(fd, std::forward<Args>(args) ...);
     }
     
     // 定时器设置
     uint64_t time_out = fd_ctx->getTimeout(type);       // 获取设定的超时时间
-    std::shared_ptr<fdTimerInfo> fdtino (new fdTimerInfo);
 
 retry:
     int n = func(fd, std::forward<Args>(args)...);
@@ -102,62 +181,17 @@ retry:
 
     if(n == -1 && errno == EAGAIN)
     {
-        // 当前无数据, 添加定时器,注册到iomanager
-        m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
-        m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
-        std::weak_ptr<fdTimerInfo> wfdtino (fdtino);
-
-        // 设置超时定时器
-        int timer_fd = -1;
-        if(time_out != (uint64_t)-1)
-        {
-            // std::cout << "超时设置:" << time_out << "\n";
-            timer_fd = tim->addConditionTimer(time_out, false, [](){}, 
-                [wfdtino](){
-                    if(wfdtino.lock() && wfdtino.lock()->is_cancelled)
-                    {
-                        // 事件已执行
-                        return true;
-                    }
-                    return false;
-                }, 
-                [fdtino, iom, event, fd](){
-                    // 设置取消fd
-                    fdtino->is_cancelled = ETIMEDOUT;
-                    iom->cancelEvent(fd, (m_sylar::IOManager::Event)event);
-                });
-        }
-
-        // 设置事件
-        int rt = iom->addEvent(fd, (m_sylar::IOManager::Event)event);
-        if(rt)
-        {
-            // 事件添加失败
-            M_SYLAR_LOG_ERROR(g_logger) << "addEvent failed, return value=" << rt;
-            if(timer_fd > 0)
-            {
-                tim->cancelTimer(timer_fd);
-            }
-        }
-        else
-        {
-            m_sylar::Fiber::YieldToHold();      // 交出控制权，等待addEvent或者addConditionTimer唤醒
-
-            if(fdtino->is_cancelled)
-            {
-                // 超时
-                errno = fdtino->is_cancelled;
-                return -1;
-            }
-            else if(time_out != (uint64_t)-1)
-            {
-                // 取消定时器
-                tim->cancelTimer(timer_fd);
-            }
+        int rt = co_await io_Awaiter(fd, (m_sylar::IOManager::Event)event, time_out);      // 恢复时代表fd可进行event操作或者由于超时返回
+        if(rt == io_Awaiter::State::READY)
+        {   // 有数据时回退并尝试获取数据，其他情况直接返回并退出
             goto retry;
         }
+        else if(rt == io_Awaiter::State::TIMO)
+        {
+            errno = ETIMEDOUT;
+        }
     }
-    return n;
+    co_return n;
 }
 
 
@@ -201,74 +235,80 @@ void set_hook_state(bool flags)
 {
     t_hook_enable = flags;
 }
-}
 
 
 
 
 
 
-extern "C"
-{
+// extern "C"
+// {
 #define XX(name) name ## _fun original_ ## name = nullptr;
     HOOK_FUN(XX)
 #undef XX
 
-unsigned int sleep(unsigned int seconds)
+// sleep 
+class SleepAwaiter : public m_sylar::Awaiter<int>
+{
+public:
+  SleepAwaiter(uint64_t time)
+  {
+    m_time = time;
+  }
+
+protected:
+  void on_suspend() override
+  {
+    m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
+    tim->addTimer(m_time, false, [this](){
+      resume(m_time);
+    });
+  }
+
+  void before_resume() override
+  {
+  }
+
+private:
+  uint64_t m_time;
+};
+
+
+m_sylar::Task<unsigned int> co_sleep(unsigned int seconds)
 {
     if(!m_sylar::is_hook_enable())
     {
-        return original_sleep(seconds);
+        co_return original_sleep(seconds);
     }
-    m_sylar::Fiber::ptr fiber = m_sylar::Fiber::GetThisFiber();
-    m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
-    m_sylar::TimeManager* TimeManager = m_sylar::TimeManager::getInstance();
-    TimeManager->addTimer(seconds * 1000000, false, 
-        [iom, fiber](){
-        iom->schedule(fiber);
-    });
-    fiber->YieldToHold();
-    return 0;
+    co_await SleepAwaiter(seconds * 1000000);
+    co_return 0;
 }
 
-int usleep(useconds_t usec)
+m_sylar::Task<int> co_usleep(useconds_t usec)
 {
     if(!m_sylar::is_hook_enable())
     {
-        return original_usleep(usec);
+        co_return original_usleep(usec);
     }
-    m_sylar::Fiber::ptr fiber = m_sylar::Fiber::GetThisFiber();
-    m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
-    m_sylar::TimeManager* TimeManager = m_sylar::TimeManager::getInstance();
-    TimeManager->addTimer(usec, false, 
-        [iom, fiber](){
-        iom->schedule(fiber);
-    });
-    fiber->YieldToHold();
-    return 0;
+    co_await SleepAwaiter(usec);
+    co_return 0;
 }
 
-int nanosleep(const struct timespec *duration,
+m_sylar::Task<int> co_nanosleep(const struct timespec *duration,
                 struct timespec* rem)
 {
     if(!m_sylar::is_hook_enable())
     {
-        return original_nanosleep(duration, rem);
+        co_return original_nanosleep(duration, rem);
     }
-    m_sylar::Fiber::ptr fiber = m_sylar::Fiber::GetThisFiber();
-    m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
-    m_sylar::TimeManager* TimeManager = m_sylar::TimeManager::getInstance();
-    TimeManager->addTimer(duration->tv_sec * 1000000 + (duration->tv_nsec / 1000), false, 
-        [iom, fiber](){
-        iom->schedule(fiber);
-    });
-    fiber->YieldToHold();
+    uint64_t time = duration->tv_sec * 1000000 + (duration->tv_nsec / 1000);
+    co_await SleepAwaiter(time);
     if(rem)
     {
     rem->tv_sec = 0;
     rem->tv_nsec = 0;
     }
-    return 0; 
+    co_return 0; 
 }
 
 int socket(int domain, int type, int protocol)
@@ -286,190 +326,164 @@ int socket(int domain, int type, int protocol)
     return fd;
 }
 
-int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen)
+m_sylar::Task<ssize_t> co_accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen)
 {
-    int fd = do_io(sockfd, original_accept, "accept", m_sylar::IOManager::READ, SO_RCVTIMEO, addr, addrlen);
-    if(fd == -1)
+    auto result = do_io(sockfd, original_accept, "accept", m_sylar::IOManager::READ, SO_RCVTIMEO, addr, addrlen);
+    if(result.getResult() == -1)
     {
         M_SYLAR_LOG_ERROR(m_sylar::g_logger) << "accept failed, sockfd=" << sockfd;
     }
-    return fd;
+    co_return result.getResult();
 }
 
-int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+m_sylar::Task<int> co_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {   
     uint64_t us_sleep = m_sylar::g_tcp_connect_timeout->getValue();
     if(!m_sylar::is_hook_enable())
     {
-        return original_connect(sockfd, addr, addrlen);
+        co_return original_connect(sockfd, addr, addrlen);
     }
     
     m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(sockfd, false);
     if(!fd_ctx || fd_ctx->is_closed() || !fd_ctx->is_init())
     {
         errno = EBADFD;
-        return -1;
+        co_return -1;
     }
     if(!fd_ctx->is_socket() || fd_ctx->getUserNoblock())        // 文件描述符非socket或用户需要非阻塞
     {   
-        return original_connect(sockfd, addr, addrlen);
+        co_return original_connect(sockfd, addr, addrlen);
     }
 
     // 先直接尝试
     int n = original_connect(sockfd, addr, addrlen);
     if(n == 0)
     {
-        return 0;
+        co_return 0;
     }
     else if(errno != EINPROGRESS || n != -1)
     {
-        return n;
+        co_return n;
     }
 
     // 使用定时器和iomanager进行connectfd的监听
-    auto iom = m_sylar::IOManager::getInstance();
-    auto tim = m_sylar::TimeManager::getInstance();
-    int timer_fd = -1;
-    std::shared_ptr<bool> is_time_out (new bool(false));
-    // std::cout << us_sleep << std::endl;
-    if(us_sleep != (uint64_t)-1)
+    auto state = co_await m_sylar::io_Awaiter(sockfd, m_sylar::IOManager::WRITE, us_sleep);
+    if(state == io_Awaiter::TIMO)
     {
-        timer_fd = tim->addConditionTimer(us_sleep, false, [](){}, 
-                [](){
-                    return false;
-                }, 
-                [iom, sockfd, is_time_out](){
-
-                    iom->cancelEvent(sockfd, m_sylar::IOManager::WRITE);        // 触发io事件
-                    *is_time_out = true;
-                    M_SYLAR_LOG_INFO(m_sylar::g_logger) << "sockfd {" << sockfd << "}" << "connect out of time";
-                });
+        M_SYLAR_LOG_INFO(g_logger) << "connect time out, sockfd:" << sockfd << " timo:" << us_sleep;
+        errno = ETIMEDOUT;
+        co_return -1;
+    }
+    else if(state != io_Awaiter::READY)
+    {
+        co_return original_connect(sockfd, addr, addrlen);
     }
 
-    int rt = iom->addEvent(sockfd, m_sylar::IOManager::WRITE);
-    if(rt)
-    {   
-        // 设置事件错误
-        M_SYLAR_LOG_ERROR(m_sylar::g_logger) << "iom->addEvent failed, sockfd = {" << sockfd << "}";
-    }
-    else
-    {
-        m_sylar::Fiber::YieldToHold();
-        if(timer_fd != -1 && *is_time_out == false) {
-            tim->cancelTimer(timer_fd);
-        }    // cancelTimer不会导致回调执行
-        if(*is_time_out)
-        {
-            errno = ETIMEDOUT;
-            return -1;
-        }
-    }
 
     // 处理错误，分析返回值
     int error = 0;
     socklen_t len = sizeof(int);
     if(-1 == getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len))
     {
-        return -1;
+        co_return -1;
     }
     errno = error;
     if(!error)
     {
-       
-        return 0;
+        co_return 0;
     }
     else
     {
-        return -1;
+        co_return -1;
     }
 }
 
 // read
-ssize_t read(int fd, void* buf, size_t count)
+m_sylar::Task<ssize_t> co_read(int fd, void* buf, size_t count)
 {
-    return do_io(fd, original_read, "read", m_sylar::IOManager::READ, SO_RCVTIMEO,
-                 buf, count);
+    co_return do_io(fd, original_read, "read", m_sylar::IOManager::READ, SO_RCVTIMEO,
+                 buf, count).getResult();
 }
 
-ssize_t readv(int fd, const struct iovec *iov, int iovcnt)
+m_sylar::Task<ssize_t > co_readv(int fd, const struct iovec *iov, int iovcnt)
 {
-    return do_io(fd, original_readv, "readv", m_sylar::IOManager::READ, SO_RCVTIMEO,
-                 iov, iovcnt);
+    co_return do_io(fd, original_readv, "readv", m_sylar::IOManager::READ, SO_RCVTIMEO,
+                 iov, iovcnt).getResult();
 }
 
-ssize_t preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)
+m_sylar::Task<ssize_t > co_preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)
 {
-    return do_io(fd, original_preadv, "preadv", m_sylar::IOManager::READ, SO_RCVTIMEO,
-                 iov, iovcnt, offset);
+    co_return do_io(fd, original_preadv, "preadv", m_sylar::IOManager::READ, SO_RCVTIMEO,
+                 iov, iovcnt, offset).getResult();
 }
 
-ssize_t preadv2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
+m_sylar::Task<ssize_t> co_preadv2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
 {
-    return do_io(fd, original_preadv2, "preadv2", m_sylar::IOManager::READ, SO_RCVTIMEO,
-                 iov, iovcnt, offset, flags);
+    co_return do_io(fd, original_preadv2, "preadv2", m_sylar::IOManager::READ, SO_RCVTIMEO,
+                 iov, iovcnt, offset, flags).getResult();
 }
 
-ssize_t recv(int sockfd, void* buf, size_t len, int flags)
+m_sylar::Task<ssize_t> co_recv(int sockfd, void* buf, size_t len, int flags)
 {
-    return do_io(sockfd, original_recv, "recv", m_sylar::IOManager::READ, SO_RCVTIMEO,
-                buf, len, flags);
+    co_return do_io(sockfd, original_recv, "recv", m_sylar::IOManager::READ, SO_RCVTIMEO,
+                buf, len, flags).getResult();
 }
 
-ssize_t recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr *  src_addr, socklen_t* addrlen)
+m_sylar::Task<ssize_t> co_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr *  src_addr, socklen_t* addrlen)
 {
-    return do_io(sockfd, original_recvfrom, "recvfrom", m_sylar::IOManager::READ, SO_RCVTIMEO,
-                buf, len, flags, src_addr, addrlen);
+    co_return do_io(sockfd, original_recvfrom, "recvfrom", m_sylar::IOManager::READ, SO_RCVTIMEO,
+                buf, len, flags, src_addr, addrlen).getResult();
 }
 
-ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags)
+m_sylar::Task<ssize_t> co_recvmsg(int sockfd, struct msghdr *msg, int flags)
 {
-    return do_io(sockfd, original_recvmsg, "recvmsg", m_sylar::IOManager::READ, SO_RCVTIMEO,
-                msg, flags);   
+    co_return do_io(sockfd, original_recvmsg, "recvmsg", m_sylar::IOManager::READ, SO_RCVTIMEO,
+                msg, flags).getResult();   
 }
 
 
 // write
-ssize_t write(int fd, const void* buf, size_t count)
+m_sylar::Task<ssize_t> co_write(int fd, const void* buf, size_t count)
 {
-    return do_io(fd, original_write, "write", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
-                buf, count); 
+    co_return do_io(fd, original_write, "write", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+                buf, count).getResult(); 
 }
 
-ssize_t writev(int fd, const struct iovec *iov, int iovcnt)
+m_sylar::Task<ssize_t> co_writev(int fd, const struct iovec *iov, int iovcnt)
 {
-    return do_io(fd, original_writev, "writev", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
-                iov, iovcnt); 
+    co_return do_io(fd, original_writev, "writev", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+                iov, iovcnt).getResult(); 
 }
     
-ssize_t pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
+m_sylar::Task<ssize_t> co_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
 {
-    return do_io(fd, original_pwritev, "pwritev", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
-                iov, iovcnt, offset); 
+    co_return do_io(fd, original_pwritev, "pwritev", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+                iov, iovcnt, offset).getResult(); 
 }
 
-ssize_t pwritev2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
+m_sylar::Task<ssize_t> co_pwritev2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
 {
-    return do_io(fd, original_pwritev2, "pwritev2", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
-                iov, iovcnt, offset, flags); 
+    co_return do_io(fd, original_pwritev2, "pwritev2", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+                iov, iovcnt, offset, flags).getResult(); 
 }
 
-ssize_t send(int sockfd, const void* buf, size_t len, int flags)
+m_sylar::Task<ssize_t> co_send(int sockfd, const void* buf, size_t len, int flags)
 {
-    return do_io(sockfd, original_send, "send", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
-                buf, len, flags); 
+    co_return do_io(sockfd, original_send, "send", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+                buf, len, flags).getResult(); 
 }
     
-ssize_t sendto(int sockfd, const void* buf, size_t len, int flags,
+m_sylar::Task<ssize_t> co_sendto(int sockfd, const void* buf, size_t len, int flags,
                const struct sockaddr *dest_addr, socklen_t addrlen)
 {
-    return do_io(sockfd, original_sendto, "sendto", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
-                buf, len, flags, dest_addr, addrlen); 
+    co_return do_io(sockfd, original_sendto, "sendto", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+                buf, len, flags, dest_addr, addrlen).getResult(); 
 }
 
-ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags)
+m_sylar::Task<ssize_t> co_sendmsg(int sockfd, const struct msghdr *msg, int flags)
 {
-    return do_io(sockfd, original_sendmsg, "sendmsg", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
-                msg, flags); 
+    co_return do_io(sockfd, original_sendmsg, "sendmsg", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+                msg, flags).getResult(); 
 }
 
 // close
@@ -671,5 +685,6 @@ int setsockopt(int sockfd, int level, int optname,
     }
     return original_setsockopt(sockfd, level, optname, optval, optlen);
 }
+
 }
 
