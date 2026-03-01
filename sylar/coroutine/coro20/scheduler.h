@@ -29,7 +29,10 @@ public:
 
     std::string getName () {return m_name;}
     static Scheduler* GetThis();                              // 获取当前线程
-    int getTaskCount() const {return m_tasks.size(); }
+    int getTaskCount() {
+        std::shared_lock<std::shared_mutex> r_lock(m_mutex);
+        return m_tasks.size(); 
+    }
 
 
     template<typename Func_or_Handle>

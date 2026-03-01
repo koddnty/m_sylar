@@ -16,6 +16,15 @@ namespace m_sylar
 class TaskBeginExecuter : public AbstractExecuter
 {   // 此调度器在任务创建时挂起任务， 执行期间不挂起任务
 public:
+    TaskBeginExecuter()
+    {
+
+    }
+
+    ~TaskBeginExecuter()
+    {
+    }
+public:
     virtual void execute(std::function<void()> &&func)
     {
         func();
@@ -42,14 +51,43 @@ public:
         m_type = FUNC;
     }
 
-    TaskCoro20(TaskCoro20&& other)          // 移动构造函数
-        : m_func_task(other.m_func_task), m_task(std::move(other.m_task))
-        , m_is_inited(other.m_is_inited), m_type(other.m_type) { }
-    
     TaskCoro20() {
         m_is_inited = false;
     }
 
+    // 拷贝构造
+    TaskCoro20& operator=(const TaskCoro20& other) = delete;
+    // {
+    //     m_type = other.m_type;
+    //     if(m_type == CORO)
+    //     {
+    //         m_coro_task = other.m_coro_task;
+    //         m_task = m_coro_task();
+    //         m_is_inited = other.m_is_inited;
+    //         m_finished = false;
+    //     }
+    //     else if(m_type == FUNC)
+    //     {
+    //         m_func_task = other.m_func_task;
+    //         m_is_inited = other.m_is_inited;
+    //         m_finished = false;
+    //     }
+    //     else
+    //     {
+    //         std::cout << "[CORO20fiber]: UNKNOWN " << m_type << "Task type"  << std::endl;
+    //     }
+    //     return *this;
+    // }
+
+    // 移动构造
+    TaskCoro20& operator=(TaskCoro20&& other) = default;
+    TaskCoro20(TaskCoro20&& other)          
+        : m_func_task(other.m_func_task), m_task(std::move(other.m_task))
+        , m_is_inited(other.m_is_inited), m_type(other.m_type) { }
+    
+
+
+public:
     void reset(TaskCoro20&& other)
     {
         m_type = other.m_type;
@@ -129,29 +167,7 @@ public:
     }
 
 public:
-    TaskCoro20& operator=(TaskCoro20&& other) = default;
-    TaskCoro20& operator=(const TaskCoro20& other)
-    {
-        m_type = other.m_type;
-        if(m_type == CORO)
-        {
-            m_coro_task = other.m_coro_task;
-            m_task = m_coro_task();
-            m_is_inited = other.m_is_inited;
-            m_finished = false;
-        }
-        else if(m_type == FUNC)
-        {
-            m_func_task = other.m_func_task;
-            m_is_inited = other.m_is_inited;
-            m_finished = false;
-        }
-        else
-        {
-            std::cout << "[CORO20fiber]: UNKNOWN " << m_type << "Task type"  << std::endl;
-        }
-        return *this;
-    }
+
         
     // {
     //     m_task = std::move(other.m_task);

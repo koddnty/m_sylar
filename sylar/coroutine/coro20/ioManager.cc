@@ -90,11 +90,11 @@ int IOManager::addEvent(int fd, Event event, TaskCoro20 task)
     fd_ctx->m_event = total_event;
     if(event & Event::READ)
     {
-        fd_ctx->m_cb_read = task;
+        fd_ctx->m_cb_read = std::move(task);
     }
     if(event & Event::WRITE)
     {
-        fd_ctx->m_cb_write = task;
+        fd_ctx->m_cb_write = std::move(task);
     }
     contextSet(fd, fd_ctx);
     return 0;

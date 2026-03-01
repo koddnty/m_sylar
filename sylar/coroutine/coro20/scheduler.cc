@@ -29,7 +29,7 @@ Scheduler::~Scheduler()
     
 void Scheduler::start()
 {   
-    M_SYLAR_ASSERT2(!m_tasks.size() && !m_threads.size(), "m_tasks is not null or threadsCount is not 0");
+    M_SYLAR_ASSERT2(!getTaskCount() && !m_threads.size(), "m_tasks is not null or threadsCount is not 0");
     std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     for(int i = 0; i < m_threads_count; i++)
     {
@@ -83,12 +83,12 @@ void Scheduler::run()
             curr_task.start();
         }
         // 下一步，结束/idle-下一个任务
-        if(m_Stop || (m_tasks.size() == 0 && m_autoStop))
+        if(m_Stop || (getTaskCount() == 0 && m_autoStop))
         {
             // 强停止或自动无任务停止
             break;
         }
-        if(m_tasks.size())
+        if(getTaskCount())
         {
             continue;
         }
@@ -124,7 +124,7 @@ void Scheduler::tickle()
 void Scheduler::autoStop()
 {   // 注意，autoStop会截断正在运行的协程
     m_autoStop = true;
-    while(m_tasks.size())
+    while(getTaskCount())
     {
         usleep(10000);
     }

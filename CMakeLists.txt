@@ -5,6 +5,8 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
 
 # set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -g -O0")
+
 
 set ( LIB_LIB
     pthread
@@ -183,13 +185,13 @@ add_executable(performance_test_scheduler tests/performance_tests/scheduler_exch
 add_dependencies(performance_test_scheduler sylar)
 target_link_libraries(performance_test_scheduler sylar ${LIB_LIB})
 
-# add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
-# add_dependencies(scheduleCoro20_test sylar)
-# target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
+add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
+add_dependencies(scheduleCoro20_test sylar)
+target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
 
-# add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
-# add_dependencies(iomanagerCoro20_test sylar)
-# target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
+add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
+add_dependencies(iomanagerCoro20_test sylar)
+target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)

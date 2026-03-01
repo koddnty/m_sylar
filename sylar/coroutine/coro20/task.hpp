@@ -28,13 +28,6 @@ public:
         : m_is_have_task(is_have_task) { }
 
     bool await_ready() noexcept {
-        // if(!m_is_have_task)
-        // {
-        //     return true;
-        // }
-        // assert(m_is_have_task);
-        // std::cout << "have task ?:"<< *m_is_have_task << std::endl;
-        // std::cout << "returnValue:" << !(*m_is_have_task) << std::endl;
         return !(*m_is_have_task);
     }
 
@@ -130,10 +123,7 @@ public:
             }
         }
 
-    Task(Task&& other)
-        : m_handler(std::exchange(other.m_handler, {}))
-        , m_executer(other.m_executer)
-        , m_is_have_task(other.m_is_have_task) {}
+
 
     // 禁用拷贝构造
     Task(Task& other) = delete;
@@ -151,11 +141,17 @@ public:
         }
     }
 
+    // 移动构造
+    Task(Task&& other)
+        : m_handler(std::exchange(other.m_handler, {}))
+        , m_executer(other.m_executer)
+        , m_is_have_task(other.m_is_have_task) {}
     Task<ResultType, Executer>& operator=(Task<ResultType, Executer>&& other)
     {
-        m_handler = std::move(other.m_handler);
+        m_handler = std::move(std::exchange(other.m_handler, {}));
         m_executer = std::move(other.m_executer);
         m_is_have_task = other.m_is_have_task;
+        other.m_is_have_task = nullptr;
         return *this;
     }
 
@@ -330,7 +326,6 @@ private:
     std::unique_ptr<ITask> m_child_task_ptr;
     std::list<std::function<void(Result<ResultType>)>> m_callbacks;
     bool m_is_have_task = false;
-
 };
 
 
@@ -553,14 +548,27 @@ public:
             }
         }
 
-    Task(Task&& other)
-        : m_handler(std::exchange(other.m_handler, {}))
-        , m_executer(other.m_executer)
-        , m_is_have_task(other.m_is_have_task) {}
-
     // 禁用拷贝构造
     Task(Task& other) = delete;
     Task& operator=(Task& other) = delete;
+
+    // 移动构造
+    Task(Task&& other)
+        : m_handler(std::exchange(other.m_handler, {}))
+        , m_executer(other.m_executer)
+        , m_is_have_task(other.m_is_have_task) {
+            other.m_is_have_task = nullptr;
+        }
+
+    Task<void, Executer>& operator=(Task<void, Executer>&& other)
+    {
+        // m_handler = std::move(other.m_handler);
+        m_handler = std::exchange(other.m_handler, {});
+        m_executer = std::move(other.m_executer);
+        m_is_have_task = other.m_is_have_task;
+        other.m_is_have_task = nullptr;
+        return *this;
+    }
 
     ~Task() override
     {
@@ -570,18 +578,13 @@ public:
         }
         if(m_handler && m_handler.done())
         {
+            // std::cout << "-" << std::endl;
             m_handler.destroy();
+            // std::cout << ".";
         }
     }
 
 
-    Task<void, Executer>& operator=(Task<void, Executer>&& other)
-    {
-        m_handler = std::move(other.m_handler);
-        m_executer = std::move(other.m_executer);
-        m_is_have_task = other.m_is_have_task;
-        return *this;
-    }
 
 public:
     void getResult()
@@ -653,7 +656,6 @@ class TaskPromise<void, Executer>
 public:
     ~TaskPromise()
     {
-
         delete m_executer;
     }
 
@@ -661,6 +663,7 @@ public:
     {
 
         m_executer = new Executer();    // taskpromise负责execute控制
+        // m_is_have_task = new bool;
         m_is_have_task = true;
         return Task<void, Executer>(std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer, &m_is_have_task);
     }
@@ -746,6 +749,7 @@ private:
     Executer* m_executer;
     std::unique_ptr<ITask> m_child_task_ptr;
     std::list<std::function<void(Result<void>)>> m_callbacks;
+    // bool* m_is_have_task = nullptr;
     bool m_is_have_task = false;
 };
 

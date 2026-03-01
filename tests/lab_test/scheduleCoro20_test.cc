@@ -56,13 +56,14 @@ void test_coroutine_task()
     // // scheduler.schedule(func_task);
     // scheduler.schedule(static_cast<std::function<void()>>(func_task));
 
-    for(int i = 0; i < 100000; i++)
+    for(int i = 0; i < 1000; i++)
     {
-        scheduler.schedule(func_task);
-        // scheduler.schedule(static_cast<std::function<m_sylar::Task<void, m_sylar::TaskBeginExecuter>()>>(task));
+        // scheduler.schedule(func_task);
+        scheduler.schedule(static_cast<std::function<m_sylar::Task<void, m_sylar::TaskBeginExecuter>()>>(task));
     }
 
     std::cout << "schedule task finished" << std::endl;
+    scheduler.getTaskCount();
     scheduler.autoStop();
     std::cout << count << std::endl;
 }
