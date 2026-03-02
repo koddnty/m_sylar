@@ -80,6 +80,7 @@ void Scheduler::run()
         // 执行任务
         if(curr_task.isLegal() && !curr_task.isFinished())
         {
+            // std::cout << ".";
             curr_task.start();
         }
         // 下一步，结束/idle-下一个任务

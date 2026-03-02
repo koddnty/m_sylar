@@ -45,6 +45,15 @@ public:
         tickle();
     }
 
+    // void schedule(TaskCoro20 cb)
+    // {
+    //     {
+    //         std::unique_lock<std::shared_mutex> w_lock(m_mutex);
+    //         scheduleNoLock(std::move(cb));
+    //     }
+    //     tickle();
+    // }
+
     template<typename InputOperator>
     void schedule(InputOperator begin, InputOperator end)
     {
@@ -72,6 +81,17 @@ private:
         M_SYLAR_ASSERT2(!task.isFinished(), "[scheduleCoro20] illegal Task");
         // m_tasks.push_back(task);
         m_tasks.push_back(std::move(task));
+    }
+
+    void scheduleNoLock(TaskCoro20&& f)
+    {
+        if(f.isFinished()) {return;}
+        if(m_autoStop)
+        {
+            return;
+        }
+        M_SYLAR_ASSERT2(!f.isFinished(), "[scheduleCoro20] illegal Task");
+        m_tasks.push_back(std::move(f));
     }
 
 public:

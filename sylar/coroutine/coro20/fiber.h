@@ -41,12 +41,13 @@ class TaskCoro20
 public:
     using ptr = std::shared_ptr<TaskCoro20>;
     
-    TaskCoro20(std::function<Task<void, TaskBeginExecuter>()> task)     // 协程任务
+    template<typename _Result>
+    explicit TaskCoro20(std::function<Task<_Result, TaskBeginExecuter>()> task)     // 协程任务
         :  m_coro_task(task), m_task(task()){
         m_type = CORO;
     }    
 
-    TaskCoro20(std::function<void()> task)      // 函数任务
+    explicit TaskCoro20(std::function<void()> task)      // 函数任务
         : m_func_task(task){ 
         m_type = FUNC;
     }
@@ -168,13 +169,25 @@ public:
 
 public:
 
-        
-    // {
-    //     m_task = std::move(other.m_task);
-    //     m_type = other.m_type;
-    //     m_is_inited = other.m_is_inited;
-    //     return *this;
-    // }
+    static TaskCoro20 create_coro(std::function<Task<void, TaskBeginExecuter>()> task)     // 协程任务
+    {
+        TaskCoro20 t;
+        t.m_coro_task = task;
+        // t.m_task = std::move(task());
+        t.m_task = task();
+        t.m_type = CORO;
+        t.m_is_inited = true;
+        return t;
+    }  
+
+    static TaskCoro20 create_func(std::function<void()> task)     // 协程任务
+    {
+        TaskCoro20 t;
+        t.m_func_task = task;
+        t.m_type = FUNC;
+        t.m_is_inited = true;
+        return t;
+    }      
 
 private:
     Task<void, TaskBeginExecuter> runner(std::function<void()>& func)

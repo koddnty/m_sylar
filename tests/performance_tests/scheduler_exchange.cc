@@ -11,11 +11,11 @@ m_sylar::Task<void, m_sylar::TaskBeginExecuter> func()
     // std::cout << 1;
 }
 
-m_sylar::Task<int, m_sylar::TaskBeginExecuter> task()
+m_sylar::Task<void, m_sylar::TaskBeginExecuter> task()
 {
-    std::cout << "|" << std::endl;
+    // std::cout << "|" << std::endl;
     count++;
-    co_return 1;
+    co_return ;
 }
 
 
@@ -31,7 +31,8 @@ int main(void)
     auto schedule_start = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < total; i++)
     {
-        iom.schedule(static_cast<std::function<m_sylar::Task<int, m_sylar::TaskBeginExecuter>()>>(task));
+        // iom.schedule(static_cast<std::function<m_sylar::Task<int, m_sylar::TaskBeginExecuter>()>>(task));
+        iom.schedule(m_sylar::TaskCoro20::create_coro(task));
         // iom.schedule(static_cast<std::function<m_sylar::Task<void, m_sylar::TaskBeginExecuter>()>>(func));
         // iom.schedule( func);
     }
@@ -50,9 +51,6 @@ int main(void)
     auto solve_begin = std::chrono::high_resolution_clock::now();
     std::cout << "count: " << count << std::endl;
     std::cout << "task count: " << task_begin << std::endl;
-    std::cout << "要sleep了啊" << std::endl;
-    // sleep(2);
-    std::cout << "after sleep 2s" << std::endl;
     iom.autoStop();
     auto solve_end = std::chrono::high_resolution_clock::now();
 
