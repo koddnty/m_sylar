@@ -6,6 +6,8 @@ ltmain.sh
 *.la
 *.a
 .so
+.cache
+.vscode
 .deps
 .dirstamp
 .libs
