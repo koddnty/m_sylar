@@ -1,6 +1,6 @@
-#include "fdManager.h"
+#include "basic/fdManager.h"
 #include "basic/log.h"
-#include "hook.h"
+#include "coroutine/corobase.h"
 #include <asm-generic/socket.h>
 #include <cstddef>
 #include <fcntl.h>
@@ -137,10 +137,10 @@ FdCtx::ptr FdManager::get(int fd, bool auto_create)
 
     if(!auto_create)
     {
-        if(fd == 6 && m_fdCtxs[6] == nullptr)
-        {
-            std::cout << "---------------------";
-        }
+        // if(fd == 6 && m_fdCtxs[6] == nullptr)
+        // {
+        //     // std::cout << "---------------------";
+        // }
         return (fd < m_fdCtxs.size() ? m_fdCtxs[fd] : nullptr);
     }
     else if (fd < m_fdCtxs.size() && m_fdCtxs[fd])

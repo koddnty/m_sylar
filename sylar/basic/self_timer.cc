@@ -1,5 +1,4 @@
 #include "self_timer.h"
-#include "ioManager.h"
 #include "log.h"
 #include "macro.h"
 #include <cstddef>
@@ -47,9 +46,9 @@ bool Timer::Compare::operator()(const Timer::ptr& lhs, const Timer::ptr& rhs) co
 // us级intervalTime
 Timer::Timer(uint64_t intervalTime, bool is_cycle, 
         TimeManager* manager,
-        std::function<void()> main_cb,
-        std::function<bool()> condition,
-        std::function<void()> condition_cb)
+        std::function<void()> main_cb,      // 主循环函数
+        std::function<bool()> condition,    // 条件函数
+        std::function<void()> condition_cb) // 条件满足函数
       : m_is_cycle(is_cycle), m_interval(intervalTime),
         m_manager(manager), m_main_cb(main_cb)
 {
@@ -224,7 +223,7 @@ void TimeManager::cancelTimer(int timerFd)
     }
     else
     {
-        M_SYLAR_LOG_ERROR(g_logger) << "timer is not in time manager" 
+        M_SYLAR_LOG_WARN(g_logger) << "timer is not in time manager" 
             << "timerFd=" << timerFd;
     }
 }
