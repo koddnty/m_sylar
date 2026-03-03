@@ -1,12 +1,12 @@
-#include "timer.h"
+#include "basic/timer.h"
 #include <mutex>
 #include <shared_mutex>
 
-m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 namespace ddm_sylar_o 
 
 {
+static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 bool Timer::Compare::operator()(const Timer::ptr& lhs, const Timer::ptr& rhs) const
 {

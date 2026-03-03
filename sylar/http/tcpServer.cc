@@ -1,7 +1,8 @@
 #include "http/tcpServer.h"
 #include "basic/address.h"
-#include "basic/hook.h"
-#include "basic/ioManager.h"
+// #include "basic/hook.h"
+#include "coroutine/corobase.h"
+// #include "basic/ioManager.h"
 #include "basic/config.h"
 #include "basic/log.h"
 #include "basic/socket.h"
@@ -20,7 +21,7 @@ namespace m_sylar
 m_sylar::ConfigVar<uint64_t>::ptr g_tcpServer_read_timeout = 
     m_sylar::configManager::Lookup("http.tcpserver.timeout.read", (uint64_t)(2 * 60 * 1000000), "tcp server read timeOut to hold a connect");
 
-Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");    
+static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");    
 
 
 TcpServer::TcpServer(IOManager* io_manager)

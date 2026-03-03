@@ -5,7 +5,8 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <vector>
-#include "basic/ioManager.h"    
+// #include "basic/ioManager.h"    
+#include "coroutine/corobase.h"
 #include "basic/socket.h"
 #include "basic/noncopyable.h"
 #include "basic/log.h"
