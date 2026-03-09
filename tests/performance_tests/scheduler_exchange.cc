@@ -2,8 +2,7 @@
 #include "coroutine/corobase.h"
 #include <iostream>
 
-int count = 0;
-
+std::atomic<int> count{0};
 m_sylar::Task<void, m_sylar::TaskBeginExecuter> func()
 {
     count++;
@@ -24,10 +23,10 @@ int main(void)
     // m_sylar::Scheduler iom("test_coroutine", 1);
     // iom.start();
 
-    m_sylar::IOManager iom("test_scheduler", 12);
+    m_sylar::IOManager iom("test_scheduler", 1);
 
-    int total = 1000;
-    // int total = 10000;
+    // int total = 1;
+    int total = 10000;
     auto schedule_start = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < total; i++)
     {
@@ -51,11 +50,12 @@ int main(void)
     auto solve_begin = std::chrono::high_resolution_clock::now();
     std::cout << "count: " << count << std::endl;
     std::cout << "task count: " << task_begin << std::endl;
+    sleep(10);
     iom.autoStop();
     auto solve_end = std::chrono::high_resolution_clock::now();
 
     std::cout << "schedule time : " << ( schedule_end - schedule_start).count() << std::endl;
     std::cout << count - task_begin << " task solved time : " << (solve_end - solve_begin).count() << std::endl;
-
+    // sleep(10);
     return 0;
 }

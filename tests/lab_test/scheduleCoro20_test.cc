@@ -50,15 +50,15 @@ void test_coroutine_task()
     m_sylar::Scheduler scheduler("test_coroutine", 1);
     scheduler.start();
     std::cout << "schedule task ..." << std::endl;
-    // scheduler.schedule(task);
-    // scheduler.schedule(static_cast<std::function<m_sylar::Task<void, m_sylar::TaskBeginExecuter>()>>(task));
-    // // scheduler.schedule(func_task);
-    // scheduler.schedule(static_cast<std::function<void()>>(func_task));
 
-    for(int i = 0; i < 1000; i++)
+
+    for(int i = 0; i < 11; i++)
     {
         // scheduler.schedule(func_task);
-        scheduler.schedule(static_cast<std::function<m_sylar::Task<void, m_sylar::TaskBeginExecuter>()>>(task));
+        // scheduler.schedule(static_cast<std::function<m_sylar::Task<void, m_sylar::TaskBeginExecuter>()>>(task));
+        scheduler.schedule(m_sylar::TaskCoro20::create_coro(task));
+        // m_sylar::TaskCoro20::create_coro(task).start();
+        // std::cout << "finished i:" << i << std::endl;
     }
 
     std::cout << "schedule task finished" << std::endl;

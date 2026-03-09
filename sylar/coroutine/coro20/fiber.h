@@ -81,10 +81,22 @@ public:
     // }
 
     // 移动构造
-    TaskCoro20& operator=(TaskCoro20&& other) = default;
+    TaskCoro20& operator=(TaskCoro20&& other) {
+        m_func_task = other.m_func_task;
+        m_coro_task = other.m_coro_task;
+        m_task = std::move(other.m_task);
+        m_is_inited = other.m_is_inited;
+        m_finished = other.m_finished;
+        m_type = other.m_type;
+        other.m_type = UNKNOWN;
+        return *this;
+    };
+
     TaskCoro20(TaskCoro20&& other)          
-        : m_func_task(other.m_func_task), m_task(std::move(other.m_task))
-        , m_is_inited(other.m_is_inited), m_type(other.m_type) { }
+        : m_func_task(other.m_func_task), m_coro_task(other.m_coro_task), m_task(std::move(other.m_task))
+        , m_is_inited(other.m_is_inited), m_finished(other.m_is_inited), m_type(other.m_type) {
+            other.m_type = UNKNOWN;
+        }
     
 
 
@@ -207,7 +219,7 @@ private:
     // 任务函数备份用作任务拷贝
     std::function<void()> m_func_task = nullptr;
     std::function<Task<void, TaskBeginExecuter>()> m_coro_task = nullptr;
-    Task<void, TaskBeginExecuter> m_task;
+    Task<void, TaskBeginExecuter> m_task;   // 严禁拷贝
     // 任务状态信息
     bool m_is_inited = true;            // 是否是可运行的协程
     bool m_finished = false;            // 普通函数任务是否运行完毕

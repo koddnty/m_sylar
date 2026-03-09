@@ -68,7 +68,6 @@ void Scheduler::run()
     std::list<TaskCoro20> work_list;
     while(true)
     {
-        TaskCoro20 curr_task;
         // 取任务
         {
             std::unique_lock<std::shared_mutex> r_lock(m_mutex);
@@ -84,13 +83,13 @@ void Scheduler::run()
             work_list.splice(work_list.end(), m_tasks, begin, end);
         }
         // 执行任务
+        TaskCoro20 curr_task;
         while(work_list.size())
         {
             curr_task = std::move(*work_list.begin());
             work_list.pop_front();
             if(curr_task.isLegal() && !curr_task.isFinished())
             {
-                // std::cout << ".";
                 curr_task.start();
             }
         }

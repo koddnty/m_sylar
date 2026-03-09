@@ -20,23 +20,32 @@ class TaskPromise;
 template<typename Executer>
 class InitialAwaiter;
 
-
+// static std::atomic<int> count {0};
 class FinalAwaiter
 {   // 结束时由决定是否挂起或销毁
 public:
-    FinalAwaiter(bool* is_have_task)
+    FinalAwaiter(std::atomic<bool>* is_have_task)
         : m_is_have_task(is_have_task) { }
 
     bool await_ready() noexcept {
+        if(!(*m_is_have_task))
+        {
+            // ++count;
+            // std::cout << "--destory" << std::endl;
+            // std::cout << "auto destory i:" << count;
+        }
         return !(*m_is_have_task);
+        // return true;
     }
 
-    void await_suspend(std::coroutine_handle<> handle) noexcept { }
+    void await_suspend(std::coroutine_handle<> handle) noexcept { 
+    }
 
     void await_resume() noexcept {}
 
 private:
-    bool* m_is_have_task;       
+    // bool* m_is_have_task;       
+    std::atomic<bool>* m_is_have_task = nullptr;
 };
 
 
@@ -115,7 +124,7 @@ public:
 
     Task() {}
 
-    Task(std::coroutine_handle<promise_type> handle, Executer* executer, bool* is_have_task = nullptr)        // 从promoise获得executer
+    Task(std::coroutine_handle<promise_type> handle, Executer* executer, std::atomic<bool>* is_have_task = nullptr)        // 从promoise获得executer
         : m_handler(handle), m_executer(executer) {
             if(is_have_task)
             {
@@ -149,6 +158,18 @@ public:
         , m_is_have_task(other.m_is_have_task) {}
     Task<ResultType, Executer>& operator=(Task<ResultType, Executer>&& other)
     {
+        // 清理自身资源
+        if(m_is_have_task != nullptr)
+        {
+            *m_is_have_task = false;
+        }
+        if(m_handler && m_handler.done
+            ())
+        {
+            m_handler.destroy();
+        }
+
+
         m_handler = std::move(std::exchange(other.m_handler, {}));
         m_executer = std::move(other.m_executer);
         m_is_have_task = other.m_is_have_task;
@@ -214,7 +235,7 @@ public:
 private:
     std::coroutine_handle<promise_type> m_handler;
     Executer* m_executer;
-    bool* m_is_have_task = nullptr;             // 如果不为空，则应指向promise_type管理的变量，表明是否有外部task正在使用当前协程
+    std::atomic<bool>* m_is_have_task = nullptr;             // 如果不为空，则应指向promise_type管理的变量，表明是否有外部task正在使用当前协程
 };
 
 
@@ -326,7 +347,7 @@ private:
     // ITask m_child_task;
     std::unique_ptr<ITask> m_child_task_ptr;
     std::list<std::function<void(Result<ResultType>)>> m_callbacks;
-    bool m_is_have_task = false;
+    std::atomic<bool> m_is_have_task {false};
 };
 
 
@@ -547,7 +568,7 @@ public:
 
     Task() {}
 
-    Task(std::coroutine_handle<promise_type> handle, Executer* executer, bool* is_have_task = nullptr)        // 从promoise获得executer
+    Task(std::coroutine_handle<promise_type> handle, Executer* executer, std::atomic<bool>* is_have_task = nullptr)        // 从promoise获得executer
         : m_handler(handle), m_executer(executer) {
             if(is_have_task)
             {
@@ -569,6 +590,18 @@ public:
 
     Task<void, Executer>& operator=(Task<void, Executer>&& other)
     {
+        // 清理自身资源
+        if(m_is_have_task != nullptr)
+        {
+            *m_is_have_task = false;
+        }
+        if(m_handler && m_handler.done())
+        {
+            // std::cout << "--destory" << std::endl;
+            m_handler.destroy();
+        }
+
+        // 资源移动
         // m_handler = std::move(other.m_handler);
         m_handler = std::exchange(other.m_handler, {});
         m_executer = std::move(other.m_executer);
@@ -585,10 +618,8 @@ public:
         }
         if(m_handler && m_handler.done())
         {
-            // std::cout << "-" << std::endl;
-            std::cout << "destory handle, ptr = " << &m_handler << std::endl;
+            // std::cout << "--destory" << std::endl;
             m_handler.destroy();
-            // std::cout << ".";
         }
     }
 
@@ -654,7 +685,7 @@ public:
 private:
     std::coroutine_handle<promise_type> m_handler;
     Executer* m_executer;
-    bool* m_is_have_task = nullptr;
+    std::atomic<bool>* m_is_have_task = nullptr;
 };
 
 
@@ -674,7 +705,7 @@ public:
         // m_is_have_task = new bool;
         m_is_have_task = true;
         auto handle = std::coroutine_handle<TaskPromise>::from_promise(*this);
-        std::cout << "create a handle = " << &handle << std::endl;
+        // std::cout << "create a handle = " << &handle << std::endl;
         return Task<void, Executer>(handle, m_executer, &m_is_have_task);
     }
 
@@ -683,7 +714,6 @@ public:
     }
 
     FinalAwaiter final_suspend() noexcept {
-        // std::cout << "final_suspend: " << this << std::endl;
         return FinalAwaiter(&m_is_have_task);
     }
 
@@ -760,7 +790,7 @@ private:
     std::unique_ptr<ITask> m_child_task_ptr;
     std::list<std::function<void(Result<void>)>> m_callbacks;
     // bool* m_is_have_task = nullptr;
-    bool m_is_have_task = false;
+    std::atomic<bool> m_is_have_task {false};
 };
 
 

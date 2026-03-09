@@ -59,8 +59,7 @@ Task<void, TaskBeginExecuter> coro()
 {
   std::cout << "coroutine task running(with a async sleep task)..." << std::endl;
   co_await msleep(3);
-  // co_await nothing();
-  // // co_await SleepAwaiter(3);
+  co_await msleep(2);
   std::cout << "coroutine task end, after 3s" << std::endl;
   co_return;
 }
@@ -81,7 +80,6 @@ void test_C()
   std::cout << "coroutine task start" << std::endl;
   t.start();
   std::cout << "coroutine task started" << std::endl;
-  sleep(10);
   return;
 }
 
