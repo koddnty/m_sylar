@@ -3,6 +3,7 @@
 #include "basic/thread.h"
 #include "coroutine/coro20/fiber.h"
 #include "coroutine/coro20/scheduler.h"
+#include <sys/param.h>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -64,25 +65,38 @@ void Scheduler::ThreadInit()
 void Scheduler::run()
 {   // 调度器有任务运行时
     setThis();
+    std::list<TaskCoro20> work_list;
     while(true)
     {
         TaskCoro20 curr_task;
         // 取任务
         {
             std::unique_lock<std::shared_mutex> r_lock(m_mutex);
-            auto it = m_tasks.begin();
-            if(it != m_tasks.end())
-            {
-                curr_task = std::move(*it);
-                m_tasks.erase(it);
-            }
+            // auto it = m_tasks.begin();
+            int task_len = MIN(10, m_tasks.size());
+            auto begin = m_tasks.begin();
+            auto end = std::next(begin, task_len);;
+            // if(it != m_tasks.end())
+            // {
+            //     curr_task = std::move(*it);
+            //     m_tasks.erase(it);
+            // }
+            work_list.splice(work_list.end(), m_tasks, begin, end);
         }
         // 执行任务
-        if(curr_task.isLegal() && !curr_task.isFinished())
+        while(work_list.size())
         {
-            // std::cout << ".";
-            curr_task.start();
+            curr_task = std::move(*work_list.begin());
+            work_list.pop_front();
+            if(curr_task.isLegal() && !curr_task.isFinished())
+            {
+                // std::cout << ".";
+                curr_task.start();
+            }
         }
+
+        M_SYLAR_ASSERT2(!work_list.size(), "[coro scheduler]: work_list is unempty");
+
         // 下一步，结束/idle-下一个任务
         if(m_Stop || (getTaskCount() == 0 && m_autoStop))
         {

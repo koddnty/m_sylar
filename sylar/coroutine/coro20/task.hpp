@@ -135,7 +135,8 @@ public:
         {
             *m_is_have_task = false;
         }
-        if(m_handler && m_handler.done())
+        if(m_handler && m_handler.done
+            ())
         {
             m_handler.destroy();
         }
@@ -265,7 +266,7 @@ public:
     }
 
     template<typename _ResultType, typename _Executer>  // co_await协程返回值类型，与ResultType 有所区分
-    TaskAwaiter<_ResultType, _Executer> await_transform (Task<_ResultType, _Executer>&& task)
+    TaskAwaiter<_ResultType, _Executer> await_transform (Task<_ResultType, _Executer>&& task)   // 用于子协程管理
     {   // 需要控制子任务生命周期
         // return TaskAwaiter<_ResultType, _Executer>(std::move(task));
         // auto* m_child_task = std::any_cast<Task<_ResultType, _Executer>>(&task);
@@ -275,7 +276,7 @@ public:
         return child_task;
     }
 
-    template<typename AwaiterImpl>
+    template<typename AwaiterImpl>      // 用作co_await awaiter
     AwaiterImpl await_transform(AwaiterImpl awaiter)
     {   // 为传入的awaiter设置调度器
         awaiter.install_executor(m_executer);
@@ -406,8 +407,14 @@ protected:
         dispatch([this, value]() {
             // 将 value 封装到 _result 当中，await_resume 时会返回 value
             m_result = Result<_ResultType>(static_cast<_ResultType>(value));
-
-            m_handle.resume();
+            if(!m_handle.done())
+            {
+                m_handle.resume();
+            }
+            else
+            {
+                std::cout << "原位置会导致resumedestoryed的协程" << std::endl;
+            }
         });
     }
 
@@ -579,6 +586,7 @@ public:
         if(m_handler && m_handler.done())
         {
             // std::cout << "-" << std::endl;
+            std::cout << "destory handle, ptr = " << &m_handler << std::endl;
             m_handler.destroy();
             // std::cout << ".";
         }
@@ -665,7 +673,9 @@ public:
         m_executer = new Executer();    // taskpromise负责execute控制
         // m_is_have_task = new bool;
         m_is_have_task = true;
-        return Task<void, Executer>(std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer, &m_is_have_task);
+        auto handle = std::coroutine_handle<TaskPromise>::from_promise(*this);
+        std::cout << "create a handle = " << &handle << std::endl;
+        return Task<void, Executer>(handle, m_executer, &m_is_have_task);
     }
 
     InitialAwaiter<Executer> initial_suspend() {        // 直接由execute调用

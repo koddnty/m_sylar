@@ -1,5 +1,4 @@
 #include "coroutine/corobase.h"
-
 #include "basic/log.h"
 #include <atomic>
 #include <ostream>

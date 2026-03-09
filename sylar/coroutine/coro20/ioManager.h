@@ -44,7 +44,7 @@ private:
     
 
 private:
-    class FdContext
+    class FdContext : public std::enable_shared_from_this<FdContext>
     {
     public: 
         using ptr = std::shared_ptr<FdContext>;
@@ -67,6 +67,7 @@ private:
     int m_eventFd;
     int m_epollFd;
     // Scheduler* m_scheduler;
+    std::shared_mutex m_mutex;
     std::vector<FdContext::ptr> m_fd_contexts;
 };
 

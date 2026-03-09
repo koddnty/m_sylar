@@ -51,7 +51,7 @@ Fiber::Fiber(std::function<void()> cb, uint64_t stackSize)
     m_context.uc_stack.ss_sp = m_stack;
     m_context.uc_stack.ss_size = m_stackSize;
     
-    makecontext(&m_context, &Fiber::MainFunc, 0);
+    makecontext(&m_context, &Fiber::MainFunc, 0);       // 栈的开始
     m_state = HOLD;
 }
 Fiber::~Fiber(){

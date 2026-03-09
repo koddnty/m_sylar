@@ -235,9 +235,12 @@ TimeManager* TimeManager::getInstance()
         return t_tim;
     }
     m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
+
+    static TimeManager tim(iom);
+    t_tim = &tim;
     if(iom)
     {
-        return new TimeManager(iom);
+        return &tim;
     }
     M_SYLAR_ASSERT2(false, "can not get time manager without a iomanager");
 }  

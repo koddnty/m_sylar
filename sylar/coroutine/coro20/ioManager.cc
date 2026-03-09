@@ -54,6 +54,7 @@ IOManager::~IOManager()
 
 int IOManager::addEvent(int fd, Event event, TaskCoro20 task)
 {   // 错误 -1, 成功 0
+    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     bool is_have = false;
     Event total_event = event;
     // 检查原有事件
@@ -101,13 +102,15 @@ int IOManager::addEvent(int fd, Event event, TaskCoro20 task)
 }
 
 int IOManager::addEvent(int fd, Event event, std::function<void()> cb_func)
-{
+{   // 兼容接口，为了兼容原timeManager组件
+    // std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     TaskCoro20 task(cb_func);
     return addEvent(fd, event, std::move(task));
 }
 
 bool IOManager::delEvent(int fd, Event event)
 {
+    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     FdContext::ptr original_fd_ctx = m_fd_contexts[fd];
     if(!original_fd_ctx)
     {
@@ -160,6 +163,7 @@ bool IOManager::delEvent(int fd, Event event)
 
 bool IOManager::cancelEvent(int fd, Event event)
 {
+    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     FdContext::ptr original_fd_ctx = m_fd_contexts[fd];
     if(!original_fd_ctx)
     {
@@ -215,6 +219,7 @@ bool IOManager::cancelEvent(int fd, Event event)
 
 bool IOManager::cancelAll(int fd)
 {
+    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     FdContext::ptr original_fd_ctx = m_fd_contexts[fd];
     if(!original_fd_ctx)
     {
@@ -341,6 +346,7 @@ IOManager::FdContext::~FdContext()
 
 void IOManager::FdContext::trigger(Event event)
 {   // 回调触发
+    auto self = shared_from_this();
     if(event & Event::READ && m_cb_read.isLegal())
     {
         m_cb_read.start();
@@ -351,10 +357,13 @@ void IOManager::FdContext::trigger(Event event)
     }
 }
 
+/**
+    @brief 用于将fd以及对应ctx添加到manager的管理队列,此处运行时，应已获得资源锁。
+*/
 int IOManager::contextSet(int fd, FdContext::ptr fd_ctx)
-{
-    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
-    if(fd > m_fd_contexts.size())
+{   
+    // std::unique_lock<std::shared_mutex> w_lock(m_mutex);
+    if(fd >= m_fd_contexts.size())
     {
         try
         {

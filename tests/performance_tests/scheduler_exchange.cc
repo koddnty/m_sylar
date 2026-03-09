@@ -24,9 +24,9 @@ int main(void)
     // m_sylar::Scheduler iom("test_coroutine", 1);
     // iom.start();
 
-    m_sylar::IOManager iom("test_scheduler", 1);
+    m_sylar::IOManager iom("test_scheduler", 12);
 
-    int total = 10000;
+    int total = 1000;
     // int total = 10000;
     auto schedule_start = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < total; i++)

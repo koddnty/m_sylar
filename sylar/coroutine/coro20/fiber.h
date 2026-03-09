@@ -117,8 +117,8 @@ public:
         }
         else if (m_type == FUNC)
         {
-            m_func_task();
             m_finished = true;
+            m_func_task();
         }
         else
         {

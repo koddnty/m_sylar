@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(m_sylar)
 
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
 
@@ -148,10 +150,10 @@ target_link_libraries(task_test sylar ${LIB_LIB})
 # target_link_libraries(test_iomanager sylar ${LIB_LIB})
 
 
-# add_executable(test_self_timer tests/test_self_timer.cc)
-# # force_redefine_macro_for_sources(test_yaml)
-# add_dependencies(test_self_timer sylar )
-# target_link_libraries(test_self_timer sylar ${LIB_LIB})
+add_executable(test_self_timer tests/test_self_timer.cc)
+# force_redefine_macro_for_sources(test_yaml)
+add_dependencies(test_self_timer sylar )
+target_link_libraries(test_self_timer sylar ${LIB_LIB})
 
 # add_executable(test_hook tests/test_hook.cc)
 # add_dependencies(test_hook sylar)

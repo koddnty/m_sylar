@@ -11,7 +11,7 @@
 #include "allHeader.h"
 #include "log.h"
 #include "singleton.h"
-// #include "coroutine/corobase.h"
+#include "coroutine/corobase.h"
 
 #ifdef SYLAR_USE_CORO20
     #include "coroutine/coro20/ioManager.h"

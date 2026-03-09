@@ -23,12 +23,12 @@ protected:
   void on_suspend() override
   {
     m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
-    tim->addTimer(m_time * 1000000, false, [this](){
+    int fd = tim->addTimer(m_time * 1000000, false, [this](){
       std::cout << "SleepAwatier call back begin " << this << std::endl;
       resume(m_time);
       std::cout << "SleepAwatier call back end" << std::endl;
     });
-    std::cout << "on_suspend" << std::endl;
+    std::cout << "on_suspend, time fd = " << fd << std::endl;
   }
 
   void before_resume() override
@@ -40,19 +40,27 @@ private:
   uint64_t m_time;
 };
 
-Task<int> msleep(uint64_t time)
+Task<void> msleep(uint64_t time)
 {
   std::cout << "[msleep sleep 10s begin]" << std::endl;
   co_await SleepAwaiter(time);
   std::cout << "[msleep sleep 10s end]" << std::endl;
-  co_return 1;
-}
+  co_return ;
+} 
 
+Task<int> nothing()
+{
+  std::cout << "[msleep sleep 0s begin]" << std::endl;
+  std::cout << "[msleep sleep 0s end]" << std::endl;
+  co_return 1;
+} 
 
 Task<void, TaskBeginExecuter> coro()
 {
   std::cout << "coroutine task running(with a async sleep task)..." << std::endl;
   co_await msleep(3);
+  // co_await nothing();
+  // // co_await SleepAwaiter(3);
   std::cout << "coroutine task end, after 3s" << std::endl;
   co_return;
 }
@@ -68,11 +76,12 @@ void func()
 
 void test_C()
 {
-  TaskCoro20 t(static_cast<std::function<Task<void, TaskBeginExecuter>()>>(coro));
+  // TaskCoro20 t(static_cast<std::function<Task<void, TaskBeginExecuter>()>>(coro));
+  TaskCoro20 t(TaskCoro20::create_coro(coro));
   std::cout << "coroutine task start" << std::endl;
   t.start();
   std::cout << "coroutine task started" << std::endl;
-  // sleep(5);
+  sleep(10);
   return;
 }
 
@@ -97,6 +106,11 @@ void test_task()
   return;
 }
 
+void test_twice_coro()
+{
+  test_C();
+  std::cout << "test_C returned" << std::endl;
+}
 
 int main(void)
 {
@@ -106,11 +120,11 @@ int main(void)
   // test_resume();
   // test_awaiter();
   // test_F();
-  test_task();
+  test_twice_coro();
   std::cout << "test_task returned, but task still running..." << std::endl;
+  sleep(15);
   iom->autoStop();
   std::cout << "autoStoped" << std::endl;
-  sleep(15);
 
 
 
