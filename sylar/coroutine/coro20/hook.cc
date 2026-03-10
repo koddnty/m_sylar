@@ -1,9 +1,10 @@
 #include <asm-generic/errno.h>
+#include <sys/uio.h>
 #include <asm-generic/socket.h>
 #include <cerrno>
 #include <cstdarg>
 #include <cstdint>
-#include <fcntl.h>
+#include <fcntl.h>      
 #include <iostream>
 #include <memory>
 #include <ostream>
@@ -22,34 +23,34 @@
 
 namespace m_sylar
 {
-#define HOOK_FUN(XX) \
-    XX(sleep) \
-    XX(usleep) \
-    XX(nanosleep) \
-    XX(socket) \
-    XX(accept) \
-    XX(connect) \
-    XX(read) \
-    XX(readv) \
-    XX(preadv) \
-    XX(preadv2) \
-    XX(recv) \
-    XX(recvfrom) \
-    XX(recvmsg) \
-    XX(write) \
-    XX(writev) \
-    XX(pwritev) \
-    XX(pwritev2) \
-    XX(send) \
-    XX(sendto) \
-    XX(sendmsg) \
-    XX(close) \
-    XX(fcntl) \
-    XX(ioctl) \
-    XX(getsockopt) \
-    XX(setsockopt) 
+// #define HOOK_FUN(XX) \
+//     XX(sleep) \
+//     XX(usleep) \
+//     XX(nanosleep) \
+//     XX(socket) \
+//     XX(accept) \
+//     XX(connect) \
+//     XX(read) \
+//     XX(readv) \
+//     XX(preadv) \
+//     XX(preadv2) \
+//     XX(recv) \
+//     XX(recvfrom) \
+//     XX(recvmsg) \
+//     XX(write) \
+//     XX(writev) \
+//     XX(pwritev) \
+//     XX(pwritev2) \
+//     XX(send) \
+//     XX(sendto) \
+//     XX(sendmsg) \
+//     XX(close) \
+//     XX(fcntl) \
+//     XX(ioctl) \
+//     XX(getsockopt) \
+//     XX(setsockopt) 
 
-static thread_local bool t_hook_enable = false;
+// static thread_local bool t_hook_enable = false;
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 static m_sylar::ConfigVar<uint64_t>::ptr g_tcp_connect_timeout =
@@ -144,11 +145,11 @@ template<typename Original_fun, typename ... Args>
 static Task<ssize_t> do_io(int fd, Original_fun func, const char* fun_name, 
     uint32_t event, int type, Args&& ... args)
 {   // 文件描述符 原io函数 原函数名称 事件(读/写) 定时器任务类型(读/写) io函数其他参数
-    if(!m_sylar::is_hook_enable())
-    {
-        // std::cout << "NOHOOK" << std::endl;
-        co_return func(fd, std::forward<Args>(args)...);
-    }
+    // if(!m_sylar::is_hook_enable())
+    // {
+    //     // std::cout << "NOHOOK" << std::endl;
+    //     co_return func(fd, std::forward<Args>(args)...);
+    // }
     
     // std::cout << "HOOKED" << std::endl;
     // 对fd状态检查
@@ -195,46 +196,46 @@ retry:
 }
 
 
-struct _Hook_initer 
-{
-    _Hook_initer()
-    {
-        hook_init();
-    }
+// struct _Hook_initer 
+// {
+//     _Hook_initer()
+//     {
+//         hook_init();
+//     }
 
-    void hook_init()
-    {
-        static bool is_inited = false;
-        if(is_inited)
-        {
-            return;
-        }
-        is_inited = true;
+//     void hook_init()
+//     {
+//         static bool is_inited = false;
+//         if(is_inited)
+//         {
+//             return;
+//         }
+//         is_inited = true;
 
-        #define XX(name) original_ ## name = (name ## _fun)dlsym(RTLD_NEXT, #name);
-            HOOK_FUN(XX)
-        #undef XX
-    }
+//         #define XX(name)  ## name = (name ## _fun)dlsym(RTLD_NEXT, #name);
+//             HOOK_FUN(XX)
+//         #undef XX
+//     }
 
-    void hook_config_init()
-    {
-        // 0xA1B2C4 日志模块logs监听唯一标识
-        g_tcp_connect_timeout->addListener(0xA1B2C4, [](const uint64_t& old_val, const uint64_t& new_val){
-            g_tcp_connect_timeout->setValue(new_val);
-        });
-    }
-};
-static _Hook_initer s_hook_inite;
+//     void hook_config_init()
+//     {
+//         // 0xA1B2C4 日志模块logs监听唯一标识
+//         g_tcp_connect_timeout->addListener(0xA1B2C4, [](const uint64_t& old_val, const uint64_t& new_val){
+//             g_tcp_connect_timeout->setValue(new_val);
+//         });
+//     }
+// };
+// static _Hook_initer s_hook_inite;
 
-bool is_hook_enable()
-{
-    return t_hook_enable;
-}
+// bool is_hook_enable()
+// {
+//     return t_hook_enable;
+// }
 
-void set_hook_state(bool flags)
-{
-    t_hook_enable = flags;
-}
+// void set_hook_state(bool flags)
+// {
+//     t_hook_enable = flags;
+// }
 
 
 
@@ -243,9 +244,9 @@ void set_hook_state(bool flags)
 
 // extern "C"
 // {
-#define XX(name) name ## _fun original_ ## name = nullptr;
-    HOOK_FUN(XX)
-#undef XX
+// #define XX(name) name ## _fun  ## name = nullptr;
+//     HOOK_FUN(XX)
+// #undef XX
 
 // sleep 
 class SleepAwaiter : public m_sylar::Awaiter<int>
@@ -276,20 +277,12 @@ private:
 
 m_sylar::Task<unsigned int> co_sleep(unsigned int seconds)
 {
-    if(!m_sylar::is_hook_enable())
-    {
-        co_return original_sleep(seconds);
-    }
     co_await SleepAwaiter(seconds * 1000000);
     co_return 0;
 }
 
 m_sylar::Task<int> co_usleep(useconds_t usec)
 {
-    if(!m_sylar::is_hook_enable())
-    {
-        co_return original_usleep(usec);
-    }
     co_await SleepAwaiter(usec);
     co_return 0;
 }
@@ -297,10 +290,6 @@ m_sylar::Task<int> co_usleep(useconds_t usec)
 m_sylar::Task<int> co_nanosleep(const struct timespec *duration,
                 struct timespec* rem)
 {
-    if(!m_sylar::is_hook_enable())
-    {
-        co_return original_nanosleep(duration, rem);
-    }
     uint64_t time = duration->tv_sec * 1000000 + (duration->tv_nsec / 1000);
     co_await SleepAwaiter(time);
     if(rem)
@@ -311,13 +300,9 @@ m_sylar::Task<int> co_nanosleep(const struct timespec *duration,
     co_return 0; 
 }
 
-int socket(int domain, int type, int protocol)
+int co_socket(int domain, int type, int protocol)
 {
-    if(!m_sylar::is_hook_enable())
-    {
-        return original_socket(domain, type, protocol);
-    }
-    int fd = original_socket(domain, type, protocol);
+    int fd = socket(domain, type, protocol);
     if(fd == -1)
     {
         return -1;
@@ -328,7 +313,7 @@ int socket(int domain, int type, int protocol)
 
 m_sylar::Task<ssize_t> co_accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen)
 {
-    auto result = do_io(sockfd, original_accept, "accept", m_sylar::IOManager::READ, SO_RCVTIMEO, addr, addrlen);
+    auto result = do_io(sockfd, accept, "accept", m_sylar::IOManager::READ, SO_RCVTIMEO, addr, addrlen);
     if(result.getResult() == -1)
     {
         M_SYLAR_LOG_ERROR(m_sylar::g_logger) << "accept failed, sockfd=" << sockfd;
@@ -339,10 +324,6 @@ m_sylar::Task<ssize_t> co_accept(int sockfd, struct sockaddr* addr, socklen_t* a
 m_sylar::Task<int> co_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {   
     uint64_t us_sleep = m_sylar::g_tcp_connect_timeout->getValue();
-    if(!m_sylar::is_hook_enable())
-    {
-        co_return original_connect(sockfd, addr, addrlen);
-    }
     
     m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(sockfd, false);
     if(!fd_ctx || fd_ctx->is_closed() || !fd_ctx->is_init())
@@ -352,11 +333,11 @@ m_sylar::Task<int> co_connect(int sockfd, const struct sockaddr *addr, socklen_t
     }
     if(!fd_ctx->is_socket() || fd_ctx->getUserNoblock())        // 文件描述符非socket或用户需要非阻塞
     {   
-        co_return original_connect(sockfd, addr, addrlen);
+        co_return connect(sockfd, addr, addrlen);
     }
 
     // 先直接尝试
-    int n = original_connect(sockfd, addr, addrlen);
+    int n = connect(sockfd, addr, addrlen);
     if(n == 0)
     {
         co_return 0;
@@ -376,7 +357,7 @@ m_sylar::Task<int> co_connect(int sockfd, const struct sockaddr *addr, socklen_t
     }
     else if(state != io_Awaiter::READY)
     {
-        co_return original_connect(sockfd, addr, addrlen);
+        co_return connect(sockfd, addr, addrlen);
     }
 
 
@@ -401,43 +382,43 @@ m_sylar::Task<int> co_connect(int sockfd, const struct sockaddr *addr, socklen_t
 // read
 m_sylar::Task<ssize_t> co_read(int fd, void* buf, size_t count)
 {
-    co_return do_io(fd, original_read, "read", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(fd, read, "read", m_sylar::IOManager::READ, SO_RCVTIMEO,
                  buf, count).getResult();
 }
 
 m_sylar::Task<ssize_t > co_readv(int fd, const struct iovec *iov, int iovcnt)
 {
-    co_return do_io(fd, original_readv, "readv", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(fd, readv, "readv", m_sylar::IOManager::READ, SO_RCVTIMEO,
                  iov, iovcnt).getResult();
 }
 
 m_sylar::Task<ssize_t > co_preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)
 {
-    co_return do_io(fd, original_preadv, "preadv", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(fd, preadv, "preadv", m_sylar::IOManager::READ, SO_RCVTIMEO,
                  iov, iovcnt, offset).getResult();
 }
 
 m_sylar::Task<ssize_t> co_preadv2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
 {
-    co_return do_io(fd, original_preadv2, "preadv2", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(fd, preadv2, "preadv2", m_sylar::IOManager::READ, SO_RCVTIMEO,
                  iov, iovcnt, offset, flags).getResult();
 }
 
 m_sylar::Task<ssize_t> co_recv(int sockfd, void* buf, size_t len, int flags)
 {
-    co_return do_io(sockfd, original_recv, "recv", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(sockfd, recv, "recv", m_sylar::IOManager::READ, SO_RCVTIMEO,
                 buf, len, flags).getResult();
 }
 
 m_sylar::Task<ssize_t> co_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr *  src_addr, socklen_t* addrlen)
 {
-    co_return do_io(sockfd, original_recvfrom, "recvfrom", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(sockfd, recvfrom, "recvfrom", m_sylar::IOManager::READ, SO_RCVTIMEO,
                 buf, len, flags, src_addr, addrlen).getResult();
 }
 
 m_sylar::Task<ssize_t> co_recvmsg(int sockfd, struct msghdr *msg, int flags)
 {
-    co_return do_io(sockfd, original_recvmsg, "recvmsg", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(sockfd, recvmsg, "recvmsg", m_sylar::IOManager::READ, SO_RCVTIMEO,
                 msg, flags).getResult();   
 }
 
@@ -445,53 +426,50 @@ m_sylar::Task<ssize_t> co_recvmsg(int sockfd, struct msghdr *msg, int flags)
 // write
 m_sylar::Task<ssize_t> co_write(int fd, const void* buf, size_t count)
 {
-    co_return do_io(fd, original_write, "write", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(fd, write, "write", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
                 buf, count).getResult(); 
 }
 
 m_sylar::Task<ssize_t> co_writev(int fd, const struct iovec *iov, int iovcnt)
 {
-    co_return do_io(fd, original_writev, "writev", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(fd, writev, "writev", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
                 iov, iovcnt).getResult(); 
 }
     
 m_sylar::Task<ssize_t> co_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
 {
-    co_return do_io(fd, original_pwritev, "pwritev", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(fd, pwritev, "pwritev", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
                 iov, iovcnt, offset).getResult(); 
 }
 
 m_sylar::Task<ssize_t> co_pwritev2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
 {
-    co_return do_io(fd, original_pwritev2, "pwritev2", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(fd, pwritev2, "pwritev2", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
                 iov, iovcnt, offset, flags).getResult(); 
 }
 
 m_sylar::Task<ssize_t> co_send(int sockfd, const void* buf, size_t len, int flags)
 {
-    co_return do_io(sockfd, original_send, "send", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(sockfd, send, "send", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
                 buf, len, flags).getResult(); 
 }
     
 m_sylar::Task<ssize_t> co_sendto(int sockfd, const void* buf, size_t len, int flags,
                const struct sockaddr *dest_addr, socklen_t addrlen)
 {
-    co_return do_io(sockfd, original_sendto, "sendto", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(sockfd, sendto, "sendto", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
                 buf, len, flags, dest_addr, addrlen).getResult(); 
 }
 
 m_sylar::Task<ssize_t> co_sendmsg(int sockfd, const struct msghdr *msg, int flags)
 {
-    co_return do_io(sockfd, original_sendmsg, "sendmsg", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(sockfd, sendmsg, "sendmsg", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
                 msg, flags).getResult(); 
 }
 
 // close
-int close(int fd){
-    if(!m_sylar::is_hook_enable())
-    {
-        return original_close(fd);
-    }
+int co_close(int fd){
+
 
     m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
 
@@ -504,11 +482,11 @@ int close(int fd){
         }
         m_sylar::FdMgr::GetInstance()->del(fd);
     }
-    return original_close(fd);
+    return close(fd);
 }
 
 // functional       
-int fcntl (int fd, int op, ...  )
+int co_fcntl (int fd, int op, ...  )
 {
     va_list ap;
     va_start(ap, op);
@@ -523,7 +501,7 @@ int fcntl (int fd, int op, ...  )
             m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
             if(!fd_ctx || fd_ctx->is_closed() || !fd_ctx->is_socket())
             {
-                return original_fcntl(fd, op, arg);
+                return fcntl(fd, op, arg);
             }
             fd_ctx->setUserNoblock(arg & O_NONBLOCK);
             if(fd_ctx->getSysNoblock())     // 保存系统原状态
@@ -534,32 +512,32 @@ int fcntl (int fd, int op, ...  )
             {
                 arg &= !O_NONBLOCK;
             }
-            return original_fcntl(fd, op, arg);
+            return fcntl(fd, op, arg);
         }
             break;
         case F_GETFL:
             {
                 va_end(ap);
-                int original_value = original_fcntl(fd, op);
-                if(!m_sylar::is_hook_enable())
-                {
-                    return original_value;
-                }
+                int value = fcntl(fd, op);
+                // if(!m_sylar::is_hook_enable())
+                // {
+                //     return value;
+                // }
 
                 m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd, false);
                 if(!fd_ctx || fd_ctx->is_closed() || !fd_ctx->is_socket())
                 {
                     // 非socket
-                    return original_value;
+                    return value;
                 } 
                 if(fd_ctx->getUserNoblock())
                 {
-                    return original_value | O_NONBLOCK;     // 用户设置非阻塞
+                    return value | O_NONBLOCK;     // 用户设置非阻塞
                 }
                 else
                 {
-                    // return original_value & ~O_NONBLOCK;    // 用户没有规定非阻塞，默认阻塞
-                    return original_value & ~O_NONBLOCK ;    // 用户没有规定非阻塞，默认阻塞，是实际非阻塞
+                    // return value & ~O_NONBLOCK;    // 用户没有规定非阻塞，默认阻塞
+                    return value & ~O_NONBLOCK ;    // 用户没有规定非阻塞，默认阻塞，是实际非阻塞
                 }
             }
             break;
@@ -576,7 +554,7 @@ int fcntl (int fd, int op, ...  )
         {       
             int arg = va_arg(ap, int);
             va_end(ap);
-            return original_fcntl(fd, op, arg);
+            return fcntl(fd, op, arg);
         }
             break;
 
@@ -588,7 +566,7 @@ int fcntl (int fd, int op, ...  )
         {
             uint64_t* arg = va_arg(ap, uint64_t*);
             va_end(ap);
-            return original_fcntl(fd, op, arg);
+            return fcntl(fd, op, arg);
         }
             break;
         // void
@@ -614,7 +592,7 @@ int fcntl (int fd, int op, ...  )
         {
             struct flock * arg = va_arg(ap, struct flock *);
             va_end(ap);
-            return original_fcntl(fd, op, arg);
+            return fcntl(fd, op, arg);
         }
             break;
 
@@ -624,17 +602,17 @@ int fcntl (int fd, int op, ...  )
         {
             struct f_owner_ex* arg = va_arg(ap, struct f_owner_ex*);
             va_end(ap);
-            return original_fcntl(fd, op, arg);
+            return fcntl(fd, op, arg);
         }
             break;
         
         default:
             va_end(ap);
-            return original_fcntl(fd, op);
+            return fcntl(fd, op);
     }
 }
 
-int ioctl(int fd, unsigned long op, ...)
+int co_ioctl(int fd, unsigned long op, ...)
 {
     va_list ap;
     va_start(ap, op);
@@ -647,30 +625,27 @@ int ioctl(int fd, unsigned long op, ...)
         m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
         if(!fd_ctx || fd_ctx->is_closed() || !fd_ctx->is_socket())
         {
-            return original_fcntl(fd, op, arg);
+            return fcntl(fd, op, arg);
         }
         fd_ctx->setUserNoblock(user_nonblock);
     } 
-    return original_ioctl(fd, op, 1);
+    return ioctl(fd, op, 1);
 }
 
 
 // option
-int getsockopt(int sockfd, int level, int optname,
+int co_getsockopt(int sockfd, int level, int optname,
                     void* optval,
                     socklen_t * optlen)
 {
-    return original_getsockopt(sockfd, level, optname, optval, optlen);
+    return getsockopt(sockfd, level, optname, optval, optlen);
 }
 
-int setsockopt(int sockfd, int level, int optname,
+int co_setsockopt(int sockfd, int level, int optname,
                     const void* optval,
                     socklen_t optlen)
 {
-    if(!m_sylar::is_hook_enable())
-    {
-        return original_setsockopt(sockfd, level, optname, optval, optlen);
-    }
+
     if(level == SOL_SOCKET)
     {
         if(optname == SO_RCVTIMEO || optname == SO_SNDTIMEO)
@@ -683,7 +658,7 @@ int setsockopt(int sockfd, int level, int optname,
             }
         }
     }
-    return original_setsockopt(sockfd, level, optname, optval, optlen);
+    return setsockopt(sockfd, level, optname, optval, optlen);
 }
 
 }

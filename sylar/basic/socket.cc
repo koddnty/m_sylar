@@ -144,21 +144,21 @@ bool Socket::setOption(int level, int option, const void* value, socklen_t len)
     return true;
 }
 
-Socket::ptr Socket::accept()
+Task<Socket::ptr> Socket::accept()
 {
     Socket::ptr new_sock {new Socket(m_family, m_type, m_protocol)};
-    int new_sock_fd = ::accept(m_sock_fd, nullptr, nullptr);
+    int new_sock_fd = co_await co_accept(m_sock_fd, nullptr, nullptr);
     if(new_sock_fd == -1)
     {
         M_SYLAR_LOG_ERROR(g_logger) << "accept failed, errno = " << errno
                                     << "   error : " << strerror(errno)
                                     << "   m_sock_fd = " << m_sock_fd;
-        return nullptr;
+        co_return nullptr;
     }
     if(new_sock->init(new_sock_fd)){
-        return new_sock;
+        co_return new_sock;
     }
-    return nullptr;
+    co_return nullptr;
 }
 
 bool Socket::init(int sock_fd)

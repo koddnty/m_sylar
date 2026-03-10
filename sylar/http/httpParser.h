@@ -73,6 +73,11 @@ public:
     using ptr = std::shared_ptr<HttpResponseParser>;
     HttpResponseParser();
 
+    ~HttpResponseParser()
+    {
+        delete m_parser;
+    }
+
     // http request paresr callback functions
     static void on_field_cb(void *data, const char *field, size_t flen, const char *value, size_t vlen);
     static void on_reason_phrase(void *data, const char *at, size_t length);

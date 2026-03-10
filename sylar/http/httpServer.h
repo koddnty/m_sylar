@@ -34,7 +34,6 @@ public:
     bool updateSession();               // recv后更新session信息，如connect和cookie
 
 
-
 private:
     Socket::ptr m_socket;               // 客户端通信socket
     HttpRequestParser::ptr m_request_parser;    
@@ -50,7 +49,7 @@ public:
     using HandlerFunc = std::function<void(HttpSession::ptr)>;
     using ptr = std::shared_ptr<HttpServer>;
 
-    HttpServer(IOManager* iomanager = IOManager::getInstance()) : TcpServer(){}
+    HttpServer(IOManager* iomanager = IOManager::getInstance()) : TcpServer(iomanager){}
     ~HttpServer() {}
 
     void registerUrl(const std::string& url, HandlerFunc cb, http::HttpMethod method);

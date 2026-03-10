@@ -99,13 +99,13 @@ target_include_directories(sylar PUBLIC
 #     ${CMAKE_CURRENT_SOURCE_DIR}/sylar
 # )
 
-add_executable(taskCoro_test tests/lab_test/taskCoro_test.cc)
-add_dependencies(taskCoro_test sylar)
-target_link_libraries(taskCoro_test sylar ${LIB_LIB})
+# add_executable(taskCoro_test tests/lab_test/taskCoro_test.cc)
+# add_dependencies(taskCoro_test sylar)
+# target_link_libraries(taskCoro_test sylar ${LIB_LIB})
 
-add_executable(task_test tests/lab_test/task_test.cc)
-add_dependencies(task_test sylar)
-target_link_libraries(task_test sylar ${LIB_LIB})
+# add_executable(task_test tests/lab_test/task_test.cc)
+# add_dependencies(task_test sylar)
+# target_link_libraries(task_test sylar ${LIB_LIB})
 
 # add_executable(test tests/test.cc)
 # add_dependencies(test sylar)
@@ -175,29 +175,29 @@ target_link_libraries(test_self_timer sylar ${LIB_LIB})
 # add_dependencies(http_test sylar)
 # target_link_libraries(http_test sylar ${LIB_LIB})
 
-# add_executable(httpParser_test tests/httpParser_test.cc)
-# add_dependencies(httpParser_test sylar)
-# target_link_libraries(httpParser_test sylar ${LIB_LIB})
+add_executable(httpParser_test tests/httpParser_test.cc)
+add_dependencies(httpParser_test sylar)
+target_link_libraries(httpParser_test sylar ${LIB_LIB})
 
-# add_executable(tcpServer_test tests/tcpServer_test.cc)
-# add_dependencies(tcpServer_test sylar)
-# target_link_libraries(tcpServer_test sylar ${LIB_LIB})
+add_executable(tcpServer_test tests/tcpServer_test.cc)
+add_dependencies(tcpServer_test sylar)
+target_link_libraries(tcpServer_test sylar ${LIB_LIB})
 
 # add_executable(httpServer_test tests/httpServer_test.cc)
 # add_dependencies(httpServer_test sylar)
 # target_link_libraries(httpServer_test sylar ${LIB_LIB})
 
-add_executable(performance_test_scheduler tests/performance_tests/scheduler_exchange.cc)
-add_dependencies(performance_test_scheduler sylar)
-target_link_libraries(performance_test_scheduler sylar ${LIB_LIB})
+# add_executable(performance_test_scheduler tests/performance_tests/scheduler_exchange.cc)
+# add_dependencies(performance_test_scheduler sylar)
+# target_link_libraries(performance_test_scheduler sylar ${LIB_LIB})
 
-add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
-add_dependencies(scheduleCoro20_test sylar)
-target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
+# add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
+# add_dependencies(scheduleCoro20_test sylar)
+# target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
 
-add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
-add_dependencies(iomanagerCoro20_test sylar)
-target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
+# add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
+# add_dependencies(iomanagerCoro20_test sylar)
+# target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)

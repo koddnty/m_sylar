@@ -94,7 +94,8 @@ bool TcpServer::start()
 
     for(auto& sock : m_sockets)
     {
-        m_iomanager->schedule(std::bind(&TcpServer::startAccept, shared_from_this(), sock));
+        auto t = std::bind(&TcpServer::startAccept, shared_from_this(), sock);
+        m_iomanager->schedule(TaskCoro20::create_coro(t));
     }
     return true;
 }
@@ -130,20 +131,19 @@ void TcpServer::handleClient(Socket::ptr client)
     sleep(2);
 }
 
-void TcpServer::startAccept(Socket::ptr sock)
+Task<void, TaskBeginExecuter> TcpServer::startAccept(Socket::ptr sock)
 {
     while(!isStop())
     {
-        Socket::ptr client = sock->accept();
+        Socket::ptr client = co_await sock->accept();
         if(client)
         {
+            std::cout << "new client" << std::endl;
             m_iomanager->schedule(std::bind(&TcpServer::handleClient, shared_from_this(), client));
         }
         else 
         {
             M_SYLAR_LOG_WARN(g_logger) << "accept failed, errno : " << errno << " error : " << strerror(errno);
-                                    //    << "\n remote address: " << sock->getRemoteAddress() 
-                                    //    << "\n local address:  " << sock->getLocalAddress(); 
         }
     }
          

@@ -30,7 +30,6 @@ HttpSession::HttpSession(Socket::ptr socket)
     m_response.reset(new HttpResponse());
     m_request_parser.reset(new HttpRequestParser());
     m_buffer = new char[buffer_size];
-
 }
 
 HttpSession::~HttpSession()
@@ -56,8 +55,8 @@ int HttpSession::recvRequest()
         // message_len = m_socket->recv(m_buffer + buffer_size - offset, offset, 0);
         message_len = m_socket->recv(m_buffer, buffer_size, 0);
         total_length += message_len;
-        std::cout << "---=---=---total length = " << total_length << std::endl;
-        M_SYLAR_LOG_DEBUG(g_logger) << "message:\n" << std::string(m_buffer, message_len);
+        // std::cout << "---=---=---total length = " << total_length << std::endl;
+        // M_SYLAR_LOG_DEBUG(g_logger) << "message:\n" << std::string(m_buffer, message_len);
         if(message_len == 0)
         {   // 连接关闭
             return 0;
@@ -83,7 +82,7 @@ int HttpSession::recvRequest()
 
         if(m_request_parser->isFinished())
         {   // 完成处理
-            M_SYLAR_LOG_DEBUG(g_logger) << "[httpSession] recv success, total length = " << total_length;
+            // M_SYLAR_LOG_DEBUG(g_logger) << "[httpSession] recv success, total length = " << total_length;
             return total_length;
         }
         else if(offset == total_length - buffer_size)
@@ -165,7 +164,7 @@ void HttpServer::execHandler(const std::string& url, HttpSession::ptr session)
 void HttpServer::handleClient(Socket::ptr client)
 {
     bool is_keep_alive = false;
-    M_SYLAR_LOG_INFO(g_logger) << "newClient, socket :";
+    // M_SYLAR_LOG_INFO(g_logger) << "newClient, socket :";
     do
     {
         HttpSession::ptr session(new HttpSession(client));

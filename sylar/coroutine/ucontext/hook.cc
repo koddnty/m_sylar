@@ -193,7 +193,7 @@ static _Hook_initer s_hook_inite;
 
 bool is_hook_enable()
 {
-    return t_hook_enable;
+    return true;
 }
 
 void set_hook_state(bool flags)

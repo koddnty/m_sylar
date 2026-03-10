@@ -155,7 +155,7 @@ namespace m_sylar {
             if(m_autoStop)
             {
                 // 线程池停止
-                M_SYLAR_LOG_DEBUG(g_logger) << "child thread stop";
+                // M_SYLAR_LOG_DEBUG(g_logger) << "child thread stop";
                 break;
             }
             else if(ft.fiber && (ft.fiber->getState() != Fiber::TERM

@@ -1,5 +1,6 @@
 #pragma once
 #include "address.h"
+#include "coroutine/corobase.h"
 #include <cstddef>
 #include <cstdint>
 #include <getopt.h>
@@ -62,7 +63,7 @@ public:
     bool init(int sock_fd);         // create a Socket from socketFd
     bool bind(const Address::ptr addr);
     bool listen(int backlog = SOMAXCONN);
-    Socket::ptr accept();
+    Task<Socket::ptr> accept();
     bool connect(const Address::ptr addr, uint64_t timeOut = -1);       // client
     bool close();
 

@@ -6,6 +6,7 @@ namespace m_sylar{
 Logger::Logger(const std::string& name){
     m_name = name;
     m_formatter.reset(new LogFormatter("╭─%d{%Y-%m-%d %H:%M:%S}%T[%p]%T[%c]%T[thread:%t fiber:%f]%T%F:%L%T%n╰─%m%n"));
+    m_level = LogLevel::UNKNOWN;
 }
 
 std::string LogLevel::to_string(LogLevel::Level level){
@@ -82,6 +83,8 @@ std::stringstream& LogEventWrap::getSS(){
 void Logger::log(LogLevel::Level level, LogEvent::ptr event){
     auto self = shared_from_this();
     // std::cout << level << "<<>>" << m_level << std::endl;
+    std::cout << level << std::endl;
+    std::cout << m_level << std::endl;
     if(level >= m_level){
         if(!m_Appenders.empty()){
             for(auto& it : m_Appenders){
