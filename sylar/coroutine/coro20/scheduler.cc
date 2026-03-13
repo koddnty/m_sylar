@@ -81,6 +81,10 @@ void Scheduler::run()
             //     m_tasks.erase(it);
             // }
             work_list.splice(work_list.end(), m_tasks, begin, end);
+            if(m_tasks.size() && m_idleThreadCount)
+            {
+                tickle();
+            }
         }
         // 执行任务
         TaskCoro20 curr_task;

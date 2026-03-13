@@ -179,6 +179,30 @@ public:
         m_task.finally(std::move(func));
     }
 
+    TaskCoro20 clone()
+    {
+        TaskCoro20 rt;
+        rt.m_type = m_type;
+        if(m_type == CORO)
+        {
+            rt.m_coro_task = m_coro_task;
+            rt.m_task = m_coro_task();
+            rt.m_is_inited = m_is_inited;
+            rt.m_finished = false;
+        }
+        else if(m_type == FUNC)
+        {
+            rt.m_func_task = m_func_task;
+            rt.m_is_inited = m_is_inited;
+            rt.m_finished = false;
+        }
+        else
+        {
+            std::cout << "[CORO20fiber]: UNKNOWN " << m_type << "Task type"  << std::endl;
+        }
+        return rt;
+    }
+
 public:
 
     static TaskCoro20 create_coro(std::function<Task<void, TaskBeginExecuter>()> task)     // 协程任务

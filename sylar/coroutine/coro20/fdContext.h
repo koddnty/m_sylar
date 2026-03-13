@@ -26,22 +26,24 @@ public:
     };
 
 public:
-    FdContext(int fd);
+    FdContext(int fd, int epollFd);
     ~FdContext();
 
-    bool resetEvent();        // 重新设置Event
-    bool addEvent();        // 原基础上添加event
+    FdContext& addEvent(Event event, TaskCoro20&& task);        // 原基础上添加event
+    FdContext& delEvent(Event event);         // 删除event
+    FdContext& trigger(Event event);       
     inline int getFd();
-    bool isValid();         // 是否存在事件
+    inline bool hasEvent();         // 是否存在事件
 
-    void reset();           // 清空所有事件，回归初始状态
+    FdContext&  reset();           // 清空所有事件，回归初始状态
 
 
 private:
     int m_fd;
-    Event m_event;
-    TaskCoro20 m_cb_read;
-    TaskCoro20 m_cb_write;
+    int m_epollFd;
+    Event m_event = NONE;
+    TaskCoro20 m_cb_read {};
+    TaskCoro20 m_cb_write {};
 };
 
 
@@ -66,7 +68,7 @@ public:
     class TRIGGER_TASK;            // 触发事件回调任务
 
 public:
-    FdContextManager(int fd);
+    FdContextManager(int fd, int epollFd);
     ~FdContextManager();
 
     /**
@@ -74,8 +76,9 @@ public:
     */
     bool addTask(std::shared_ptr<RegistedTask> task);
 
-    void trigger(FdContext::Event event);
-
+    void trigger(FdContext::Event event);   // 触发回调
+    void addEvent(FdContext::Event event, TaskCoro20&& task);
+    void delEvent(FdContext::Event event);
 
 private:
     /**
@@ -106,9 +109,9 @@ public:
 
     virtual void run() = 0;         // 任务执行函数
 
-    FdContextManager::ptr getFdCtxMgr() const {return m_fd_ctx_manager; }
+    inline FdContextManager::ptr getFdCtxMgr() const {return m_fd_ctx_manager; }
 
-private:    
+protected:    
     FdContextManager::ptr m_fd_ctx_manager;
 };
 
@@ -123,7 +126,7 @@ public:
 
 
 private:
-    FdContext::Event event;
+    FdContext::Event m_event;
 };
 
 
@@ -131,12 +134,13 @@ class FdContextManager::ADD_TASK : public FdContextManager::RegistedTask
 {
 public:
     using ptr = std::shared_ptr<ADD_TASK>;
-    ADD_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event event);
+    ADD_TASK(FdContextManager::ptr fd_ctx_manager, TaskCoro20&& task, FdContext::Event event);
 
     void run() override;
 
 private:   
-    FdContext::Event event;
+    FdContext::Event m_event;
+    TaskCoro20 m_task;
 };
 
 class FdContextManager::TRIGGER_TASK : public FdContextManager::RegistedTask
@@ -148,7 +152,7 @@ public:
     void run() override;
     
 private:   
-    FdContext::Event event;
+    FdContext::Event m_event;
 };
 
 }
