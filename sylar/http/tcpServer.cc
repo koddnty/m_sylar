@@ -125,10 +125,11 @@ void TcpServer::setName(std::string name)
 
 }
 
-void TcpServer::handleClient(Socket::ptr client)
+Task<void, TaskBeginExecuter> TcpServer::handleClient(Socket::ptr client)
 {
     M_SYLAR_LOG_DEBUG(g_logger) << "new client";
     sleep(2);
+    co_return;
 }
 
 Task<void, TaskBeginExecuter> TcpServer::startAccept(Socket::ptr sock)
@@ -138,8 +139,13 @@ Task<void, TaskBeginExecuter> TcpServer::startAccept(Socket::ptr sock)
         Socket::ptr client = co_await sock->accept();
         if(client)
         {
-            std::cout << "new client" << std::endl;
-            m_iomanager->schedule(std::bind(&TcpServer::handleClient, shared_from_this(), client));
+            // std::cout << "new client" << std::endl;
+            auto t = std::bind(&TcpServer::handleClient, shared_from_this(), client);
+            m_iomanager->schedule(TaskCoro20::create_coro(t));
+
+            // auto t = [self = shared_from_this(), client]() -> Task<void, TaskBeginExecuter> {
+                // co_await self->handleClient(client);  // ✅ 动态绑定
+            // };
         }
         else 
         {

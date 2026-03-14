@@ -15,6 +15,9 @@ namespace m_sylar
 namespace http
 {
 
+/**
+    @brief http回话内容管理
+*/
 class HttpSession
 {
 public: 
@@ -28,8 +31,8 @@ public:
 
     bool setResponse();                 // 设置响应报文， 成功返回true;
 
-    int recvRequest();                 // 接收一个http请求
-    int sendResp();                     // 针对当前请求返回响应
+    Task<int> recvRequest();                 // 接收一个http请求
+    Task<int> sendResp();                     // 针对当前请求返回响应
 
     bool updateSession();               // recv后更新session信息，如connect和cookie
 
@@ -53,13 +56,17 @@ public:
     ~HttpServer() {}
 
     void registerUrl(const std::string& url, HandlerFunc cb, http::HttpMethod method);
+
+    bool start() override;
     
     void GET(const std::string& url, HandlerFunc cb);
     void POST(const std::string& url, HandlerFunc cb);
 
+
     void execHandler(const std::string& url, HttpSession::ptr session);
 private:
-    void handleClient(Socket::ptr client) override;
+    Task<void, TaskBeginExecuter> handleClient(Socket::ptr client) override;
+    Task<void, TaskBeginExecuter> startAccept(Socket::ptr sock) override;
     std::map<std::string, std::pair<HttpMethod, std::function<void(HttpSession::ptr)>>> m_urls;
 };
 

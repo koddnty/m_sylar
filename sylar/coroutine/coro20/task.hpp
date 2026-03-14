@@ -136,6 +136,7 @@ public:
 
     // 禁用拷贝构造
     Task(Task& other) = delete;
+    Task(const Task& other) = delete;
     Task& operator=(Task& other) = delete;
 
     ~Task() override
@@ -155,7 +156,10 @@ public:
     Task(Task&& other)
         : m_handler(std::exchange(other.m_handler, {}))
         , m_executer(other.m_executer)
-        , m_is_have_task(other.m_is_have_task) {}
+        , m_is_have_task(other.m_is_have_task) {
+            other.m_is_have_task = nullptr;
+            other.m_executer = nullptr;
+        }
     Task<ResultType, Executer>& operator=(Task<ResultType, Executer>&& other)
     {
         // 清理自身资源
@@ -174,6 +178,7 @@ public:
         m_executer = std::move(other.m_executer);
         m_is_have_task = other.m_is_have_task;
         other.m_is_have_task = nullptr;
+        other.m_executer = nullptr;
         return *this;
     }
 
@@ -245,7 +250,6 @@ class TaskPromise
 public:
     ~TaskPromise()
     {
-
         delete m_executer;
     }
 
@@ -323,6 +327,7 @@ public:
         {
             lock.unlock();
             cb(m_result.value());
+            return;
         }
         m_callbacks.push_back(cb);
     }
@@ -357,15 +362,15 @@ class Awaiter
 {   // Awaiter抽象类，用于co_awaiter，并带有自动的句柄管理
 public:
     Awaiter()
-    {
-
-    }
+    {}
 
     ~Awaiter()
-    {
+    {}
 
-    }
+    Awaiter(Awaiter& other) = default;
+    Awaiter(Awaiter&& other) = delete;
 
+public:
     bool await_ready()
     {
         return false;
@@ -418,12 +423,12 @@ protected:
     void resume(_ResultType value) {
         if(m_is_resumed)
         {
-            std::cout << "[Task Awaiter] ERROR: resumed twice in one awaiter" << std::endl;
+            // std::cout << "[Task Awaiter] ERROR: resumed twice in one awaiter" << std::endl;
             return;
         }
         m_is_resumed = true;
         if(m_handle.done()){
-
+            return;
         }
         dispatch([this, value]() {
             // 将 value 封装到 _result 当中，await_resume 时会返回 value
@@ -464,7 +469,7 @@ private:
 
 
 template<typename _ResultType, typename _Executer>
-class TaskAwaiter
+class TaskAwaiter : public Awaiter<_ResultType>
 {   // co_await Task时获得的awaiter,由子任务模板构成，在子任务运行完毕后会恢复当前任务
 public:
     TaskAwaiter(Task<_ResultType, _Executer>* task)
@@ -485,20 +490,19 @@ public:
     }
 
     // TaskPromise<_ResultType, _Executer>
-    void await_suspend(std::coroutine_handle<> handle)
+    void on_suspend() override
     {   // 控制子协程是否完成后恢复自己
         // m_task.getExecuter()->execute([handle, this](){
-        m_task->finally([handle](Result<_ResultType> result){
-
-            handle.resume();
+        m_task->finally([this](Result<_ResultType> result){
+            this->resume(m_task->getResult());
         });
         // });
     }
 
-    _ResultType await_resume()
-    {
-        return m_task->getResult();
-    }
+    // _ResultType await_resume()
+    // {
+    //     return m_task->getResult();
+    // }
 
 private:
     Task<_ResultType, _Executer>* m_task;           // 子协程任务
@@ -560,6 +564,105 @@ private:
 };
 
 
+template<>
+class Awaiter<void>
+{
+public:
+    Awaiter()
+    {
+
+    }
+
+    ~Awaiter()
+    {
+
+    }
+
+    Awaiter(Awaiter& other) = default;
+    Awaiter(Awaiter&& other) = delete;
+
+public:
+    bool await_ready()
+    {
+        return false;
+    }
+
+    // TaskPromise<_ResultType, _Executer>
+    void await_suspend(std::coroutine_handle<> handle)
+    {   // 控制协程是否完成后恢复自己
+        m_handle = handle;
+        on_suspend();
+
+    }
+
+    void await_resume()
+    {
+        // if (!m_result.has_value()) {
+        //     throw std::runtime_error("No result available");
+        // }
+        before_resume();
+        m_result->getOrThrow();
+    }
+
+    void install_executor(AbstractExecuter* executer)
+    {
+        m_executer = executer;
+    }
+
+    void dispatch(std::function<void()> &&func)
+    {
+        if(m_executer)
+        {
+            m_executer->execute(std::move(func));
+        }
+        else
+        {
+            func();
+        }
+    }
+
+protected:
+    virtual void on_suspend()
+    {}
+
+    virtual void before_resume()
+    {}
+
+protected:
+    // 结果对子类可见，方便灵活操作
+    std::optional<Result<void>> m_result{};
+
+    void resume() {
+
+        dispatch([this]() {
+            // 将 value 封装到 _result 当中，await_resume 时会返回 value
+
+            m_handle.resume();
+        });
+    }
+
+    void resume_unsafe() {
+        dispatch([this]() {
+
+            m_handle.resume();
+        });
+    }
+
+    void resume_exception(std::exception_ptr&& e)
+    {
+        dispatch([this, e](){
+            m_result = Result<void>(e);
+
+            m_handle.resume();
+        });
+    }
+
+private:
+    std::coroutine_handle<> m_handle;
+    AbstractExecuter* m_executer = NULL;
+};
+
+
 template<typename Executer>
 class Task<void, Executer> : public ITask
 {
@@ -578,6 +681,7 @@ public:
 
     // 禁用拷贝构造
     Task(Task& other) = delete;
+    Task(const Task& other) = delete;
     Task& operator=(Task& other) = delete;
 
     // 移动构造
@@ -586,6 +690,7 @@ public:
         , m_executer(other.m_executer)
         , m_is_have_task(other.m_is_have_task) {
             other.m_is_have_task = nullptr;
+            other.m_executer = nullptr;
         }
 
     Task<void, Executer>& operator=(Task<void, Executer>&& other)
@@ -607,6 +712,7 @@ public:
         m_executer = std::move(other.m_executer);
         m_is_have_task = other.m_is_have_task;
         other.m_is_have_task = nullptr;
+        other.m_executer = nullptr;
         return *this;
     }
 
@@ -766,6 +872,7 @@ public:
         {
             lock.unlock();
             cb(m_result.value());
+            return;
         }
         m_callbacks.push_back(cb);
     }
@@ -795,7 +902,7 @@ private:
 
 
 template<typename _Executer>
-class TaskAwaiter<void, _Executer>
+class TaskAwaiter<void, _Executer> : public Awaiter<void>
 {
 public:
     TaskAwaiter(Task<void, _Executer>* task)
@@ -813,22 +920,20 @@ public:
         return false;
     }
 
-    // TaskPromise<_ResultType, _Executer>
-    void await_suspend(std::coroutine_handle<> handle)
-    {   // 控制协程是否完成后恢复自己
-        // m_task.getExecuter()->execute([handle, this](){
-            // handle.resume();
-        m_task->finally([handle](Result<void> result){
 
-            handle.resume();
+    void on_suspend() override
+    {   // 控制子协程是否完成后恢复自己
+        // m_task.getExecuter()->execute([handle, this](){
+        m_task->finally([this](Result<void> result){
+            this->resume();
         });
         // });
     }
 
-    void await_resume()
-    {
-        m_task->getResult();
-    }
+    // void await_resume()
+    // {
+    //     m_task->getResult();
+    // }
 
 private:
     Task<void, _Executer>* m_task;       // 子协程任务
@@ -836,98 +941,6 @@ private:
 };
 
 
-template<>
-class Awaiter<void>
-{
-public:
-    Awaiter()
-    {
 
-    }
-
-    ~Awaiter()
-    {
-
-    }
-
-    bool await_ready()
-    {
-        return false;
-    }
-
-    // TaskPromise<_ResultType, _Executer>
-    void await_suspend(std::coroutine_handle<> handle)
-    {   // 控制协程是否完成后恢复自己
-        m_handle = handle;
-        on_suspend();
-
-    }
-
-    void await_resume()
-    {
-        // if (!m_result.has_value()) {
-        //     throw std::runtime_error("No result available");
-        // }
-        before_resume();
-        m_result->getOrThrow();
-    }
-
-    void install_executor(AbstractExecuter* executer)
-    {
-        m_executer = executer;
-    }
-
-    void dispatch(std::function<void()> &&func)
-    {
-        if(m_executer)
-        {
-            m_executer->execute(std::move(func));
-        }
-        else
-        {
-            func();
-        }
-    }
-
-protected:
-    virtual void on_suspend()
-    {}
-
-    virtual void before_resume()
-    {}
-
-protected:
-    // 结果对子类可见，方便灵活操作
-    std::optional<Result<void>> m_result{};
-
-    void resume() {
-
-        dispatch([this]() {
-            // 将 value 封装到 _result 当中，await_resume 时会返回 value
-
-            m_handle.resume();
-        });
-    }
-
-    void resume_unsafe() {
-        dispatch([this]() {
-
-            m_handle.resume();
-        });
-    }
-
-    void resume_exception(std::exception_ptr&& e)
-    {
-        dispatch([this, e](){
-            m_result = Result<void>(e);
-
-            m_handle.resume();
-        });
-    }
-
-private:
-    std::coroutine_handle<> m_handle;
-    AbstractExecuter* m_executer = NULL;
-};
 
 }

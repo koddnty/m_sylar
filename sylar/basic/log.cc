@@ -83,8 +83,6 @@ std::stringstream& LogEventWrap::getSS(){
 void Logger::log(LogLevel::Level level, LogEvent::ptr event){
     auto self = shared_from_this();
     // std::cout << level << "<<>>" << m_level << std::endl;
-    std::cout << level << std::endl;
-    std::cout << m_level << std::endl;
     if(level >= m_level){
         if(!m_Appenders.empty()){
             for(auto& it : m_Appenders){

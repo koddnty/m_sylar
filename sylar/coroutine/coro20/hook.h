@@ -62,6 +62,11 @@ int co_getsockopt(int sockfd, int level, int optname,
                     void* optval,
                     socklen_t * optlen);
 
+int co_setsockopt(int sockfd, int level, int optname,
+                    const void* optval,
+                    socklen_t optlen);
+
+
 }
 
 

@@ -4,9 +4,13 @@ project(m_sylar)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
-# set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=thread -fno-omit-frame-pointer -g")
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
+# set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=thread")
+# 原
+# set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=address -fno-omit-frame-pointer -g")
 # set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=address,leak -fno-omit-frame-pointer")
+# 专门用于检测线程问题
+# set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=thread -fno-omit-frame-pointer")
 # set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -g -O0")
 
@@ -184,9 +188,9 @@ add_executable(tcpServer_test tests/tcpServer_test.cc)
 add_dependencies(tcpServer_test sylar)
 target_link_libraries(tcpServer_test sylar ${LIB_LIB})
 
-# add_executable(httpServer_test tests/httpServer_test.cc)
-# add_dependencies(httpServer_test sylar)
-# target_link_libraries(httpServer_test sylar ${LIB_LIB})
+add_executable(httpServer_test tests/httpServer_test.cc)
+add_dependencies(httpServer_test sylar)
+target_link_libraries(httpServer_test sylar ${LIB_LIB})
 
 # add_executable(performance_test_scheduler tests/performance_tests/scheduler_exchange.cc)
 # add_dependencies(performance_test_scheduler sylar)

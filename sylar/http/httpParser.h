@@ -25,6 +25,7 @@ public:
     using ptr = std::shared_ptr<HttpRequestParser>;
 
     HttpRequestParser();
+    ~HttpRequestParser();
 
     // http request paresr call back functions
     static void on_http_field(void *data, const char *field, size_t flen, const char *value, size_t vlen);

@@ -123,6 +123,7 @@ void Timer::runner()
     // 非循环终止
     if(!m_is_cycle)
     {
+        // std::unique_lock<std::shared_mutex> wlock();
         m_manager->cancelTimer(shared_from_this());
     }
     else
@@ -162,6 +163,7 @@ TimeManager::~TimeManager()
 int TimeManager::addTimer(uint64_t intervalTime, bool is_cycle, 
         std::function<void()> main_cb)
 {
+    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     Timer::ptr new_timer (new Timer(intervalTime, is_cycle, this, main_cb));
 
     // std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
@@ -177,6 +179,7 @@ int TimeManager::addConditionTimer(uint64_t intervalTime, bool is_cycle,
     std::function<bool()> condition,
     std::function<void()> condition_cb)
 {
+    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     Timer::ptr new_timer (new Timer(intervalTime, is_cycle, this
                                         , main_cb, condition, condition_cb));
 
@@ -194,7 +197,7 @@ int TimeManager::addConditionTimer(uint64_t intervalTime, bool is_cycle,
 void TimeManager::cancelTimer(Timer::ptr timer)
 {
 
-    // std::unique_lock<std::shared_mutex> w_lock(m_rwMutex);
+    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     
     auto it = m_timersMap.find(timer->m_timeFd);
     if(it != m_timersMap.end())
@@ -213,7 +216,7 @@ void TimeManager::cancelTimer(int timerFd)
 {
     M_SYLAR_ASSERT2(m_iom, "m_iom is nullptr");
 
-    // std::unique_lock<std::shared_mutex> w_lock(m_rwMutex);
+    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     
     auto it = m_timersMap.find(timerFd);
     if(it != m_timersMap.end())

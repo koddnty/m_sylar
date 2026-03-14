@@ -1,20 +1,20 @@
 logs:
   - name: system
-    level: DEBUG
+    level: WARN
     appenders:
       - type: StdoutLogAppender
-        level: DEBUG
+        level: WARN
       - type: FileLogAppender
         file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/log/system_log.txt
         level : DEBUG
   - name: test_config
-    level: DEBUG
+    level: WARN
     appenders:
       - type: FileLogAppender
         file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/log/system_log.txt
-        level : DEBUG
+        level : WARN
       - type: StdoutLogAppender
-        level: DEBUG
+        level: WARN
 
 settings:
   running_path : "/home/ls20241009/user/code/project/sylar_cp/m_sylar"

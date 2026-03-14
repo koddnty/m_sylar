@@ -156,7 +156,7 @@ void IOManager::stateSync(FdContext::ptr fd_ctx, FdContext::Event origin_event)
 
 void IOManager::idle() 
 {
-    const static int MAX_EVENT_NUM = 64;
+    const static int MAX_EVENT_NUM = 4096;
     static const int MAX_TIMEOUT = 5000;
 
     // 等待epoll
