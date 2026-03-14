@@ -100,7 +100,7 @@ void Timer::enrollToManager()
     timerfd_settime(m_timeFd, 0, &new_value, NULL);
 
     // 添加任务
-    m_manager->m_iom->addEvent(m_timeFd, IOManager::Event::READ, std::bind(&Timer::runner, shared_from_this())); 
+    m_manager->m_iom->addEvent(m_timeFd, FdContext::Event::READ, std::bind(&Timer::runner, shared_from_this())); 
 }
 
 
@@ -133,7 +133,7 @@ void Timer::runner()
 
 void Timer::re_enroll()
 {
-    m_manager->m_iom->addEvent(m_timeFd, IOManager::Event::READ, std::bind(&Timer::runner, shared_from_this())); 
+    m_manager->m_iom->addEvent(m_timeFd, FdContext::Event::READ, std::bind(&Timer::runner, shared_from_this())); 
 }
 
 
@@ -199,7 +199,7 @@ void TimeManager::cancelTimer(Timer::ptr timer)
     auto it = m_timersMap.find(timer->m_timeFd);
     if(it != m_timersMap.end())
     {
-        m_iom->delEvent(timer->m_timeFd, IOManager::READ);
+        m_iom->delEvent(timer->m_timeFd, FdContext::READ);
         m_timersMap.erase(it);
     }
     else
@@ -218,7 +218,7 @@ void TimeManager::cancelTimer(int timerFd)
     auto it = m_timersMap.find(timerFd);
     if(it != m_timersMap.end())
     {
-        m_iom->delEvent(timerFd, IOManager::READ);
+        m_iom->delEvent(timerFd, FdContext::READ);
         m_timersMap.erase(it);
     }
     else

@@ -71,7 +71,7 @@ public:
     // doIo_Awaiter(int fd, m_sylar::IOManager::Event event, std::function<void()> deal_func)
     //     : m_fd(fd), m_event(event), m_deal_func(deal_func) {}
 
-    io_Awaiter(int fd, m_sylar::IOManager::Event event, uint64_t timo = -1)
+    io_Awaiter(int fd, m_sylar::FdContext::Event event, uint64_t timo = -1)
         : m_fd(fd), m_timo(timo), m_event(event) {}
 
     
@@ -84,15 +84,9 @@ public:
         std::weak_ptr<fdTimerInfo> wfdtino (fdtino);
         
         // 回调事件注册
-        int rt = iom->addEvent(m_fd, m_event, [this](){  // 回调函数，当有io事件可用或超时时恢复协程
+        iom->addEvent(m_fd, m_event, [this](){  // 回调函数，当有io事件可用或超时时恢复协程
             resume(m_state);
         });
-        if(rt == -1)
-        {   // 注册失败，删除event, 取消定时器
-            // iom->delEvent(m_fd, m_event);
-            m_state = ERROR;
-            return;
-        }
 
 
         // 设置取消定时器
@@ -138,7 +132,7 @@ private:
     int m_fd;
     int m_time_fd = -1;
     uint64_t m_timo;
-    m_sylar::IOManager::Event m_event;
+    m_sylar::FdContext::Event m_event;
 };
 
 template<typename Original_fun, typename ... Args>
@@ -182,7 +176,7 @@ retry:
 
     if(n == -1 && errno == EAGAIN)
     {
-        int rt = co_await io_Awaiter(fd, (m_sylar::IOManager::Event)event, time_out);      // 恢复时代表fd可进行event操作或者由于超时返回
+        int rt = co_await io_Awaiter(fd, (m_sylar::FdContext::Event)event, time_out);      // 恢复时代表fd可进行event操作或者由于超时返回
         if(rt == io_Awaiter::State::READY)
         {   // 有数据时回退并尝试获取数据，其他情况直接返回并退出
             goto retry;
@@ -313,7 +307,7 @@ int co_socket(int domain, int type, int protocol)
 
 m_sylar::Task<ssize_t> co_accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen)
 {
-    auto result = do_io(sockfd, accept, "accept", m_sylar::IOManager::READ, SO_RCVTIMEO, addr, addrlen);
+    auto result = do_io(sockfd, accept, "accept", m_sylar::FdContext::READ, SO_RCVTIMEO, addr, addrlen);
     if(result.getResult() == -1)
     {
         M_SYLAR_LOG_ERROR(m_sylar::g_logger) << "accept failed, sockfd=" << sockfd;
@@ -348,7 +342,7 @@ m_sylar::Task<int> co_connect(int sockfd, const struct sockaddr *addr, socklen_t
     }
 
     // 使用定时器和iomanager进行connectfd的监听
-    auto state = co_await m_sylar::io_Awaiter(sockfd, m_sylar::IOManager::WRITE, us_sleep);
+    auto state = co_await m_sylar::io_Awaiter(sockfd, m_sylar::FdContext::WRITE, us_sleep);
     if(state == io_Awaiter::TIMO)
     {
         M_SYLAR_LOG_INFO(g_logger) << "connect time out, sockfd:" << sockfd << " timo:" << us_sleep;
@@ -382,43 +376,43 @@ m_sylar::Task<int> co_connect(int sockfd, const struct sockaddr *addr, socklen_t
 // read
 m_sylar::Task<ssize_t> co_read(int fd, void* buf, size_t count)
 {
-    co_return do_io(fd, read, "read", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(fd, read, "read", m_sylar::FdContext::READ, SO_RCVTIMEO,
                  buf, count).getResult();
 }
 
 m_sylar::Task<ssize_t > co_readv(int fd, const struct iovec *iov, int iovcnt)
 {
-    co_return do_io(fd, readv, "readv", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(fd, readv, "readv", m_sylar::FdContext::READ, SO_RCVTIMEO,
                  iov, iovcnt).getResult();
 }
 
 m_sylar::Task<ssize_t > co_preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)
 {
-    co_return do_io(fd, preadv, "preadv", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(fd, preadv, "preadv", m_sylar::FdContext::READ, SO_RCVTIMEO,
                  iov, iovcnt, offset).getResult();
 }
 
 m_sylar::Task<ssize_t> co_preadv2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
 {
-    co_return do_io(fd, preadv2, "preadv2", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(fd, preadv2, "preadv2", m_sylar::FdContext::READ, SO_RCVTIMEO,
                  iov, iovcnt, offset, flags).getResult();
 }
 
 m_sylar::Task<ssize_t> co_recv(int sockfd, void* buf, size_t len, int flags)
 {
-    co_return do_io(sockfd, recv, "recv", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(sockfd, recv, "recv", m_sylar::FdContext::READ, SO_RCVTIMEO,
                 buf, len, flags).getResult();
 }
 
 m_sylar::Task<ssize_t> co_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr *  src_addr, socklen_t* addrlen)
 {
-    co_return do_io(sockfd, recvfrom, "recvfrom", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(sockfd, recvfrom, "recvfrom", m_sylar::FdContext::READ, SO_RCVTIMEO,
                 buf, len, flags, src_addr, addrlen).getResult();
 }
 
 m_sylar::Task<ssize_t> co_recvmsg(int sockfd, struct msghdr *msg, int flags)
 {
-    co_return do_io(sockfd, recvmsg, "recvmsg", m_sylar::IOManager::READ, SO_RCVTIMEO,
+    co_return do_io(sockfd, recvmsg, "recvmsg", m_sylar::FdContext::READ, SO_RCVTIMEO,
                 msg, flags).getResult();   
 }
 
@@ -426,44 +420,44 @@ m_sylar::Task<ssize_t> co_recvmsg(int sockfd, struct msghdr *msg, int flags)
 // write
 m_sylar::Task<ssize_t> co_write(int fd, const void* buf, size_t count)
 {
-    co_return do_io(fd, write, "write", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(fd, write, "write", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
                 buf, count).getResult(); 
 }
 
 m_sylar::Task<ssize_t> co_writev(int fd, const struct iovec *iov, int iovcnt)
 {
-    co_return do_io(fd, writev, "writev", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(fd, writev, "writev", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
                 iov, iovcnt).getResult(); 
 }
     
 m_sylar::Task<ssize_t> co_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
 {
-    co_return do_io(fd, pwritev, "pwritev", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(fd, pwritev, "pwritev", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
                 iov, iovcnt, offset).getResult(); 
 }
 
 m_sylar::Task<ssize_t> co_pwritev2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
 {
-    co_return do_io(fd, pwritev2, "pwritev2", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(fd, pwritev2, "pwritev2", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
                 iov, iovcnt, offset, flags).getResult(); 
 }
 
 m_sylar::Task<ssize_t> co_send(int sockfd, const void* buf, size_t len, int flags)
 {
-    co_return do_io(sockfd, send, "send", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(sockfd, send, "send", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
                 buf, len, flags).getResult(); 
 }
     
 m_sylar::Task<ssize_t> co_sendto(int sockfd, const void* buf, size_t len, int flags,
                const struct sockaddr *dest_addr, socklen_t addrlen)
 {
-    co_return do_io(sockfd, sendto, "sendto", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(sockfd, sendto, "sendto", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
                 buf, len, flags, dest_addr, addrlen).getResult(); 
 }
 
 m_sylar::Task<ssize_t> co_sendmsg(int sockfd, const struct msghdr *msg, int flags)
 {
-    co_return do_io(sockfd, sendmsg, "sendmsg", m_sylar::IOManager::WRITE, SO_SNDTIMEO,
+    co_return do_io(sockfd, sendmsg, "sendmsg", m_sylar::FdContext::Event::WRITE, SO_SNDTIMEO,
                 msg, flags).getResult(); 
 }
 

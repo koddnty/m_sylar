@@ -60,6 +60,7 @@ set(UCONTEXT_SOURCES
 # cpp20Coroutine 协程模块
 set(CORO20_SOURCES
     sylar/coroutine/coro20/fiber.cc
+    sylar/coroutine/coro20/fdContext.cc
     sylar/coroutine/coro20/scheduler.cc
     sylar/coroutine/coro20/ioManager.cc
     sylar/coroutine/coro20/hook.cc

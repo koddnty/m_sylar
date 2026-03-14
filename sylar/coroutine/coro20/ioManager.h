@@ -17,25 +17,28 @@ namespace m_sylar
 class IOManager : public Scheduler
 {
 public:
+    using ptr = std::shared_ptr<IOManager>;
     IOManager(const std::string& name, int thread_num = 1);
     ~IOManager();
 
 public:
 
-    IOManager& addEvent(int fd, FdContext::Event event, TaskCoro20 task);
+    IOManager& addEvent(int fd, FdContext::Event event, TaskCoro20&& task);
     IOManager& addEvent(int fd, FdContext::Event event, std::function<void()> cb_func = nullptr);
     IOManager& delEvent(int fd, FdContext::Event event);
     IOManager& cancelEvent(int fd, FdContext::Event event);
     IOManager& cancelAll(int fd);
 
     static IOManager* getInstance();
+    void stateSync(FdContext::ptr fd_ctx, FdContext::Event origin_state);
 
   
 private:
     void idle() override;
     void tickle() override;
-    
     void ResizeEvents(int fd);
+
+
 
     
 private:

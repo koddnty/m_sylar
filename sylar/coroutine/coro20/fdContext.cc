@@ -8,10 +8,9 @@ static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 
 // FdContext
-FdContext::FdContext(int fd, int epollFd)
+FdContext::FdContext(int fd)
 {
     m_fd = fd;
-    m_epollFd = epollFd;
 }
 
 FdContext::~FdContext()
@@ -19,58 +18,17 @@ FdContext::~FdContext()
 
 FdContext& FdContext::addEvent(Event event, TaskCoro20&& task)
 {
-    // m_event = Event(m_event | event);
-    // if(event & READ)
-    // {
-    //     m_cb_read = std::move(task);
-    // }
-    // if(event & WRITE)
-    // {
-    //     m_cb_write = std::move(task);
-    // }
-    // return *this;
-    bool is_have = false;
-    Event total_event = event;
-    // 检查原有事件
-    if(hasEvent())
-    {
-        is_have = true;
-        total_event = (Event)(event | m_event);
-    }
-    
-    // epoll 事件组装
-    epoll_event new_event;
-    new_event.events = total_event | EPOLLET;
-    new_event.data.fd = m_fd;
-    int rt = 0;
-    if(is_have)
-    {
-        rt = epoll_ctl(m_epollFd, EPOLL_CTL_MOD, m_fd, &new_event);
-    }
-    else 
-    {
-        rt = epoll_ctl(m_epollFd, EPOLL_CTL_ADD, m_fd, &new_event);
-    }
-    if(rt)
-    {   // 错误检查
-        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]faield to addEvent"
-                                    << "errno=" << errno << " error:" << strerror(errno);
-        return *this;
-    }
-    rt = 0;
-    
-    
-    // fdcontex 设置
-    m_event = total_event;
-    if(event & Event::READ)
+    m_event = Event(m_event | event);
+    if(event & READ)
     {
         m_cb_read = std::move(task);
     }
-    if(event & Event::WRITE)
+    if(event & WRITE)
     {
         m_cb_write = std::move(task);
     }
     return *this;
+
 }
 
 FdContext& FdContext::delEvent(Event event)
@@ -117,15 +75,9 @@ FdContext& FdContext::trigger(Event event)
     return *this;
 }
 
-inline int FdContext::getFd()
-{
-    return m_fd;
-}
 
-inline bool FdContext::hasEvent()
-{
-    return m_event;
-}  
+
+
 
 FdContext& FdContext::reset()
 {
@@ -138,9 +90,9 @@ FdContext& FdContext::reset()
 
 
 // FdContextManager
-FdContextManager::FdContextManager(int fd, int epollFd)
+FdContextManager::FdContextManager(int fd)
 {
-    m_fdcontex = std::make_shared<FdContext>(fd, epollFd);
+    m_fdcontex = std::make_shared<FdContext>(fd);
     m_fdcontex->reset();
 }
 
@@ -199,21 +151,21 @@ bool FdContextManager::addTask(std::shared_ptr<RegistedTask> task)
     return false;
 }
 
-void FdContextManager::trigger(FdContext::Event event)
+void FdContextManager::trigger(FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> cb)
 {
-    RegistedTask::ptr __task = std::make_shared<TRIGGER_TASK>(shared_from_this(), event);
+    RegistedTask::ptr __task = std::make_shared<TRIGGER_TASK>(shared_from_this(), event, cb);
     addTask(__task);
 }
 
-void FdContextManager::addEvent(FdContext::Event event, TaskCoro20&& task)
+void FdContextManager::addEvent(FdContext::Event event, TaskCoro20&& task, std::function<void(FdContext::ptr, FdContext::Event)> cb)
 {
-    RegistedTask::ptr __task = std::make_shared<ADD_TASK>(shared_from_this(), std::move(task), event);
+    RegistedTask::ptr __task = std::make_shared<ADD_TASK>(shared_from_this(), std::move(task), event, cb);
     addTask(__task);
 }
 
-void FdContextManager::delEvent(FdContext::Event event)
+void FdContextManager::delEvent(FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> cb)
 {
-    RegistedTask::ptr __task = std::make_shared<DEL_TASK>(shared_from_this(), event);
+    RegistedTask::ptr __task = std::make_shared<DEL_TASK>(shared_from_this(), event, cb);
     addTask(__task);
 }
 
@@ -259,34 +211,47 @@ bool FdContextManager::solveSingleTask()
 
 // RegistedTask
 using FCM = FdContextManager;
-FCM::DEL_TASK::DEL_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event event)
-    : FCM::RegistedTask(fd_ctx_manager), m_event(event)
+FCM::RegistedTask::RegistedTask(std::shared_ptr<FdContextManager> fd_ctx_manager, std::function<void(FdContext::ptr, FdContext::Event )> m_cb)
+    : m_fd_ctx_manager(fd_ctx_manager), m_cb(m_cb)
+{}
+
+FCM::RegistedTask::~RegistedTask()
+{}
+
+FCM::DEL_TASK::DEL_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event)> m_cb)
+    : FCM::RegistedTask(fd_ctx_manager, m_cb), m_event(event)
 {}
 
 void FCM::DEL_TASK::run()
 {
+    FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
     m_fd_ctx_manager->m_fdcontex->delEvent(m_event);
+    m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
 }
 
 
-FCM::ADD_TASK::ADD_TASK(FdContextManager::ptr fd_ctx_manager, TaskCoro20&& task, FdContext::Event event)
-    : FCM::RegistedTask(fd_ctx_manager), m_event(event), m_task(std::move(task))
+FCM::ADD_TASK::ADD_TASK(FdContextManager::ptr fd_ctx_manager, TaskCoro20&& task, FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event)> m_cb)
+    : FCM::RegistedTask(fd_ctx_manager, m_cb), m_event(event), m_task(std::move(task))
 {}
 
 void FCM::ADD_TASK::run()
 {
+    FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
     m_fd_ctx_manager->m_fdcontex->addEvent(m_event, std::move(m_task));
+    m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
 }
 
 
 
-FCM::TRIGGER_TASK::TRIGGER_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event event)
-    : FCM::RegistedTask(fd_ctx_manager), m_event(event)
+FCM::TRIGGER_TASK::TRIGGER_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event)> m_cb)
+    : FCM::RegistedTask(fd_ctx_manager, m_cb), m_event(event)
 {}
 
 void FCM::TRIGGER_TASK::run()
 {
+    FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
     m_fd_ctx_manager->m_fdcontex->trigger(m_event);
+    m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
 }
 
 

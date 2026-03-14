@@ -496,17 +496,20 @@ std::string Socket::toString() const
 
 bool Socket::cancelRead()
 {
-    return IOManager::getInstance()->cancelEvent(m_sock_fd, IOManager::READ);
+    IOManager::getInstance()->cancelEvent(m_sock_fd, FdContext::READ);
+    return true;
 }
 
 bool Socket::cancelWrite()
 {
-    return IOManager::getInstance()->cancelEvent(m_sock_fd, IOManager::WRITE);
+    IOManager::getInstance()->cancelEvent(m_sock_fd, FdContext::WRITE);
+    return true;
 }
 
 bool Socket::cancelAll()
 {
-    return IOManager::getInstance()->cancelAll(m_sock_fd);
+    IOManager::getInstance()->cancelAll(m_sock_fd);
+    return true;
 }
 
 bool Socket::isValid()

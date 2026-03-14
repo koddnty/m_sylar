@@ -1,3 +1,4 @@
+#pragma once
 #include <iostream>
 #include <list>
 #include <shared_mutex>
@@ -14,7 +15,7 @@ namespace m_sylar
 
 class FdContextManager;
 // fd_ctx
-class FdContext
+class FdContext : public std::enable_shared_from_this<FdContext>
 {
 public:
     using ptr = std::shared_ptr<FdContext>;
@@ -26,21 +27,21 @@ public:
     };
 
 public:
-    FdContext(int fd, int epollFd);
+    FdContext(int fd);
     ~FdContext();
 
     FdContext& addEvent(Event event, TaskCoro20&& task);        // 原基础上添加event
     FdContext& delEvent(Event event);         // 删除event
     FdContext& trigger(Event event);       
-    inline int getFd();
-    inline bool hasEvent();         // 是否存在事件
+    inline int getFd() const {return m_fd; }
+    inline Event getEvent() const {return m_event; }
+    inline bool hasEvent() const {return m_event;}   // 是否存在事件
 
     FdContext&  reset();           // 清空所有事件，回归初始状态
 
 
 private:
     int m_fd;
-    int m_epollFd;
     Event m_event = NONE;
     TaskCoro20 m_cb_read {};
     TaskCoro20 m_cb_write {};
@@ -68,7 +69,7 @@ public:
     class TRIGGER_TASK;            // 触发事件回调任务
 
 public:
-    FdContextManager(int fd, int epollFd);
+    FdContextManager(int fd);
     ~FdContextManager();
 
     /**
@@ -76,9 +77,10 @@ public:
     */
     bool addTask(std::shared_ptr<RegistedTask> task);
 
-    void trigger(FdContext::Event event);   // 触发回调
-    void addEvent(FdContext::Event event, TaskCoro20&& task);
-    void delEvent(FdContext::Event event);
+    void trigger(FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> cb);   // 触发回调
+    void addEvent(FdContext::Event event, TaskCoro20&& task, std::function<void(FdContext::ptr, FdContext::Event )> cb);
+    void delEvent(FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> cb);
+
 
 private:
     /**
@@ -104,15 +106,17 @@ class FdContextManager::RegistedTask
 {
 public:
     using ptr = std::shared_ptr<RegistedTask>;
-    RegistedTask(FdContextManager::ptr fd_ctx_manager);
+    RegistedTask(FdContextManager::ptr fd_ctx_manager, std::function<void(FdContext::ptr, FdContext::Event )> m_cb);
     virtual ~RegistedTask();
 
     virtual void run() = 0;         // 任务执行函数
 
     inline FdContextManager::ptr getFdCtxMgr() const {return m_fd_ctx_manager; }
+    // void setCb(std::function<void(FdContext::ptr, FdContext::Event )>);   // 在完成基本事件后触发，用于epollctl或其他模型的状态同步
 
 protected:    
     FdContextManager::ptr m_fd_ctx_manager;
+    std::function<void(FdContext::ptr, FdContext::Event)> m_cb;     // 状态同步函数
 };
 
 
@@ -120,7 +124,7 @@ class FdContextManager::DEL_TASK : public FdContextManager::RegistedTask
 {
 public:
     using ptr = std::shared_ptr<DEL_TASK>;
-    DEL_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event event);
+    DEL_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> m_cb);
 
     void run() override;
 
@@ -134,7 +138,7 @@ class FdContextManager::ADD_TASK : public FdContextManager::RegistedTask
 {
 public:
     using ptr = std::shared_ptr<ADD_TASK>;
-    ADD_TASK(FdContextManager::ptr fd_ctx_manager, TaskCoro20&& task, FdContext::Event event);
+    ADD_TASK(FdContextManager::ptr fd_ctx_manager, TaskCoro20&& task, FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event)> m_cb);
 
     void run() override;
 
@@ -147,7 +151,7 @@ class FdContextManager::TRIGGER_TASK : public FdContextManager::RegistedTask
 {
 public:
     using ptr = std::shared_ptr<TRIGGER_TASK>;
-    TRIGGER_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event event);
+    TRIGGER_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> m_cb);
 
     void run() override;
     
