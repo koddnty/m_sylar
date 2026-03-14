@@ -36,7 +36,7 @@ void test_http_server(m_sylar::IOManager* iom)
     server->POST("/home/rename", rename_func);
     server->start();
     M_SYLAR_LOG_INFO(g_logger) << "All Gate have been registered, ip:0.0.0.0:8803";
-    sleep(400);
+    sleep(40);
 }
 
 int main(void)

@@ -6,13 +6,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 # set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=thread")
 # 原
-# set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=address -fno-omit-frame-pointer -g")
-# set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=address,leak -fno-omit-frame-pointer")
-# 专门用于检测线程问题
-# set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=thread -fno-omit-frame-pointer")
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -g -O0")
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
+# set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=address -fno-omit-frame-pointer -g")
 
 
 set ( LIB_LIB
@@ -196,13 +191,13 @@ target_link_libraries(httpServer_test sylar ${LIB_LIB})
 # add_dependencies(performance_test_scheduler sylar)
 # target_link_libraries(performance_test_scheduler sylar ${LIB_LIB})
 
-# add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
-# add_dependencies(scheduleCoro20_test sylar)
-# target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
+add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
+add_dependencies(scheduleCoro20_test sylar)
+target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
 
-# add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
-# add_dependencies(iomanagerCoro20_test sylar)
-# target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
+add_executable(iomanagerCoro20_test tests/lab_test/iomanagerCoro20_test.cc)
+add_dependencies(iomanagerCoro20_test sylar)
+target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
 
 #/ test_scheduler
 #add_executable(test_scheduler tests/test_scheduler.cc)

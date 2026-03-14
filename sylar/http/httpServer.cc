@@ -221,7 +221,7 @@ Task<void, TaskBeginExecuter> HttpServer::startAccept(Socket::ptr sock)
         Socket::ptr client = co_await sock->accept();       // 新连接到来时子任务resume后恢复，但子任务无法析构。
         if(client)
         {
-            std::cout << "new client" << std::endl;
+            // std::cout << "new client" << std::endl;
             auto t = std::bind(&HttpServer::handleClient, std::dynamic_pointer_cast<HttpServer>(shared_from_this()), client);
             getIomanager()->schedule(TaskCoro20::create_coro(t));       // 为新连接注册任务
         }

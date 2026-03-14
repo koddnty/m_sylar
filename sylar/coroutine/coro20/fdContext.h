@@ -49,7 +49,7 @@ private:
 
 
 
-class FdContextManager : std::enable_shared_from_this<FdContextManager>
+class FdContextManager : public std::enable_shared_from_this<FdContextManager>
 {
 public:
     using ptr = std::shared_ptr<FdContextManager>;

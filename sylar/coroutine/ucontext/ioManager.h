@@ -56,7 +56,7 @@ private:
 
 public:
     // 1 success 0 retry -1 failed
-    int addEvent(int fd, Event event, std::function<void()> cb_func = nullptr);     // 添加事件
+    int addEvent(int fd, Event event, std::function<void()> cb_func = nullptr);     // 添加事件z
     bool delEvent(int fd, Event event);                                             // 删除事件
     bool cancelEvent(int fd, Event event);                                          // 取消事件
     bool cancelAll(int fd);                                                         // 取消全部事件

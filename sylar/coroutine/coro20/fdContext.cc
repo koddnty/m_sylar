@@ -225,8 +225,8 @@ FCM::DEL_TASK::DEL_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event e
 void FCM::DEL_TASK::run()
 {
     FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
+    m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 先状态同步
     m_fd_ctx_manager->m_fdcontex->delEvent(m_event);
-    m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
 }
 
 

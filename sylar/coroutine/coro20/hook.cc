@@ -123,6 +123,11 @@ public:
     io_Awaiter(int fd, m_sylar::FdContext::Event event, uint64_t timo = -1)
         : m_fd(fd), m_timo(timo), m_event(event) {}
 
+    ~io_Awaiter()
+    {
+        IOManager::getInstance()->delEvent(m_fd, m_event);
+    }
+
     
 
     void on_suspend()override
@@ -135,7 +140,7 @@ public:
         
         auto weak_self = weak_from_this();
         // 回调事件注册
-        iom->addEvent(m_fd, m_event, [this](){  // 回调函数，当有io事件可用或超时时恢复协程
+        iom->addEvent(m_fd, m_event, [fd = m_fd, event = m_event, this](){  // 回调函数，当有io事件可用或超时时恢复协程
             resume(m_state);
         });
 
@@ -218,6 +223,7 @@ static Task<ssize_t> do_io(int fd, Original_fun func, const char* fun_name,
     if (fd_ctx->is_closed())
     {
         errno = EBADFD;
+        
         co_return -1;
     }
     if(!fd_ctx->is_socket() || fd_ctx->getUserNoblock())
@@ -387,89 +393,89 @@ m_sylar::Task<int> co_connect(int sockfd, const struct sockaddr *addr, socklen_t
 // read
 m_sylar::Task<ssize_t> co_read(int fd, void* buf, size_t count)
 {
-    co_return do_io(fd, read, "read", m_sylar::FdContext::READ, SO_RCVTIMEO,
-                 buf, count).getResult();
+    co_return co_await do_io(fd, read, "read", m_sylar::FdContext::READ, SO_RCVTIMEO,
+                 buf, count);
 }
 
 m_sylar::Task<ssize_t > co_readv(int fd, const struct iovec *iov, int iovcnt)
 {
-    co_return do_io(fd, readv, "readv", m_sylar::FdContext::READ, SO_RCVTIMEO,
-                 iov, iovcnt).getResult();
+    co_return co_await do_io(fd, readv, "readv", m_sylar::FdContext::READ, SO_RCVTIMEO,
+                 iov, iovcnt);
 }
 
 m_sylar::Task<ssize_t > co_preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)
 {
-    co_return do_io(fd, preadv, "preadv", m_sylar::FdContext::READ, SO_RCVTIMEO,
-                 iov, iovcnt, offset).getResult();
+    co_return co_await do_io(fd, preadv, "preadv", m_sylar::FdContext::READ, SO_RCVTIMEO,
+                 iov, iovcnt, offset);
 }
 
 m_sylar::Task<ssize_t> co_preadv2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
 {
-    co_return do_io(fd, preadv2, "preadv2", m_sylar::FdContext::READ, SO_RCVTIMEO,
-                 iov, iovcnt, offset, flags).getResult();
+    co_return co_await do_io(fd, preadv2, "preadv2", m_sylar::FdContext::READ, SO_RCVTIMEO,
+                 iov, iovcnt, offset, flags);
 }
 
 m_sylar::Task<ssize_t> co_recv(int sockfd, void* buf, size_t len, int flags)
 {
-    co_return do_io(sockfd, recv, "recv", m_sylar::FdContext::READ, SO_RCVTIMEO,
-                buf, len, flags).getResult();
+    co_return co_await do_io(sockfd, recv, "recv", m_sylar::FdContext::READ, SO_RCVTIMEO,
+                buf, len, flags);
 }
 
 m_sylar::Task<ssize_t> co_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr *  src_addr, socklen_t* addrlen)
 {
-    co_return do_io(sockfd, recvfrom, "recvfrom", m_sylar::FdContext::READ, SO_RCVTIMEO,
-                buf, len, flags, src_addr, addrlen).getResult();
+    co_return co_await do_io(sockfd, recvfrom, "recvfrom", m_sylar::FdContext::READ, SO_RCVTIMEO,
+                buf, len, flags, src_addr, addrlen);
 }
 
 m_sylar::Task<ssize_t> co_recvmsg(int sockfd, struct msghdr *msg, int flags)
 {
-    co_return do_io(sockfd, recvmsg, "recvmsg", m_sylar::FdContext::READ, SO_RCVTIMEO,
-                msg, flags).getResult();   
+    co_return co_await do_io(sockfd, recvmsg, "recvmsg", m_sylar::FdContext::READ, SO_RCVTIMEO,
+                msg, flags);   
 }
 
 
 // write
 m_sylar::Task<ssize_t> co_write(int fd, const void* buf, size_t count)
 {
-    co_return do_io(fd, write, "write", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
-                buf, count).getResult(); 
+    co_return co_await do_io(fd, write, "write", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
+                buf, count); 
 }
 
 m_sylar::Task<ssize_t> co_writev(int fd, const struct iovec *iov, int iovcnt)
 {
-    co_return do_io(fd, writev, "writev", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
-                iov, iovcnt).getResult(); 
+    co_return co_await do_io(fd, writev, "writev", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
+                iov, iovcnt); 
 }
     
 m_sylar::Task<ssize_t> co_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
 {
-    co_return do_io(fd, pwritev, "pwritev", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
-                iov, iovcnt, offset).getResult(); 
+    co_return co_await do_io(fd, pwritev, "pwritev", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
+                iov, iovcnt, offset); 
 }
 
 m_sylar::Task<ssize_t> co_pwritev2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
 {
-    co_return do_io(fd, pwritev2, "pwritev2", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
-                iov, iovcnt, offset, flags).getResult(); 
+    co_return co_await do_io(fd, pwritev2, "pwritev2", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
+                iov, iovcnt, offset, flags); 
 }
 
 m_sylar::Task<ssize_t> co_send(int sockfd, const void* buf, size_t len, int flags)
 {
-    co_return do_io(sockfd, send, "send", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
-                buf, len, flags).getResult(); 
+    co_return co_await do_io(sockfd, send, "send", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
+                buf, len, flags); 
 }
     
 m_sylar::Task<ssize_t> co_sendto(int sockfd, const void* buf, size_t len, int flags,
                const struct sockaddr *dest_addr, socklen_t addrlen)
 {
-    co_return do_io(sockfd, sendto, "sendto", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
-                buf, len, flags, dest_addr, addrlen).getResult(); 
+    co_return co_await do_io(sockfd, sendto, "sendto", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
+                buf, len, flags, dest_addr, addrlen); 
 }
 
 m_sylar::Task<ssize_t> co_sendmsg(int sockfd, const struct msghdr *msg, int flags)
 {
-    co_return do_io(sockfd, sendmsg, "sendmsg", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
-                msg, flags).getResult(); 
+    co_return co_await do_io(sockfd, sendmsg, "sendmsg", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
+                msg, flags); 
 }
 
 // close
