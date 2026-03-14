@@ -9,6 +9,8 @@
 #include <assert.h>
 #include <mutex>
 #include <optional>
+#include "basic/log.h"
+#include "basic/macro.h"
 #include <utility>
 
 namespace m_sylar
@@ -20,22 +22,71 @@ class TaskPromise;
 template<typename Executer>
 class InitialAwaiter;
 
+
+class PTStateSync       // 用于Task和promisetype进行相互通信，状态同步
+{
+public:
+    enum CoroutineState
+    {
+        RUNNING = 0,
+        SUSPEND = 1,    // 当前为无效值，请勿使用
+        FINISHED = 2    // 当且仅当协程状态为FINISHED时，Task才可以destory
+    };
+
+    enum TaskState
+    {
+        DESTRUCTED = 9,
+        EXIST = 8
+    };
+
+    enum MSTATE
+    {
+        READY = -1,
+        DISCONNECTED = -2
+    };
+
+public:
+    PTStateSync(CoroutineState coroState, TaskState taskState)
+        : m_coro_task(coroState), m_task_state(taskState) {}
+
+    ~PTStateSync(){}
+
+    inline CoroutineState getCoroState() const {return m_coro_task;}
+    inline TaskState getTaskState() const {return m_task_state;}
+    inline MSTATE getConnectState() const {return m_connect_state;}
+    void setCoroState(CoroutineState coroState) {m_coro_task = coroState;}
+    void setTaskState(TaskState taskState) {m_task_state = taskState;}
+    void setConnectState(MSTATE connectState) {m_connect_state = connectState;}
+
+    std::mutex& get_mutex() {return m_mutex;}
+
+private:
+    CoroutineState m_coro_task;
+    TaskState m_task_state;
+    MSTATE m_connect_state = READY;
+    std::mutex m_mutex; // 强锁
+    
+};
+
+
 // static std::atomic<int> count {0};
 class FinalAwaiter
 {   // 结束时由决定是否挂起或销毁
 public:
-    FinalAwaiter(std::atomic<bool>* is_have_task)
-        : m_is_have_task(is_have_task) { }
+    FinalAwaiter(PTStateSync* state)
+        : m_state(state) {
+        assert(m_state != nullptr);
+    }
 
     bool await_ready() noexcept {
-        if(!(*m_is_have_task))
+        std::unique_lock<std::mutex> lock(m_state->get_mutex());
+        assert(m_state->getCoroState() != PTStateSync::FINISHED);
+        m_state->setCoroState(PTStateSync::FINISHED);
+        if(m_state->getTaskState() == PTStateSync::DESTRUCTED)
         {
-            // ++count;
-            // std::cout << "--destory" << std::endl;
-            // std::cout << "auto destory i:" << count;
+            return true;
         }
-        return !(*m_is_have_task);
-        // return true;
+        return false;
     }
 
     void await_suspend(std::coroutine_handle<> handle) noexcept { 
@@ -45,7 +96,7 @@ public:
 
 private:
     // bool* m_is_have_task;       
-    std::atomic<bool>* m_is_have_task = nullptr;
+    PTStateSync* m_state = nullptr;
 };
 
 
@@ -124,62 +175,63 @@ public:
 
     Task() {}
 
-    Task(std::coroutine_handle<promise_type> handle, Executer* executer, std::atomic<bool>* is_have_task = nullptr)        // 从promoise获得executer
-        : m_handler(handle), m_executer(executer) {
-            if(is_have_task)
-            {
-                m_is_have_task = is_have_task;
-            }
+    Task(std::coroutine_handle<promise_type> handle, Executer* executer, PTStateSync* state)        // 从promoise获得executer
+        : m_handler(handle), m_executer(executer), m_state(state) {
+            assert(m_state != nullptr);
+            std::unique_lock<std::mutex> lock (m_state->get_mutex());
+            m_state->setTaskState(PTStateSync::TaskState::EXIST);
         }
-
-
 
     // 禁用拷贝构造
     Task(Task& other) = delete;
     Task(const Task& other) = delete;
     Task& operator=(Task& other) = delete;
 
-    ~Task() override
-    {
-        if(m_is_have_task != nullptr)
-        {
-            *m_is_have_task = false;
-        }
-        if(m_handler && m_handler.done
-            ())
-        {
-            m_handler.destroy();
-        }
-    }
-
     // 移动构造
     Task(Task&& other)
         : m_handler(std::exchange(other.m_handler, {}))
         , m_executer(other.m_executer)
-        , m_is_have_task(other.m_is_have_task) {
-            other.m_is_have_task = nullptr;
+        , m_state(other.m_state) {
+            other.m_state = nullptr;
             other.m_executer = nullptr;
         }
     Task<ResultType, Executer>& operator=(Task<ResultType, Executer>&& other)
     {
+        if(this == &other) {return *this;}
+
         // 清理自身资源
-        if(m_is_have_task != nullptr)
+        // M_SYLAR_ASSERT2(m_state != nullptr, "Task state(PTStateSync) is nullptr.");
+        if(m_state)
         {
-            *m_is_have_task = false;
+            std::unique_lock<std::mutex> lock (m_state->get_mutex());
+            m_state->setTaskState(PTStateSync::TaskState::DESTRUCTED);
+            if(m_handler && m_handler.done() && m_state->getCoroState() == PTStateSync::FINISHED)
+            {
+                m_handler.destroy();
+            }
         }
-        if(m_handler && m_handler.done
-            ())
+
+        // 资源移动
+        m_handler = std::exchange(other.m_handler, {});
+        m_executer = std::move(other.m_executer);
+        m_state = other.m_state;
+        other.m_state = nullptr;
+        other.m_executer = nullptr;
+        return *this;
+    }
+
+    ~Task() override
+    {
+        if(m_state == nullptr)
+        {   // 空
+            return;
+        }
+        std::unique_lock<std::mutex> lock (m_state->get_mutex());
+        if(m_handler && m_handler.done() && m_state->getCoroState() == PTStateSync::FINISHED)
         {
             m_handler.destroy();
         }
-
-
-        m_handler = std::move(std::exchange(other.m_handler, {}));
-        m_executer = std::move(other.m_executer);
-        m_is_have_task = other.m_is_have_task;
-        other.m_is_have_task = nullptr;
-        other.m_executer = nullptr;
-        return *this;
+        m_state->setTaskState(PTStateSync::DESTRUCTED);
     }
 
 public:
@@ -240,7 +292,8 @@ public:
 private:
     std::coroutine_handle<promise_type> m_handler;
     Executer* m_executer;
-    std::atomic<bool>* m_is_have_task = nullptr;             // 如果不为空，则应指向promise_type管理的变量，表明是否有外部task正在使用当前协程
+    // std::atomic<bool>* m_is_have_task = nullptr;
+    PTStateSync* m_state = nullptr;         // 如果不为空，则应指向promise_type管理的变量，表明是否有外部task正在使用当前协程
 };
 
 
@@ -259,8 +312,8 @@ public:
         m_executer = new Executer();    // taskpromise负责execute控制
         // Task<ResultType, Executer> task (std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer);
         // m_task = &task;
-        m_is_have_task = true;
-        return Task<ResultType, Executer>(std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer, &m_is_have_task);
+        // m_is_have_task = true;
+        return Task<ResultType, Executer>(std::coroutine_handle<TaskPromise>::from_promise(*this), m_executer, &m_state);
     }
 
     InitialAwaiter<Executer> initial_suspend() {        // 直接由execute调用
@@ -269,7 +322,7 @@ public:
 
 
     FinalAwaiter final_suspend() noexcept {
-        return FinalAwaiter(&m_is_have_task);
+        return FinalAwaiter(&m_state);
     }
 
     void unhandled_exception()
@@ -352,7 +405,8 @@ private:
     // ITask m_child_task;
     std::unique_ptr<ITask> m_child_task_ptr;
     std::list<std::function<void(Result<ResultType>)>> m_callbacks;
-    std::atomic<bool> m_is_have_task {false};
+    // std::atomic<bool> m_is_have_task {false};
+    PTStateSync m_state{PTStateSync::CoroutineState::RUNNING, PTStateSync::TaskState::EXIST};
 };
 
 
@@ -663,6 +717,7 @@ private:
 };
 
 
+
 template<typename Executer>
 class Task<void, Executer> : public ITask
 {
@@ -671,12 +726,11 @@ public:
 
     Task() {}
 
-    Task(std::coroutine_handle<promise_type> handle, Executer* executer, std::atomic<bool>* is_have_task = nullptr)        // 从promoise获得executer
-        : m_handler(handle), m_executer(executer) {
-            if(is_have_task)
-            {
-                m_is_have_task = is_have_task;
-            }
+    Task(std::coroutine_handle<promise_type> handle, Executer* executer, PTStateSync* state)        // 从promoise获得executer
+        : m_handler(handle), m_executer(executer), m_state(state) {
+            assert(m_state != nullptr);
+            std::unique_lock<std::mutex> lock (m_state->get_mutex());
+            m_state->setTaskState(PTStateSync::TaskState::EXIST);
         }
 
     // 禁用拷贝构造
@@ -688,53 +742,54 @@ public:
     Task(Task&& other)
         : m_handler(std::exchange(other.m_handler, {}))
         , m_executer(other.m_executer)
-        , m_is_have_task(other.m_is_have_task) {
-            other.m_is_have_task = nullptr;
+        , m_state(other.m_state) {
+            other.m_state = nullptr;
             other.m_executer = nullptr;
         }
 
     Task<void, Executer>& operator=(Task<void, Executer>&& other)
     {
+        if(this == &other) {return *this;}
         // 清理自身资源
-        if(m_is_have_task != nullptr)
+        // M_SYLAR_ASSERT2(m_state != nullptr, "Task state(PTStateSync) is nullptr.");
+        if(m_state)
         {
-            *m_is_have_task = false;
-        }
-        if(m_handler && m_handler.done())
-        {
-            // std::cout << "--destory" << std::endl;
-            m_handler.destroy();
+            std::unique_lock<std::mutex> lock (m_state->get_mutex());
+            m_state->setTaskState(PTStateSync::TaskState::DESTRUCTED);
+            if(m_handler && m_handler.done() && m_state->getCoroState() == PTStateSync::FINISHED)
+            {
+                m_handler.destroy();
+            }
         }
 
         // 资源移动
-        // m_handler = std::move(other.m_handler);
         m_handler = std::exchange(other.m_handler, {});
         m_executer = std::move(other.m_executer);
-        m_is_have_task = other.m_is_have_task;
-        other.m_is_have_task = nullptr;
+        m_state = other.m_state;
+        other.m_state = nullptr;
         other.m_executer = nullptr;
         return *this;
     }
 
     ~Task() override
     {
-        if(m_is_have_task != nullptr)
-        {
-            *m_is_have_task = false;
+
+        if(m_state == nullptr)
+        {   // 空
+            return;
         }
-        if(m_handler && m_handler.done())
+        std::unique_lock<std::mutex> lock (m_state->get_mutex());
+        if(m_handler && m_handler.done() && m_state->getCoroState() == PTStateSync::FINISHED)
         {
-            // std::cout << "--destory" << std::endl;
             m_handler.destroy();
         }
+        m_state->setTaskState(PTStateSync::DESTRUCTED);
     }
-
 
 
 public:
     void getResult()
     {
-        // return m_handler.promise().getResult();
         return;
     }
 
@@ -791,7 +846,8 @@ public:
 private:
     std::coroutine_handle<promise_type> m_handler;
     Executer* m_executer;
-    std::atomic<bool>* m_is_have_task = nullptr;
+    // std::atomic<bool>* m_is_have_task = nullptr;
+    PTStateSync* m_state = nullptr;
 };
 
 
@@ -809,10 +865,9 @@ public:
 
         m_executer = new Executer();    // taskpromise负责execute控制
         // m_is_have_task = new bool;
-        m_is_have_task = true;
         auto handle = std::coroutine_handle<TaskPromise>::from_promise(*this);
         // std::cout << "create a handle = " << &handle << std::endl;
-        return Task<void, Executer>(handle, m_executer, &m_is_have_task);
+        return Task<void, Executer>(handle, m_executer, &m_state);
     }
 
     InitialAwaiter<Executer> initial_suspend() {        // 直接由execute调用
@@ -820,7 +875,7 @@ public:
     }
 
     FinalAwaiter final_suspend() noexcept {
-        return FinalAwaiter(&m_is_have_task);
+        return FinalAwaiter(&m_state);
     }
 
     void unhandled_exception()
@@ -858,8 +913,6 @@ public:
         return awaiter;
     }
 
-
-
 public:
     void getResult()      // 获取协程运行结果
     {
@@ -896,8 +949,10 @@ private:
     Executer* m_executer;
     std::unique_ptr<ITask> m_child_task_ptr;
     std::list<std::function<void(Result<void>)>> m_callbacks;
+    PTStateSync m_state{PTStateSync::CoroutineState::RUNNING, PTStateSync::TaskState::EXIST};
     // bool* m_is_have_task = nullptr;
-    std::atomic<bool> m_is_have_task {false};
+    // std::atomic<bool> m_is_have_task {false};
+    // std::atomic<State> m_state = RUNNING;
 };
 
 
@@ -930,14 +985,10 @@ public:
         // });
     }
 
-    // void await_resume()
-    // {
-    //     m_task->getResult();
-    // }
+
 
 private:
     Task<void, _Executer>* m_task;       // 子协程任务
-    // _Executer* m_executer;                   // 调度器
 };
 
 

@@ -57,7 +57,6 @@ void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim)
 
     for(int i = 0; i < 100; i++)
     {
-        iom->schedule([](){
             // tim->addTimer(1 * 1000000, true, tim, ccb);
             int newfd = m_sylar::TimeManager::getInstance()->addConditionTimer(1 * 10000000, false, ccb, 
                 []() 
@@ -78,7 +77,6 @@ void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim)
             // std::cout << "取消timer结束" << ::std::endl;
 
             // sleep(5);
-        });
     }
 
 
