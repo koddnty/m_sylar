@@ -35,8 +35,8 @@ public:
 
     enum TaskState
     {
-        DESTRUCTED = 9,
-        EXIST = 8
+        DESTRUCTED = 9,         // Task已经析构，需要promisetype退出时销毁协程帧
+        EXIST = 8               // Task 存活，promiseType不要销毁协程帧
     };
 
     enum MSTATE
@@ -202,12 +202,19 @@ public:
         // 清理自身资源
         // M_SYLAR_ASSERT2(m_state != nullptr, "Task state(PTStateSync) is nullptr.");
         if(m_state)
-        {
+        {   // 检测协程是否完成，如果未完成则仅设置Task析构状态，如果已经完成则destory
             std::unique_lock<std::mutex> lock (m_state->get_mutex());
-            m_state->setTaskState(PTStateSync::TaskState::DESTRUCTED);
             if(m_handler && m_handler.done() && m_state->getCoroState() == PTStateSync::FINISHED)
             {
-                m_handler.destroy();
+                auto handler = m_handler;
+                m_handler = nullptr;
+                lock.unlock();  // 先释放锁，由于协程完成，此处不会受到promisetype干扰
+                handler.destroy();
+            }
+            else
+            {
+                // 通知promisetype Task析构，需要自行销毁协程帧
+                m_state->setTaskState(PTStateSync::TaskState::DESTRUCTED);
             }
         }
 
@@ -222,16 +229,22 @@ public:
 
     ~Task() override
     {
-        if(m_state == nullptr)
-        {   // 空
-            return;
+        if(m_state)
+        {   // 检测协程是否完成，如果未完成则仅设置Task析构状态，如果已经完成则destory
+            std::unique_lock<std::mutex> lock (m_state->get_mutex());
+            if(m_handler && m_handler.done() && m_state->getCoroState() == PTStateSync::FINISHED)
+            {
+                auto handler = m_handler;
+                m_handler = nullptr;
+                lock.unlock();  // 先释放锁，由于协程完成，此处不会受到promisetype干扰
+                handler.destroy();
+            }
+            else
+            {
+                // 通知promisetype Task析构，需要自行销毁协程帧
+                m_state->setTaskState(PTStateSync::TaskState::DESTRUCTED);
+            }
         }
-        std::unique_lock<std::mutex> lock (m_state->get_mutex());
-        if(m_handler && m_handler.done() && m_state->getCoroState() == PTStateSync::FINISHED)
-        {
-            m_handler.destroy();
-        }
-        m_state->setTaskState(PTStateSync::DESTRUCTED);
     }
 
 public:
@@ -753,12 +766,19 @@ public:
         // 清理自身资源
         // M_SYLAR_ASSERT2(m_state != nullptr, "Task state(PTStateSync) is nullptr.");
         if(m_state)
-        {
+        {   // 检测协程是否完成，如果未完成则仅设置Task析构状态，如果已经完成则destory
             std::unique_lock<std::mutex> lock (m_state->get_mutex());
-            m_state->setTaskState(PTStateSync::TaskState::DESTRUCTED);
             if(m_handler && m_handler.done() && m_state->getCoroState() == PTStateSync::FINISHED)
             {
-                m_handler.destroy();
+                auto handler = m_handler;
+                m_handler = nullptr;
+                lock.unlock();  // 先释放锁，由于协程完成，此处不会受到promisetype干扰
+                handler.destroy();
+            }
+            else
+            {
+                // 通知promisetype Task析构，需要自行销毁协程帧
+                m_state->setTaskState(PTStateSync::TaskState::DESTRUCTED);
             }
         }
 
@@ -773,17 +793,22 @@ public:
 
     ~Task() override
     {
-
-        if(m_state == nullptr)
-        {   // 空
-            return;
+        if(m_state)
+        {   // 检测协程是否完成，如果未完成则仅设置Task析构状态，如果已经完成则destory
+            std::unique_lock<std::mutex> lock (m_state->get_mutex());
+            if(m_handler && m_handler.done() && m_state->getCoroState() == PTStateSync::FINISHED)
+            {
+                auto handler = m_handler;
+                m_handler = nullptr;
+                lock.unlock();  // 先释放锁，由于协程完成，此处不会受到promisetype干扰
+                handler.destroy();
+            }
+            else
+            {
+                // 通知promisetype Task析构，需要自行销毁协程帧
+                m_state->setTaskState(PTStateSync::TaskState::DESTRUCTED);
+            }
         }
-        std::unique_lock<std::mutex> lock (m_state->get_mutex());
-        if(m_handler && m_handler.done() && m_state->getCoroState() == PTStateSync::FINISHED)
-        {
-            m_handler.destroy();
-        }
-        m_state->setTaskState(PTStateSync::DESTRUCTED);
     }
 
 

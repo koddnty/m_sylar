@@ -125,7 +125,7 @@ public:
 
     ~io_Awaiter()
     {
-        IOManager::getInstance()->delEvent(m_fd, m_event);
+        // IOManager::getInstance()->delEvent(m_fd, m_event);
     }
 
     
@@ -134,13 +134,12 @@ public:
     {
         // auto self = shared_from_this();
         m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
-        m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
         std::shared_ptr<fdTimerInfo> fdtino (new fdTimerInfo);
         std::weak_ptr<fdTimerInfo> wfdtino (fdtino);
         
         auto weak_self = weak_from_this();
         // 回调事件注册
-        iom->addEvent(m_fd, m_event, [fd = m_fd, event = m_event, this](){  // 回调函数，当有io事件可用或超时时恢复协程
+        iom->addEvent(m_fd, m_event, [this](){  // 回调函数，当有io事件可用或超时时恢复协程
             resume(m_state);
         });
 
@@ -484,17 +483,12 @@ int co_close(int fd){
 
     m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
 
-    if(fd_ctx)
-    {   
-        auto iom = m_sylar::IOManager::getInstance();
-        if(iom)
-        {
-            iom->delEvent(fd, FdContext::READ);
-            iom->delEvent(fd, FdContext::WRITE);
-        }        
-        m_sylar::FdMgr::GetInstance()->del(fd);
+    if(IOManager::getInstance())
+    {
+        IOManager::getInstance()->closeFd(fd);
     }
-    return close(fd);
+    // return close(fd);
+    return fd;
 }
 
 // functional       

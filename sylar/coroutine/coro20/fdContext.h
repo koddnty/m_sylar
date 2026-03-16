@@ -58,7 +58,7 @@ public:
         INIT = 0,       // FdContext为空，即不监听
         READY = 1,      // FdContext监听中但任务列表为空，需注册线程自行完成任务
         BUSY = 2,       // FdContext监听中，同时已有线程在运行注册任务，此时仅需要注册任务
-        LOCK = 3,       // FdContext监听中，注册任务运行完成，运行线程准备退出需等待完成后当前线程才能注册任务。
+        // LOCK = 3,       // FdContext监听中，注册任务运行完成，运行线程准备退出需等待完成后当前线程才能注册任务。已废弃
         ERROR = 4       // 状态混乱，抛出异常
     };
 
@@ -67,6 +67,7 @@ public:
     class DEL_TASK;                // 删除事件回调任务
     class ADD_TASK;                // 添加事件回调任务
     class TRIGGER_TASK;            // 触发事件回调任务
+    class CLOSE_TASK;              // 触发文件描述符关闭
 
 public:
     FdContextManager(int fd);
@@ -80,7 +81,7 @@ public:
     void trigger(FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> cb);   // 触发回调
     void addEvent(FdContext::Event event, TaskCoro20&& task, std::function<void(FdContext::ptr, FdContext::Event )> cb);
     void delEvent(FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> cb);
-
+    void closeEvent(FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> cb);
 
 private:
     /**
@@ -158,5 +159,18 @@ public:
 private:   
     FdContext::Event m_event;
 };
+
+class FdContextManager::CLOSE_TASK : public FdContextManager::RegistedTask
+{
+public:
+    using ptr = std::shared_ptr<CLOSE_TASK>;
+    CLOSE_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> m_cb);
+
+    void run() override;
+    
+private:   
+    FdContext::Event m_event;
+};
+
 
 }

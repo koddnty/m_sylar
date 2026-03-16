@@ -28,11 +28,14 @@ public:
     IOManager& addOnceEvent(int fd, FdContext::Event event, TaskCoro20&& task);       // 只会单次执行回调的事件
     IOManager& addOnceEvent(int fd, FdContext::Event event, std::function<void()> cb_func);       // 只会单次执行回调的事件
     IOManager& delEvent(int fd, FdContext::Event event);
+    IOManager& closeFd(int fd);
     IOManager& cancelEvent(int fd, FdContext::Event event);
     IOManager& cancelAll(int fd);
 
     static IOManager* getInstance();
     void stateSync(FdContext::ptr fd_ctx, FdContext::Event origin_state);
+    const FdContextManager::ptr getContext(int fd) {return m_fd_events[fd]; }
+
 
   
 private:

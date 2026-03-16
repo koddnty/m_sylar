@@ -231,7 +231,7 @@ Task<void, TaskBeginExecuter> HttpServer::startAccept(Socket::ptr sock)
         }
     }
     // 重新调度accept
-    std::cout << "---------------------------------------------" << std::endl;
+    std::cerr << "-";
     auto t = std::bind(&HttpServer::startAccept, std::dynamic_pointer_cast<HttpServer>(shared_from_this()), sock);
     getIomanager()->schedule(TaskCoro20::create_coro(t));
     co_return;

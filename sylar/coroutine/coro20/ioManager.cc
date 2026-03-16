@@ -42,6 +42,13 @@ IOManager::IOManager(const std::string& name, int thread_num)
         return;
     }
 
+
+    m_fd_events.resize(128);
+    for(int i = 0; i < m_fd_events.size(); i++)
+    {
+        m_fd_events[i] = std::make_shared<FdContextManager>(i);
+    }
+
     epoll_event event;
     event.events = EPOLLIN | EPOLLET;
     event.data.fd = m_eventFd;
@@ -52,12 +59,9 @@ IOManager::IOManager(const std::string& name, int thread_num)
         close(m_eventFd);
         return;
     }
+    TaskCoro20 task;
+    m_fd_events[m_eventFd]->addEvent(FdContext::READ, std::move(task), nullptr);
 
-    m_fd_events.resize(128);
-    for(int i = 0; i < m_fd_events.size(); i++)
-    {
-        m_fd_events[i] = std::make_shared<FdContextManager>(i);
-    }
     start();
 }
 
@@ -95,7 +99,7 @@ IOManager& IOManager::addEvent(int fd, FdContext::Event event, std::function<voi
     // std::unique_lock<std::shared_mutex> wlock(m_mutex);
     std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
     m_fd_events[fd]->addEvent(event, std::move(t),
-        std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
     return *this;
 }
 
@@ -149,6 +153,19 @@ IOManager& IOManager::delEvent(int fd, FdContext::Event event)
     return *this;
 }
 
+
+IOManager& IOManager::closeFd(int fd)
+{
+    if(fd >= m_fd_events.size())
+    {
+        return *this;
+    }
+    std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
+    m_fd_events[fd]->closeEvent(FdContext::NONE, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    return *this;
+}
+
+
 IOManager& IOManager::cancelEvent(int fd, FdContext::Event event)
 {
     M_SYLAR_ASSERT2(fd < m_fd_events.size(), "fd is bigger than fd_event.size(), bad access");
@@ -174,7 +191,7 @@ void IOManager::stateSync(FdContext::ptr fd_ctx, FdContext::Event origin_event)
 {
     int epoll_ctl_state;
     FdContext::Event new_event = fd_ctx->getEvent();
-    if(new_event == origin_event )
+    if(new_event == origin_event || fd_ctx->getFd() == m_eventFd)
     {   // 无变化
         return;
     }
@@ -208,8 +225,9 @@ void IOManager::stateSync(FdContext::ptr fd_ctx, FdContext::Event origin_event)
 
     if(rt == -1)
     {   // 错误检查
-        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]faield to sync state"
-                                    << "errno=" << errno << " error:" << strerror(errno);
+        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]faield to sync state, fd=" << fd_ctx->getFd()
+                                    << "origin:" << origin_event << " new:" << fd_ctx->getEvent()
+                                    << " errno=" << errno << " error:" << strerror(errno);
     }
     return;
 }
@@ -262,6 +280,7 @@ void IOManager::idle()
                 int io_fd = events[i].data.fd;
                 std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
 
+                if(io_fd == m_eventFd)  {continue; }
                 m_fd_events[io_fd]->trigger((FdContext::Event)events[i].events,
                     std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
             }
@@ -281,8 +300,6 @@ void IOManager::tickle()
 //         throw;
     // }
 
-    if(m_idleThreadCount > 0)
-    {
         int64_t buffer = 1;
         if(1 == write(m_eventFd, &buffer, sizeof(buffer)))
         {
@@ -291,7 +308,6 @@ void IOManager::tickle()
             throw;
             return;
         }
-    }
 }
 
 void IOManager::ResizeEvents(int fd)

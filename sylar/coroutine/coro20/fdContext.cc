@@ -51,23 +51,16 @@ FdContext& FdContext::trigger(Event event)
     if(merge & READ)
     {
         auto t = m_cb_read.clone();
-        if(!t.isLegal())
-        {
-            M_SYLAR_LOG_ERROR(g_logger) << "task(TaskCoro20) is illegal";
-        }
-        else
+        if(t.isLegal())
         {
             t.start();
+            // M_SYLAR_LOG_ERROR(g_logger) << "task(TaskCoro20) is illegal";
         }
     }
     if(merge & WRITE)
     {
         auto t = m_cb_write.clone();
-        if(!t.isLegal())
-        {
-            M_SYLAR_LOG_ERROR(g_logger) << "task(TaskCoro20) is illegal";
-        }
-        else
+        if(t.isLegal())
         {
             t.start();
         }
@@ -104,7 +97,11 @@ bool FdContextManager::addTask(std::shared_ptr<RegistedTask> task)
     // M_SYLAR_ASSERT2(m_state == INIT, "")
     // 事件注册
     std::unique_lock<std::shared_mutex> wlock(m_task_mutex);
-    m_tasks.push_back(task);
+    if(task != nullptr) 
+    {
+        m_tasks.push_back(task);
+    }
+    if(m_tasks.empty()) {return true;}
     wlock.unlock();
 
     // 尝试执行
@@ -127,22 +124,20 @@ bool FdContextManager::addTask(std::shared_ptr<RegistedTask> task)
     {   // 直接退出
         return false;
     }
-    while(m_state == LOCK)
-    {   // 轮询等待
-        State curr_task = State::READY;
-        if(m_state.compare_exchange_strong(curr_task, BUSY))
-        {   // 当前状态是ready,变为busy
-            solveTasks();
-            return true;
-        }   
-        curr_task = INIT;
-        if(m_state.compare_exchange_strong(curr_task, BUSY))
-        {   // 当前状态是ready,变为busy
-            solveTasks();
-            return true;
-        }   
-        std::this_thread::yield();
-    }
+
+    State curr_task = State::READY;
+    if(m_state.compare_exchange_strong(curr_task, BUSY))
+    {   // 当前状态是ready,变为busy
+        solveTasks();
+        return true;
+    }   
+    curr_task = INIT;
+    if(m_state.compare_exchange_strong(curr_task, BUSY))
+    {   // 当前状态是ready,变为busy
+        solveTasks();
+        return true;
+    }   
+    std::this_thread::yield();
     
     if(m_state == ERROR)
     {
@@ -169,16 +164,25 @@ void FdContextManager::delEvent(FdContext::Event event, std::function<void(FdCon
     addTask(__task);
 }
 
-void FdContextManager::solveTasks()
+void FdContextManager::closeEvent(FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> cb)
 {
+    RegistedTask::ptr __task = std::make_shared<CLOSE_TASK>(shared_from_this(), event, cb);
+    addTask(__task);
+}
+
+
+void FdContextManager::solveTasks()
+{   // 函数调用时状态为busy
+    
     while(solveSingleTask()){}
     // 执行完毕，lock后检查是否还有任务
-    m_state = LOCK;
+    // m_state = LOCK;
     while(solveSingleTask()){}
     // 完全执行完毕，状态返回，退出。
     
     if(!m_fdcontex->hasEvent()) {m_state = INIT; }
     else{m_state = READY;}
+    addTask(nullptr);
 }
 
 bool FdContextManager::solveSingleTask()
@@ -225,8 +229,9 @@ FCM::DEL_TASK::DEL_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event e
 void FCM::DEL_TASK::run()
 {
     FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
-    m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 先状态同步
     m_fd_ctx_manager->m_fdcontex->delEvent(m_event);
+    if(m_cb)
+        m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 先状态同步
 }
 
 
@@ -238,7 +243,8 @@ void FCM::ADD_TASK::run()
 {
     FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
     m_fd_ctx_manager->m_fdcontex->addEvent(m_event, std::move(m_task));
-    m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
+    if(m_cb)
+        m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
 }
 
 
@@ -251,8 +257,25 @@ void FCM::TRIGGER_TASK::run()
 {
     FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
     m_fd_ctx_manager->m_fdcontex->trigger(m_event);
-    m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
+    if(m_cb)
+        m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
 }
+
+
+FCM::CLOSE_TASK::CLOSE_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event)> m_cb)
+    : FCM::RegistedTask(fd_ctx_manager, m_cb), m_event(event)
+{}
+
+void FCM::CLOSE_TASK::run()
+{
+    FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
+    // m_fd_ctx_manager->m_fdcontex->trigger(m_event);
+    m_fd_ctx_manager->m_fdcontex->reset();
+    if(m_cb)
+        m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
+    close(m_fd_ctx_manager->m_fdcontex->getFd());
+}
+
 
 
 };

@@ -172,6 +172,7 @@ Task<Socket::ptr> Socket::accept()
 bool Socket::init(int sock_fd)
 {   // initialize a socket that created outside after connect or generate from accept
     FdCtx::ptr fd_ctx = FdMgr::GetInstance()->get(sock_fd, true);       // 使用true来使fdmanager管理新连接
+    // IOManager::getInstance()->addEvent(sock_fd, FdContext::READ, nullptr);
     if(fd_ctx && fd_ctx->is_socket() && !fd_ctx->is_closed())
     {
         m_sock_fd = sock_fd;
