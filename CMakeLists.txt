@@ -47,14 +47,6 @@ set(HTTP_SOURCES
     sylar/http/httpServer.cc
 )
 
-# UCONTEXT 协程模块
-set(UCONTEXT_SOURCES 
-
-    sylar/coroutine/ucontext/fiber.cc
-    sylar/coroutine/ucontext/scheduler.cc
-    sylar/coroutine/ucontext/ioManager.cc
-    sylar/coroutine/ucontext/hook.cc
-)
 
 # cpp20Coroutine 协程模块
 set(CORO20_SOURCES
@@ -67,20 +59,12 @@ set(CORO20_SOURCES
 )
 
 # 选择模块
-if(SYLAR_USE_CORO20)
-    message("use cpp20 coroutine implementation")
-    add_definitions(-DSYLAR_USE_CORO20)
 
-    set(COROUTINE_SOURCES ${CORO20_SOURCES})
-    set(CMAKE_CXX_STANDARD 20)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_definitions(-DSYLAR_USE_CORO20)
 
-else()
-    message("use ucontext coroutine implementation")
-
-    set(COROUTINE_SOURCES ${UCONTEXT_SOURCES})
-
-endif()
+set(COROUTINE_SOURCES ${CORO20_SOURCES})
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 add_library(sylar STATIC 

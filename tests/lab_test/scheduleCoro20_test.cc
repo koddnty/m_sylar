@@ -6,36 +6,36 @@
 
 std::atomic<int> count = 0;
 
-void func()
-{
-    count++;
-}
+// void func()
+// {
+//     count++;
+// }
 
-void test_func_task()
-{
-    m_sylar::Scheduler scheduler("test_coro_schedule", 12) ;
-    scheduler.start();
+// void test_func_task()
+// {
+//     m_sylar::Scheduler scheduler("test_coro_schedule", 12) ;
+//     scheduler.start();
 
-    for(int i = 0; i < 10000; i++)
-    {
-        scheduler.schedule(func);
-    }
-    std::cout << scheduler.getTaskCount() << std::endl;
-    sleep(10);
-    // sleep(1000);
-    std::cout << count << std::endl;
-    std::cout << scheduler.getTaskCount() << std::endl;
-    scheduler.autoStop();
-}
+//     for(int i = 0; i < 10000; i++)
+//     {
+//         scheduler.schedule(func);
+//     }
+//     std::cout << scheduler.getTaskCount() << std::endl;
+//     sleep(10);
+//     // sleep(1000);
+//     std::cout << count << std::endl;
+//     std::cout << scheduler.getTaskCount() << std::endl;
+//     scheduler.autoStop();
+// }
 
 
 
-void func_task()
-{
-    // std::cout << " func task running..." << std::endl;
-    count++;
-    return;
-}
+// void func_task()
+// {
+//     // std::cout << " func task running..." << std::endl;
+//     count++;
+//     return;
+// }
 
 m_sylar::Task<void, m_sylar::TaskBeginExecuter> task()
 {
@@ -60,10 +60,11 @@ void test_coroutine_task()
     std::cout << "schedule task finished" << std::endl;
     iom.getTaskCount();
     // iom.autoStop();
+    int count_begin = count;
     int time = 120;
     sleep(time);
-    std::cout << "have runed " << count << " in " << time << " sec" << std::endl;
-    iom.stop();
+    iom.autoStop();
+    std::cout << "have runed " << count - count_begin << " in " << time << " sec" << std::endl;
 }
 
 int main(void)
