@@ -138,7 +138,7 @@ public:
         std::weak_ptr<fdTimerInfo> wfdtino (fdtino);
         
         // 回调事件注册
-        iom->addEvent(m_fd, m_event, [fd = m_fd, event = m_event, this](){  // 回调函数，当有io事件可用或超时时恢复协程
+        iom->addEvent(m_fd, m_event, [this](){  // 回调函数，当有io事件可用或超时时恢复协程
             resume(m_state);
             // IOManager::getInstance()->delEvent(fd, event);
         });

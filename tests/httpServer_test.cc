@@ -1,11 +1,7 @@
 #include <cstdio>
-#include <iostream>
 #include <memory>
-#include "basic/address.h"
-// #include "basic/ioManager.h"
-#include "coroutine/corobase.h"
 #include "basic/log.h"
-#include "http/tcpServer.h"
+#include "basic/address.h"
 #include "http/httpServer.h"
 
 static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
