@@ -28,7 +28,7 @@ public:
 
     virtual bool bind(Address::ptr addr);
     virtual bool bind(std::vector<Address::ptr>& addrs, std::vector<Address::ptr>& failed);
-    virtual bool start();
+    virtual bool start(int acceptNum = 1);           // 不同上层协议必须实现
     virtual bool stop();
 
     uint64_t getRTimeout() const { return m_readtimeout;}
@@ -39,14 +39,18 @@ public:
     bool isStop() const { return m_stop;}
 
 protected:
-    virtual void handleClient(Socket::ptr client);
-    virtual void startAccept(Socket::ptr sock);
+    virtual Task<void, TaskBeginExecuter> handleClient(Socket::ptr client);             // 不同上层协议必须实现
+    virtual Task<void, TaskBeginExecuter> startAccept(Socket::ptr sock);                // 不同上层协议必须实现
+
+    IOManager* getIomanager() const {return m_iomanager; }
+    std::vector<Socket::ptr>& getSockets() {return m_sockets; }
 
 private:
-    std::vector<Socket::ptr> m_sockets;
-    IOManager* m_iomanager;
+    std::vector<Socket::ptr> m_sockets;         // 绑定到当前server 的监听socket.
+    IOManager* m_iomanager;                     // 连接处理manager
     uint64_t m_readtimeout;
     std::string m_name;
+protected:
     bool m_stop;
 };
 

@@ -1,14 +1,12 @@
 #include "coroutine/coro20/ioManager.h"
-#include "coroutine/coro20/hook.h"
 #include "coroutine/coro20/fiber.h"
 #include "coroutine/coro20/scheduler.h"
 #include "basic/log.h"
 #include "basic/macro.h"
-#include "http/http.h"
 #include <cerrno>
-#include <cinttypes>
 #include <cstdint>
 #include <cstring>
+#include <sys/param.h>
 #include <exception>
 #include <functional>
 #include <shared_mutex>
@@ -23,15 +21,29 @@ static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 IOManager::IOManager(const std::string& name, int thread_num)
     : Scheduler(name, thread_num)
 {
-    // m_scheduler = Scheduler::GetThis();
-    // M_SYLAR_ASSERT2(m_scheduler, "set scheduler failed");
-    m_eventFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     m_epollFd = epoll_create(1);
-
-    if(m_epollFd <= 0 || m_eventFd <= 0)
+    if(m_epollFd == -1)
     {
-        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]failed to create eventfd or epollfd, errno=" << errno << " error:" << strerror(errno);
+        M_SYLAR_LOG_ERROR(g_logger) << "Failed to create a epoll fd, errno=" << errno << " error:" << strerror(errno);
+        close(m_epollFd);
+        throw;
         return;
+    }
+    m_eventFd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    if(m_eventFd == -1)
+    {
+        M_SYLAR_LOG_ERROR(g_logger) << "Failed to create a event fd, errno=" << errno << " error:" << strerror(errno);
+        close(m_epollFd);
+        close(m_eventFd);
+        throw;
+        return;
+    }
+
+
+    m_fd_events.resize(128);
+    for(int i = 0; i < m_fd_events.size(); i++)
+    {
+        m_fd_events[i] = std::make_shared<FdContextManager>(i);
     }
 
     epoll_event event;
@@ -39,218 +51,188 @@ IOManager::IOManager(const std::string& name, int thread_num)
     event.data.fd = m_eventFd;
     if(epoll_ctl(m_epollFd, EPOLL_CTL_ADD, m_eventFd, &event))
     {
-        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]failed to registe eventfd to epoll, errno=" << errno << " error:" << strerror(errno);
+        M_SYLAR_LOG_ERROR(g_logger) << "Failed to add eventfd to epoll, errno=" << errno << " error: "<< strerror(errno);
+        close(m_epollFd);
+        close(m_eventFd);
+        return;
     }
+    TaskCoro20 task;
+    m_fd_events[m_eventFd]->addEvent(FdContext::READ, std::move(task), nullptr);
 
-    m_fd_contexts.resize(64);
     start();
 }
 
 IOManager::~IOManager()
 {
-    close(m_eventFd);
     close(m_epollFd);
+    close(m_eventFd);
 }
 
-int IOManager::addEvent(int fd, Event event, TaskCoro20 task)
-{   // 错误 -1, 成功 0
-    bool is_have = false;
-    Event total_event = event;
-    // 检查原有事件
-    if(m_fd_contexts[fd])
-    {
-        is_have = true;
-        total_event = (Event)(total_event | m_fd_contexts[fd]->m_event);
-    }
-    
-    // epoll 事件组装
-    epoll_event new_event;
-    new_event.events = total_event | EPOLLET;
-    new_event.data.fd = fd;
-    int rt = 0;
-    if(is_have)
-    {
-        rt = epoll_ctl(m_epollFd, EPOLL_CTL_MOD, fd, &new_event);
-    }
-    else 
-    {
-        rt = epoll_ctl(m_epollFd, EPOLL_CTL_ADD, fd, &new_event);
-    }
-    if(rt)
-    {   // 错误检查
-        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]faield to addEvent"
-                                    << "errno=" << errno << " error:" << strerror(errno);
-        return -1;
-    }
-    rt = 0;
-    
-    
-    // fdcontex 设置
-    FdContext::ptr fd_ctx(new FdContext(fd));
-    fd_ctx->m_event = total_event;
-    if(event & Event::READ)
-    {
-        fd_ctx->m_cb_read = std::move(task);
-    }
-    if(event & Event::WRITE)
-    {
-        fd_ctx->m_cb_write = std::move(task);
-    }
-    contextSet(fd, fd_ctx);
-    return 0;
-}
 
-int IOManager::addEvent(int fd, Event event, std::function<void()> cb_func)
+IOManager& IOManager::addEvent(int fd, FdContext::Event event, TaskCoro20&& task)
 {
-    TaskCoro20 task(cb_func);
-    return addEvent(fd, event, std::move(task));
+    if(!task.isLegal())
+    {
+        M_SYLAR_LOG_WARN(g_logger) << "invalid task, task is illegal";
+        return *this;
+    }
+    if(fd >= m_fd_events.size()) {ResizeEvents(fd); }
+    // std::unique_lock<std::shared_mutex> wlock(m_mutex);
+    std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
+    m_fd_events[fd]->addEvent(event, std::move(task),
+        std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    return *this;
 }
 
-bool IOManager::delEvent(int fd, Event event)
+IOManager& IOManager::addEvent(int fd, FdContext::Event event, std::function<void()> cb_func)
 {
-    FdContext::ptr original_fd_ctx = m_fd_contexts[fd];
-    if(!original_fd_ctx)
+    if(!cb_func)
     {
-        return false;
+        M_SYLAR_LOG_WARN(g_logger) << "invalid cb function, callback function is nullptr";
+        return *this;
     }
-    // m_fd_contexts[fd] = event;
-    Event total_event = (Event)(original_fd_ctx->m_event & ~event);
-    
-    // epoll 事件组装
-    epoll_event new_event;
-    new_event.events = total_event | EPOLLET;
-    new_event.data.fd = fd;
-    int rt = 0;
-    if(total_event == Event::NONE)
-    {
-        rt = epoll_ctl(m_epollFd, EPOLL_CTL_DEL, fd, &new_event);
-    }
-    else
-    {
-        rt = epoll_ctl(m_epollFd, EPOLL_CTL_MOD, fd, &new_event);
-    }
-    if(rt)
-    {   // 错误检查
-        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]faield to delEvent"
-                                    << "errno=" << errno << " error:" << strerror(errno);
-        return false;
-    }
-    rt = 0;
-    
-    
-    // fdcontex 修改
-    if(total_event != Event::NONE)
-    {
-        m_fd_contexts[fd]->m_event = total_event;
-        if(!(total_event & Event::READ))
-        {
-            m_fd_contexts[fd]->m_cb_read.reset();
-        }
-        if(!(total_event & Event::WRITE))
-        {
-            m_fd_contexts[fd]->m_cb_write.reset();
-        }
-    }
-    else 
-    {
-        m_fd_contexts[fd] = nullptr;
-    }
-    return true;
+    TaskCoro20 t {cb_func};
+    if(fd >= m_fd_events.size()) {ResizeEvents(fd); }
+    // std::unique_lock<std::shared_mutex> wlock(m_mutex);
+    std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
+    m_fd_events[fd]->addEvent(event, std::move(t),
+    std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    return *this;
 }
 
-bool IOManager::cancelEvent(int fd, Event event)
+IOManager& IOManager::addOnceEvent(int fd, FdContext::Event event, TaskCoro20&& task)
 {
-    FdContext::ptr original_fd_ctx = m_fd_contexts[fd];
-    if(!original_fd_ctx)
+    if(!task.isLegal())
     {
-        return false;
+        M_SYLAR_LOG_WARN(g_logger) << "invalid task, task is illegal";
+        return *this;
     }
-    // m_fd_contexts[fd] = event;
-    Event total_event = (Event)(original_fd_ctx->m_event & ~event);
-    
-    // epoll 事件组装
-    epoll_event new_event;
-    new_event.events = total_event | EPOLLET;
-    new_event.data.fd = fd;
-    int rt = 0;
-    if(total_event == Event::NONE)
-    {
-        rt = epoll_ctl(m_epollFd, EPOLL_CTL_DEL, fd, &new_event);
-    }
-    else
-    {
-        rt = epoll_ctl(m_epollFd, EPOLL_CTL_MOD, fd, &new_event);
-    }
-    if(rt)
-    {   // 错误检查
-        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]faield to delEvent"
-                                    << "errno=" << errno << " error:" << strerror(errno);
-        return false;
-    }
-    rt = 0;
-    
-    // 事件回调
-    m_fd_contexts[fd]->trigger(event);
-
-    // fdcontex 修改
-    if(total_event != Event::NONE)
-    {
-        m_fd_contexts[fd]->m_event = total_event;
-        if(!(total_event & Event::READ))
-        {
-            m_fd_contexts[fd]->m_cb_read.reset();
-        }
-        if(!(total_event & Event::WRITE))
-        {
-            m_fd_contexts[fd]->m_cb_write.reset();
-        }
-    }
-    else 
-    {
-        m_fd_contexts[fd] = nullptr;
-    }
-
-    return true;
+    if(fd >= m_fd_events.size()) {ResizeEvents(fd); }
+    // std::unique_lock<std::shared_mutex> wlock(m_mutex);
+    std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
+    m_fd_events[fd]->addEvent(event, std::move(task),
+        std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    return *this;
 }
 
-bool IOManager::cancelAll(int fd)
+IOManager& IOManager::addOnceEvent(int fd, FdContext::Event event, std::function<void()> cb_func)
 {
-    FdContext::ptr original_fd_ctx = m_fd_contexts[fd];
-    if(!original_fd_ctx)
+    if(!cb_func)
     {
-        return false;
+        M_SYLAR_LOG_WARN(g_logger) << "invalid cb function, callback function is nullptr";
+        return *this;
     }
-    // m_fd_contexts[fd] = event;
-    
-    // epoll 事件组装
-    int rt = 0;
-    rt = epoll_ctl(m_epollFd, EPOLL_CTL_DEL, fd, nullptr);
-    if(rt)
-    {   // 错误检查
-        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]faield to delEvent"
-                                    << "errno=" << errno << " error:" << strerror(errno);
-        return false;
-    }
-    rt = 0;
-    
-    // 事件回调
-    m_fd_contexts[fd]->trigger((Event)(Event::READ | Event::WRITE));
+    TaskCoro20 t {cb_func};
+    if(fd >= m_fd_events.size()) {ResizeEvents(fd); }
+    // std::unique_lock<std::shared_mutex> wlock(m_mutex);
+    std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
+    m_fd_events[fd]->addEvent(event, std::move(t),
+        std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    m_fd_events[fd]->delEvent(event, 
+        std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    return *this;
+}
 
-    // fdcontex 修改
-    m_fd_contexts[fd] = nullptr;
-    return true;
+
+IOManager& IOManager::delEvent(int fd, FdContext::Event event)
+{
+    std::string s = "fd is bigger than fd_event.size(), id=" + std::to_string(fd) + "bad access" + std::to_string(m_fd_events.size());
+    if(fd >= m_fd_events.size())
+    {
+        M_SYLAR_LOG_ERROR(g_logger) << s;
+        throw std::runtime_error(s);
+    }
+    // M_SYLAR_ASSERT2(fd >= m_fd_events.size(), s.c_str());
+    // std::unique_lock<std::shared_mutex> wlock(m_mutex);
+    std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
+
+    m_fd_events[fd]->delEvent(event, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    return *this;
+}
+
+
+IOManager& IOManager::closeFd(int fd)
+{
+    if(fd >= m_fd_events.size())
+    {
+        return *this;
+    }
+    std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
+    m_fd_events[fd]->closeEvent(FdContext::NONE, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    return *this;
+}
+
+
+IOManager& IOManager::cancelEvent(int fd, FdContext::Event event)
+{
+    M_SYLAR_ASSERT2(fd < m_fd_events.size(), "fd is bigger than fd_event.size(), bad access");
+    std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
+    m_fd_events[fd]->trigger(event, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    m_fd_events[fd]->delEvent(event, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    return *this;
+}
+
+IOManager& IOManager::cancelAll(int fd)
+{
+    FdContext::Event event = FdContext::Event(FdContext::Event::READ | FdContext::Event::WRITE);
+    cancelEvent(fd, event);
+    return *this;
 }
 
 IOManager* IOManager::getInstance()
 {
-    return dynamic_cast<IOManager*>(Scheduler::GetThis());
+    return dynamic_cast<IOManager*>(Scheduler::GetThis()); 
 }
 
-void IOManager::idle()
+void IOManager::stateSync(FdContext::ptr fd_ctx, FdContext::Event origin_event)
 {
-    const static int MAX_EVENT_NUM = 64;
-    static const int MAX_TIMEOUT = 5000;
+    int epoll_ctl_state;
+    FdContext::Event new_event = fd_ctx->getEvent();
+    if(new_event == origin_event || fd_ctx->getFd() == m_eventFd)
+    {   // 无变化
+        return;
+    }
+    else if(new_event == FdContext::NONE && origin_event != FdContext::NONE)
+    {   // 删除事件
+        epoll_ctl_state = EPOLL_CTL_DEL;
+    }
+    else if(origin_event == FdContext::NONE && new_event != FdContext::NONE) 
+    {   // 添加事件
+        epoll_ctl_state = EPOLL_CTL_ADD;
+    }
+    else
+    {   // 修改事件
+        epoll_ctl_state = EPOLL_CTL_MOD;
+    }
 
+
+    // epoll 事件组装
+    epoll_event ep_event;
+    ep_event.events = new_event | EPOLLET;
+    ep_event.data.fd = fd_ctx->getFd();
+    int rt = 0;
+
+    rt = epoll_ctl(m_epollFd, epoll_ctl_state, fd_ctx->getFd(), &ep_event);
+
+
+
+    if(epoll_ctl_state == EPOLL_CTL_DEL){
+        M_SYLAR_LOG_DEBUG(g_logger) << "del " << fd_ctx->getFd();
+    }
+
+    if(rt == -1)
+    {   // 错误检查
+        M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]faield to sync state, fd=" << fd_ctx->getFd()
+                                    << "origin:" << origin_event << " new:" << fd_ctx->getEvent()
+                                    << " errno=" << errno << " error:" << strerror(errno);
+    }
+    return;
+}
+
+void IOManager::idle() 
+{
+    const static int MAX_EVENT_NUM = 4096;
+    static const int MAX_TIMEOUT = 5000;
 
     // 等待epoll
     bool is_have_event = false;
@@ -261,6 +243,7 @@ void IOManager::idle()
         m_idleThreadCount++;
         m_activeThreadCount--;
         do {
+            std::shared_lock<std::shared_mutex> r_lock(m_mutex);
             rt = epoll_wait(m_epollFd, events, MAX_EVENT_NUM, MAX_TIMEOUT);
 
             if(rt == -1 && errno == EINTR)
@@ -291,12 +274,13 @@ void IOManager::idle()
                 is_have_event = true;
             }
             else
-            {   // io 回调fd, 同时删除对应回调
+            {   // io 回调fd
                 int io_fd = events[i].data.fd;
-                
-                m_fd_contexts[io_fd]->trigger((Event)events[i].events);
+                std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
 
-                // delEvent(io_fd, (Event)events[i].events);
+                if(io_fd == m_eventFd)  {continue; }
+                m_fd_events[io_fd]->trigger((FdContext::Event)events[i].events,
+                    std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
             }
         }
     } while(!is_have_event);
@@ -305,73 +289,47 @@ void IOManager::idle()
     delete[] events;
 }
 
-void IOManager::tickle()
+void IOManager::tickle() 
 {
-    if(m_idleThreadCount > 0)
-    {
+//     int value = 1;
+//     if(-1 == write(m_eventFd, &value, sizeof(value)))
+//     {
+//         M_SYLAR_LOG_ERROR(g_logger) << "Failed to write in m_eventFd, errno=" << errno << " error: " << strerror(errno);
+//         throw;
+    // }
+
         int64_t buffer = 1;
         if(1 == write(m_eventFd, &buffer, sizeof(buffer)))
         {
             M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]failed to tickle othres while write eventFd"
                                         << "\nerrno=" << errno << " error:" << strerror(errno);
+            throw;
             return;
         }
-    }
 }
 
-
-// void IOManager::FdContext::reset()
-// {
-
-// }
-
-IOManager::FdContext::FdContext(int fd)
+void IOManager::ResizeEvents(int fd)
 {
-    m_fd = fd;
-    m_cb_read.reset();
-    m_cb_write.reset();
-    m_event = Event::NONE;
-}
-
-IOManager::FdContext::~FdContext()
-{
-
-}
-
-
-void IOManager::FdContext::trigger(Event event)
-{   // 回调触发
-    if(event & Event::READ && m_cb_read.isLegal())
-    {
-        m_cb_read.start();
-    }
-    if(event & Event::WRITE && m_cb_write.isLegal())
-    {
-        m_cb_write.start();
-    }
-}
-
-int IOManager::contextSet(int fd, FdContext::ptr fd_ctx)
-{
-    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
-    if(fd > m_fd_contexts.size())
-    {
+    std::unique_lock<std::shared_mutex> wlock(m_event_mutex);
+    int curr_size = m_fd_events.size();
+    if(fd >= curr_size)
+    {   // 需扩容
         try
         {
-            m_fd_contexts.resize(fd * 1.5);
+            int after_size = MAX(curr_size * 1.5, fd * 1.3);
+            m_fd_events.resize(after_size);
+            for(int i = curr_size; i < after_size; ++i)
+            {
+                m_fd_events[i] = std::make_shared<FdContextManager>(i);
+            }
         }
-        catch(const std::exception& e)
+        catch(std::exception& e)
         {
-            M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]failed to resize m_fd_contexts"
-                                        << "\noriginal size=" << m_fd_contexts.size()
-                                        << "\non  set  size=" << (int)(fd * 1.5)
-                                        << "\nerror" << e.what();
+            M_SYLAR_LOG_ERROR(g_logger) << "Failed to resize m_fd_events, error:" << e.what();
+            throw ;
         }
+
     }
-    m_fd_contexts[fd] = fd_ctx;
-    return m_fd_contexts.size();
 }
-
-
 
 }

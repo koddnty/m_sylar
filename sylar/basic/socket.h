@@ -1,5 +1,6 @@
 #pragma once
 #include "address.h"
+#include "coroutine/corobase.h"
 #include <cstddef>
 #include <cstdint>
 #include <getopt.h>
@@ -47,7 +48,7 @@ public:
     bool getOption(int level, int option, T* result)
     {
         size_t len = sizeof(T);
-        return getsockopt(level, option, result, &len);
+        return co_getsockopt(level, option, result, &len);
     }
 
     bool setOption(int level, int option, const void* value, socklen_t len);    // set socket option, success on true
@@ -55,26 +56,26 @@ public:
     bool setOption(int level, int option, const T* value)
     {
         size_t len {sizeof(T)};
-        return setsockopt(m_sock_fd, level, option, value, len);
+        return co_setsockopt(m_sock_fd, level, option, value, len);
     }
 
 
     bool init(int sock_fd);         // create a Socket from socketFd
     bool bind(const Address::ptr addr);
     bool listen(int backlog = SOMAXCONN);
-    Socket::ptr accept();
+    Task<Socket::ptr> accept();
     bool connect(const Address::ptr addr, uint64_t timeOut = -1);       // client
     bool close();
 
-    int send(const void* buffer, size_t length, int flags = 0);
-    int send(const iovec* buffers, size_t length, int flags = 0);
-    int sendTo(Address::ptr to, const void* buffer, size_t length, int flags = 0);
-    int sendTo(Address::ptr to, const iovec* buffers, size_t length, int flags = 0);
+    Task<int> send(const void* buffer, size_t length, int flags = 0);
+    Task<int> send(const iovec* buffers, size_t length, int flags = 0);
+    Task<int> sendTo(Address::ptr to, const void* buffer, size_t length, int flags = 0);
+    Task<int> sendTo(Address::ptr to, const iovec* buffers, size_t length, int flags = 0);
 
-    int recv(const void* buffer, size_t length, int flags = 0);
-    int recv(const iovec* buffers, size_t length, int flags = 0);
-    int recvFrom(Address::ptr from, const void* buffers, size_t length, int flags = 0);
-    int recvFrom(Address::ptr from, const iovec* buffers, size_t length, int flags = 0);
+    Task<int> recv(const void* buffer, size_t length, int flags = 0);
+    Task<int> recv(const iovec* buffers, size_t length, int flags = 0);
+    Task<int> recvFrom(Address::ptr from, const void* buffers, size_t length, int flags = 0);
+    Task<int> recvFrom(Address::ptr from, const iovec* buffers, size_t length, int flags = 0);
 
     Address::ptr getRemoteAddress();
     Address::ptr getLocalAddress();
@@ -84,7 +85,9 @@ public:
     int Protocol() const {return m_protocol;}
 
     std::ostream& dump(std::ostream& os) const;
+    std::ostream& dump_short(std::ostream& os) const;
     std::string toString() const ;
+    std::string toString_short() const ;
     int getSocket() const {return m_sock_fd;}
 
     bool cancelRead();
@@ -93,6 +96,11 @@ public:
 
     bool isValid();
 
+
+    friend std::ostream& operator<<(std::ostream& os, const Socket& obj) {
+        return obj.dump_short(os);
+    }
+
 private:
     void initSock();
     void newSock();
@@ -100,7 +108,7 @@ private:
     int m_sock_fd;              // socket fd
     int m_family;               // socket family (AF_INET...)
     int m_protocol;             // protocol (OSTREAM)
-    int m_type;                 // type
+    int m_type;                 // type, socket协议类型
     bool m_isConnected;
 
     Address::ptr m_local_address;

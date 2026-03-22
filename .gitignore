@@ -19,6 +19,7 @@ build/
 bin/
 aclocal.m4
 autom4te.cache
+.cache/
 config.h.in
 config.log
 config.status

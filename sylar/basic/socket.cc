@@ -40,41 +40,49 @@ Socket::~Socket()
 // easy create a socket 
 Socket::ptr Socket::CreateTCP(m_sylar::Address::ptr address){
     Socket::ptr new_socket(new Socket(address->getFamily(), SOCK_STREAM, 0));
+    new_socket->newSock();
     return new_socket;
 }
 
 Socket::ptr Socket::CreateUDP(m_sylar::Address::ptr address){
     Socket::ptr new_socket(new Socket(address->getFamily(), SOCK_DGRAM, 0));
+    new_socket->newSock();
     return new_socket;
 }
 
 Socket::ptr Socket::CreateTCPSocket(){
     Socket::ptr new_socket(new Socket(AF_INET, SOCK_STREAM, 0));
+    new_socket->newSock();
     return new_socket;
 }
 
 Socket::ptr Socket::CreateUDPSocket(){
     Socket::ptr new_socket(new Socket(AF_INET, SOCK_DGRAM, 0));
+    new_socket->newSock();
     return new_socket;
 }
 
 Socket::ptr Socket::CreateTCPSocket6(){
     Socket::ptr new_socket(new Socket(AF_INET6, SOCK_STREAM, 0));
+    new_socket->newSock();
     return new_socket;
 }
 
 Socket::ptr Socket::CreateUDPSocket6(){
     Socket::ptr new_socket(new Socket(AF_INET6, SOCK_DGRAM, 0));
+    new_socket->newSock();
     return new_socket;
 }
 
 Socket::ptr Socket::CreateUnixTCPSocket(){
     Socket::ptr new_socket(new Socket(AF_UNIX, SOCK_STREAM, 0));
+    new_socket->newSock();
     return new_socket;
 }
 
 Socket::ptr Socket::CreateUnixUDPSocket(){
     Socket::ptr new_socket(new Socket(AF_UNIX, SOCK_DGRAM, 0));
+    new_socket->newSock();
     return new_socket;
 }
 
@@ -118,7 +126,7 @@ void Socket::setRecvTimeOut(int64_t time)
 
 bool Socket::getOption(int level, int option, void* result, socklen_t* len)
 {
-    int rt = getsockopt(m_sock_fd, level, option, result, len);
+    int rt = co_getsockopt(m_sock_fd, level, option, result, len);
     if(rt)
     {
         M_SYLAR_LOG_DEBUG(g_logger) << "failed to get socket option, errno = " << errno 
@@ -132,7 +140,7 @@ bool Socket::getOption(int level, int option, void* result, socklen_t* len)
 
 bool Socket::setOption(int level, int option, const void* value, socklen_t len)
 {
-    int rt = setsockopt(m_sock_fd, level, option, value, len);
+    int rt = co_setsockopt(m_sock_fd, level, option, value, len);
     if(rt)
     {
         M_SYLAR_LOG_DEBUG(g_logger) << "failed to get socket option, errno = " << errno 
@@ -144,26 +152,27 @@ bool Socket::setOption(int level, int option, const void* value, socklen_t len)
     return true;
 }
 
-Socket::ptr Socket::accept()
+Task<Socket::ptr> Socket::accept()
 {
     Socket::ptr new_sock {new Socket(m_family, m_type, m_protocol)};
-    int new_sock_fd = ::accept(m_sock_fd, nullptr, nullptr);
+    int new_sock_fd = co_await co_accept(m_sock_fd, nullptr, nullptr);
     if(new_sock_fd == -1)
     {
         M_SYLAR_LOG_ERROR(g_logger) << "accept failed, errno = " << errno
                                     << "   error : " << strerror(errno)
                                     << "   m_sock_fd = " << m_sock_fd;
-        return nullptr;
+        co_return nullptr;
     }
     if(new_sock->init(new_sock_fd)){
-        return new_sock;
+        co_return new_sock;
     }
-    return nullptr;
+    co_return nullptr;
 }
 
 bool Socket::init(int sock_fd)
 {   // initialize a socket that created outside after connect or generate from accept
     FdCtx::ptr fd_ctx = FdMgr::GetInstance()->get(sock_fd, true);       // 使用true来使fdmanager管理新连接
+    // IOManager::getInstance()->addEvent(sock_fd, FdContext::READ, nullptr);
     if(fd_ctx && fd_ctx->is_socket() && !fd_ctx->is_closed())
     {
         m_sock_fd = sock_fd;
@@ -188,7 +197,7 @@ void Socket::initSock()
 
 void Socket::newSock()
 {   // create a socket, mainly for 
-    m_sock_fd = socket(m_family, m_type, m_protocol);
+    m_sock_fd = co_socket(m_family, m_type, m_protocol);
     if(m_sock_fd != -1)
     {
         initSock();
@@ -282,22 +291,22 @@ bool Socket::close()
     m_isConnected = false;
     if(m_sock_fd != -1)
     {
-        ::close(m_sock_fd);
+        co_close(m_sock_fd);
         m_sock_fd = -1;
     }
     return false;
 }
 
-int Socket::send(const void* buffer, size_t length, int flags)
+Task<int> Socket::send(const void* buffer, size_t length, int flags)
 {
     if(m_isConnected)
     {
-        return ::send(m_sock_fd, buffer, length, flags);
+        co_return co_await co_send(m_sock_fd, buffer, length, flags);
     }
-    return -1;
+    co_return -1;
 }
 
-int Socket::send(const iovec* buffers, size_t length, int flags)
+Task<int> Socket::send(const iovec* buffers, size_t length, int flags)
 {
     if(m_isConnected)
     {
@@ -305,21 +314,21 @@ int Socket::send(const iovec* buffers, size_t length, int flags)
         memset(&message, 0, sizeof(msghdr));
         message.msg_iov = (iovec*) buffers;
         message.msg_iovlen = length;
-        return ::sendmsg(m_sock_fd, &message, flags);
+        co_return co_await co_sendmsg(m_sock_fd, &message, flags);
     }
-    return -1;
+    co_return -1;
 }
 
-int Socket::sendTo(Address::ptr to, const void* buffer, size_t length, int flags)
+Task<int> Socket::sendTo(Address::ptr to, const void* buffer, size_t length, int flags)
 {
     if(m_isConnected)
     {
-        return ::sendto(m_sock_fd, buffer, length, flags, to->getAddr(), to->getAddrLen());
+        co_return co_await co_sendto(m_sock_fd, buffer, length, flags, to->getAddr(), to->getAddrLen());
     }
-    return -1;
+    co_return -1;
 }
 
-int Socket::sendTo(Address::ptr to, const iovec* buffers, size_t length, int flags)
+Task<int> Socket::sendTo(Address::ptr to, const iovec* buffers, size_t length, int flags)
 {
     if(m_isConnected)
     {
@@ -329,21 +338,21 @@ int Socket::sendTo(Address::ptr to, const iovec* buffers, size_t length, int fla
         message.msg_namelen = to->getAddrLen();
         message.msg_iov = (iovec*) buffers;
         message.msg_iovlen = length;
-        return ::sendmsg(m_sock_fd, &message, flags);
+        co_return co_await co_sendmsg(m_sock_fd, &message, flags);
     }
-    return -1;
+    co_return -1;
 }
 
-int Socket::recv(const void* buffer, size_t length, int flags)
+Task<int> Socket::recv(const void* buffer, size_t length, int flags)
 {
     if(m_isConnected)
     {
-        return ::recv(m_sock_fd, (void*)buffer, length, flags);
+        co_return co_await co_recv(m_sock_fd, (void*)buffer, length, flags);
     }
-    return -1;
+    co_return -1;
 }
 
-int Socket::recv(const iovec* buffers, size_t length, int flags)
+Task<int> Socket::recv(const iovec* buffers, size_t length, int flags)
 {
     if(m_isConnected)
     {
@@ -351,27 +360,29 @@ int Socket::recv(const iovec* buffers, size_t length, int flags)
         memset(message, 0, sizeof(msghdr));
         message->msg_iov = (iovec*) buffers;
         message->msg_iovlen = length;
-        return ::recvmsg(m_sock_fd, message, flags);
+        int rt =  co_await co_recvmsg(m_sock_fd, message, flags);
+        delete message;
+        co_return rt;
     }
-    return -1;
+    co_return -1;
 }
 
-int Socket::recvFrom(Address::ptr from, const void* buffers, size_t length, int flags)
+Task<int> Socket::recvFrom(Address::ptr from, const void* buffers, size_t length, int flags)
 {
     if(m_isConnected)
     {
         socklen_t len = from->getAddrLen();
-        int status = ::recvfrom(m_sock_fd, (void*)buffers, length, flags, from->getAddr(), &len);
+        int status = co_await co_recvfrom(m_sock_fd, (void*)buffers, length, flags, from->getAddr(), &len);
         if(from->getFamily() == AF_UNIX)
         {
             std::dynamic_pointer_cast<UnixAddress>(from)->setAddrLen(len);
         }
-        return status;
+        co_return status;
     }
-    return -1;
+    co_return -1;
 }
 
-int Socket::recvFrom(Address::ptr from, const iovec* buffers, size_t length, int flags)
+Task<int> Socket::recvFrom(Address::ptr from, const iovec* buffers, size_t length, int flags)
 {
     if(m_isConnected)
     {
@@ -381,9 +392,9 @@ int Socket::recvFrom(Address::ptr from, const iovec* buffers, size_t length, int
         message.msg_namelen = from->getAddrLen();
         message.msg_iov = (iovec*) buffers;
         message.msg_iovlen = length;
-        return ::recvmsg(m_sock_fd, &message, flags);
+        co_return co_await co_recvmsg(m_sock_fd, &message, flags);
     }
-    return -1;
+    co_return -1;
 }
 
 Address::ptr Socket::getRemoteAddress()
@@ -487,6 +498,13 @@ std::ostream& Socket::dump(std::ostream& os) const
     return os;
 }
 
+std::ostream& Socket::dump_short(std::ostream& os) const
+{
+    if(m_remote_address)
+        os << "remote address : " << m_remote_address->toString();
+    return os;
+}
+
 std::string Socket::toString() const
 {
     std::stringstream ss;
@@ -494,19 +512,30 @@ std::string Socket::toString() const
     return ss.str();
 }
 
+std::string Socket::toString_short() const
+{
+    std::stringstream ss;
+    dump_short(ss);
+    return ss.str();
+}
+
+
 bool Socket::cancelRead()
 {
-    return IOManager::getInstance()->cancelEvent(m_sock_fd, IOManager::READ);
+    IOManager::getInstance()->cancelEvent(m_sock_fd, FdContext::READ);
+    return true;
 }
 
 bool Socket::cancelWrite()
 {
-    return IOManager::getInstance()->cancelEvent(m_sock_fd, IOManager::WRITE);
+    IOManager::getInstance()->cancelEvent(m_sock_fd, FdContext::WRITE);
+    return true;
 }
 
 bool Socket::cancelAll()
 {
-    return IOManager::getInstance()->cancelAll(m_sock_fd);
+    IOManager::getInstance()->cancelAll(m_sock_fd);
+    return true;
 }
 
 bool Socket::isValid()

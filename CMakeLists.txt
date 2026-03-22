@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
 project(m_sylar)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
 
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -g -O0")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+# set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=thread")
+# 原
+set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
+# set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=address -fno-omit-frame-pointer -g")
 
 
 set ( LIB_LIB
@@ -45,38 +47,24 @@ set(HTTP_SOURCES
     sylar/http/httpServer.cc
 )
 
-# UCONTEXT 协程模块
-set(UCONTEXT_SOURCES 
-
-    sylar/coroutine/ucontext/fiber.cc
-    sylar/coroutine/ucontext/scheduler.cc
-    sylar/coroutine/ucontext/ioManager.cc
-    sylar/coroutine/ucontext/hook.cc
-)
 
 # cpp20Coroutine 协程模块
 set(CORO20_SOURCES
     sylar/coroutine/coro20/fiber.cc
+    sylar/coroutine/coro20/fdContext.cc
     sylar/coroutine/coro20/scheduler.cc
     sylar/coroutine/coro20/ioManager.cc
     sylar/coroutine/coro20/hook.cc
+    sylar/coroutine/coro20/taskPool.cc
 )
 
 # 选择模块
-if(SYLAR_USE_CORO20)
-    message("use cpp20 coroutine implementation")
-    add_definitions(-DSYLAR_USE_CORO20)
 
-    set(COROUTINE_SOURCES ${CORO20_SOURCES})
-    set(CMAKE_CXX_STANDARD 20)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_definitions(-DSYLAR_USE_CORO20)
 
-else()
-    message("use ucontext coroutine implementation")
-
-    set(COROUTINE_SOURCES ${UCONTEXT_SOURCES})
-
-endif()
+set(COROUTINE_SOURCES ${CORO20_SOURCES})
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 add_library(sylar STATIC 
@@ -96,10 +84,13 @@ target_include_directories(sylar PUBLIC
 #     ${CMAKE_CURRENT_SOURCE_DIR}/sylar
 # )
 
+# add_executable(taskCoro_test tests/lab_test/taskCoro_test.cc)
+# add_dependencies(taskCoro_test sylar)
+# target_link_libraries(taskCoro_test sylar ${LIB_LIB})
 
-add_executable(task_test tests/lab_test/task_test.cc)
-add_dependencies(task_test sylar)
-target_link_libraries(task_test sylar ${LIB_LIB})
+# add_executable(task_test tests/lab_test/task_test.cc)
+# add_dependencies(task_test sylar)
+# target_link_libraries(task_test sylar ${LIB_LIB})
 
 # add_executable(test tests/test.cc)
 # add_dependencies(test sylar)
@@ -148,10 +139,10 @@ target_link_libraries(task_test sylar ${LIB_LIB})
 # target_link_libraries(test_iomanager sylar ${LIB_LIB})
 
 
-# add_executable(test_self_timer tests/test_self_timer.cc)
-# # force_redefine_macro_for_sources(test_yaml)
-# add_dependencies(test_self_timer sylar )
-# target_link_libraries(test_self_timer sylar ${LIB_LIB})
+add_executable(test_self_timer tests/test_self_timer.cc)
+# force_redefine_macro_for_sources(test_yaml)
+add_dependencies(test_self_timer sylar )
+target_link_libraries(test_self_timer sylar ${LIB_LIB})
 
 # add_executable(test_hook tests/test_hook.cc)
 # add_dependencies(test_hook sylar)
@@ -169,21 +160,21 @@ target_link_libraries(task_test sylar ${LIB_LIB})
 # add_dependencies(http_test sylar)
 # target_link_libraries(http_test sylar ${LIB_LIB})
 
-# add_executable(httpParser_test tests/httpParser_test.cc)
-# add_dependencies(httpParser_test sylar)
-# target_link_libraries(httpParser_test sylar ${LIB_LIB})
+add_executable(httpParser_test tests/httpParser_test.cc)
+add_dependencies(httpParser_test sylar)
+target_link_libraries(httpParser_test sylar ${LIB_LIB})
 
-# add_executable(tcpServer_test tests/tcpServer_test.cc)
-# add_dependencies(tcpServer_test sylar)
-# target_link_libraries(tcpServer_test sylar ${LIB_LIB})
+add_executable(tcpServer_test tests/tcpServer_test.cc)
+add_dependencies(tcpServer_test sylar)
+target_link_libraries(tcpServer_test sylar ${LIB_LIB})
 
-# add_executable(httpServer_test tests/httpServer_test.cc)
-# add_dependencies(httpServer_test sylar)
-# target_link_libraries(httpServer_test sylar ${LIB_LIB})
+add_executable(httpServer_test tests/httpServer_test.cc)
+add_dependencies(httpServer_test sylar)
+target_link_libraries(httpServer_test sylar ${LIB_LIB})
 
-add_executable(performance_test_scheduler tests/performance_tests/scheduler_exchange.cc)
-add_dependencies(performance_test_scheduler sylar)
-target_link_libraries(performance_test_scheduler sylar ${LIB_LIB})
+# add_executable(performance_test_scheduler tests/performance_tests/scheduler_exchange.cc)
+# add_dependencies(performance_test_scheduler sylar)
+# target_link_libraries(performance_test_scheduler sylar ${LIB_LIB})
 
 add_executable(scheduleCoro20_test tests/lab_test/scheduleCoro20_test.cc)
 add_dependencies(scheduleCoro20_test sylar)

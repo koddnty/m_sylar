@@ -10,18 +10,19 @@
 #include <list>
 #include <memory>
 #include <mutex>
+#include "taskPool.h"
 
 
 namespace m_sylar
 {
-// static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+
 
 class Scheduler
 {
 public:
     using ptr = std::shared_ptr<Scheduler>;
 
-    Scheduler (const std::string& name, size_t thread_num = 1);
+    Scheduler (const std::string& name, size_t thread_num = 1, size_t taskLoopNum = 0);
     virtual ~Scheduler ();
 
     void start();
@@ -30,39 +31,23 @@ public:
     std::string getName () {return m_name;}
     static Scheduler* GetThis();                              // 获取当前线程
     int getTaskCount() {
-        std::shared_lock<std::shared_mutex> r_lock(m_mutex);
-        return m_tasks.size(); 
+        return m_task_pool.getTaskCount(); 
     }
 
 
     template<typename Func_or_Handle>
     void schedule(Func_or_Handle cb)
     {
-        {
-            std::unique_lock<std::shared_mutex> w_lock(m_mutex);
-            scheduleNoLock(std::move(cb));
-        }
+        scheduleNoLock(std::move(cb));
         tickle();
     }
-
-    // void schedule(TaskCoro20 cb)
-    // {
-    //     {
-    //         std::unique_lock<std::shared_mutex> w_lock(m_mutex);
-    //         scheduleNoLock(std::move(cb));
-    //     }
-    //     tickle();
-    // }
 
     template<typename InputOperator>
     void schedule(InputOperator begin, InputOperator end)
     {
+        for(;begin != end; begin++)
         {
-            std::unique_lock<std::shared_mutex> w_lock(m_mutex);
-            for(;begin != end; begin++)
-            {
-                scheduleNoLock(std::move(*begin));
-            }
+            scheduleNoLock(std::move(*begin));
         }
         tickle();
     }
@@ -77,22 +62,22 @@ private:
         {
             return;
         }
-        // TaskCoro20 t(task);
         M_SYLAR_ASSERT2(!task.isFinished(), "[scheduleCoro20] illegal Task");
-        // m_tasks.push_back(task);
-        m_tasks.push_back(std::move(task));
+        m_task_pool.taskAlloc(std::move(task));
     }
 
-    void scheduleNoLock(TaskCoro20&& f)
+    void scheduleNoLock(TaskCoro20&& task)
     {
-        if(f.isFinished()) {return;}
+        if(task.isFinished()) {return;}
         if(m_autoStop)
         {
             return;
         }
-        M_SYLAR_ASSERT2(!f.isFinished(), "[scheduleCoro20] illegal Task");
-        m_tasks.push_back(std::move(f));
+        M_SYLAR_ASSERT2(!task.isFinished(), "[scheduleCoro20] illegal Task");
+        m_task_pool.taskAlloc(std::move(task));
     }
+
+
 
 public:
     void ThreadInit();
@@ -105,7 +90,7 @@ public:
 
 protected:
     std::string m_name;                                             // schedule名称
-    std::list<TaskCoro20> m_tasks;                                  // 任务队列
+    // std::list<TaskCoro20> m_tasks;                                  // 任务队列
     // std::map<std::pair<int, int>, Thread::ptr> m_threads;           //{{线程序号，线程号}， 线程指针}
     std::vector<Thread::ptr> m_threads;
     int m_threads_count;                                            // 线程个数
@@ -114,6 +99,8 @@ protected:
     std::atomic<size_t> m_activeThreadCount = {0};                  // 活跃线程数
     std::atomic<size_t> m_idleThreadCount = {0};                    // 空闲线程数
     std::shared_mutex m_mutex;
+
+    TaskPool m_task_pool;           // 任务池
 
 };
 }
