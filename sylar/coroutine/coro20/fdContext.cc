@@ -119,26 +119,6 @@ bool FdContextManager::addTask(std::shared_ptr<RegistedTask> task)
         return true;
     }   
     
-    // 无法执行
-    if(m_state == BUSY)
-    {   // 直接退出
-        return false;
-    }
-
-    State curr_task = State::READY;
-    if(m_state.compare_exchange_strong(curr_task, BUSY))
-    {   // 当前状态是ready,变为busy
-        solveTasks();
-        return true;
-    }   
-    curr_task = INIT;
-    if(m_state.compare_exchange_strong(curr_task, BUSY))
-    {   // 当前状态是ready,变为busy
-        solveTasks();
-        return true;
-    }   
-    std::this_thread::yield();
-    
     if(m_state == ERROR)
     {
         throw "[fdContext.cc]Error State";

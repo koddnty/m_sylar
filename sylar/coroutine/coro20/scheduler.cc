@@ -64,8 +64,8 @@ void Scheduler::run()
     {
         // 取任务
         {
-            std::unique_lock<std::shared_mutex> r_lock(m_mutex);
-            while(m_task_pool.taskGet(work_list) && m_task_pool.getTaskCount()) {}
+            // std::unique_lock<std::shared_mutex> r_lock(m_mutex);
+            while(!m_task_pool.taskGet(work_list) && m_task_pool.getTaskCount()) {}
             
             if(m_task_pool.getTaskCount() && m_idleThreadCount)
             {

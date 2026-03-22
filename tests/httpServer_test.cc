@@ -34,9 +34,10 @@ void test_http_server(m_sylar::IOManager* iom)
     server->GET("/home", home_page);
 
     server->POST("/home/rename", rename_func);
-    server->start(1);
+    server->start(5);
     M_SYLAR_LOG_INFO(g_logger) << "All Gate have been registered, ip:0.0.0.0:8803";
     sleep(40);
+    server->stop();
 }
 
 int main(void)
@@ -45,6 +46,6 @@ int main(void)
     // iom.schedule(test_http_server);
     test_http_server(&iom);
     // sleep(1000);
-    iom.stop();
+    iom.autoStop();
     return 0;
 }

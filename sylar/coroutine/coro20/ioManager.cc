@@ -1,12 +1,9 @@
 #include "coroutine/coro20/ioManager.h"
-#include "coroutine/coro20/hook.h"
 #include "coroutine/coro20/fiber.h"
 #include "coroutine/coro20/scheduler.h"
 #include "basic/log.h"
 #include "basic/macro.h"
-#include "http/http.h"
 #include <cerrno>
-#include <cinttypes>
 #include <cstdint>
 #include <cstring>
 #include <sys/param.h>
@@ -246,6 +243,7 @@ void IOManager::idle()
         m_idleThreadCount++;
         m_activeThreadCount--;
         do {
+            std::shared_lock<std::shared_mutex> r_lock(m_mutex);
             rt = epoll_wait(m_epollFd, events, MAX_EVENT_NUM, MAX_TIMEOUT);
 
             if(rt == -1 && errno == EINTR)

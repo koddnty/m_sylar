@@ -434,7 +434,12 @@ public:
     ~Awaiter()
     {}
 
-    Awaiter(Awaiter& other) = default;
+    Awaiter(Awaiter& other)
+    {
+        m_handle = other.m_handle;
+        m_executer = other.m_executer;
+    }
+
     Awaiter(Awaiter&& other) = delete;
 
 public:
@@ -488,27 +493,27 @@ protected:
     std::optional<Result<_ResultType>> m_result{};
 
     void resume(_ResultType value) {
-        if(m_is_resumed)
+        bool expect = false;
+        if(m_is_resumed.compare_exchange_strong(expect, true))
         {
-            // std::cout << "[Task Awaiter] ERROR: resumed twice in one awaiter" << std::endl;
-            return;
-        }
-        m_is_resumed = true;
-        if(m_handle.done()){
-            return;
-        }
-        dispatch([this, value]() {
-            // 将 value 封装到 _result 当中，await_resume 时会返回 value
-            m_result = Result<_ResultType>(static_cast<_ResultType>(value));
-            if(!m_handle.done())
-            {
-                m_handle.resume();
+            // m_is_resumed = true;
+            if(m_handle.done()){
+                return;
             }
-            else
-            {
-                std::cout << "原位置会导致resumedestoryed的协程" << std::endl;
-            }
-        });
+            dispatch([this, value]() {
+                // 将 value 封装到 _result 当中，await_resume 时会返回 value
+                m_result = Result<_ResultType>(static_cast<_ResultType>(value));
+                if(!m_handle.done())
+                {
+                    m_handle.resume();
+                }
+                else
+                {
+                    std::cout << "原位置会导致resumedestoryed的协程" << std::endl;
+                }
+            });
+        }
+
     }
 
     void resume_unsafe() {
@@ -530,7 +535,7 @@ protected:
 private:
     std::coroutine_handle<> m_handle;
     AbstractExecuter* m_executer = NULL;
-    bool m_is_resumed = false;
+    std::atomic<bool> m_is_resumed = false;
 };
 
 
