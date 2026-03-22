@@ -140,7 +140,7 @@ void HttpServer::registerUrl(const std::string& url, HandlerFunc cb, http::HttpM
     m_urls[url] = {method, cb};
 }
 
-bool HttpServer::start()
+bool HttpServer::start(int acceptNum)
 {
     if(!isStop())
     {
@@ -151,7 +151,10 @@ bool HttpServer::start()
     for(auto& sock : getSockets())
     {
         auto t = std::bind(&HttpServer::startAccept, std::dynamic_pointer_cast<HttpServer>(shared_from_this()), sock);
-        getIomanager()->schedule(TaskCoro20::create_coro(t));
+        while(acceptNum--)
+        {
+            getIomanager()->schedule(TaskCoro20::create_coro(t));
+        }
     }
     return true;
 }

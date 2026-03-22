@@ -63,6 +63,7 @@ set(CORO20_SOURCES
     sylar/coroutine/coro20/scheduler.cc
     sylar/coroutine/coro20/ioManager.cc
     sylar/coroutine/coro20/hook.cc
+    sylar/coroutine/coro20/taskPool.cc
 )
 
 # 选择模块

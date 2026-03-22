@@ -84,7 +84,7 @@ bool TcpServer::bind(std::vector<Address::ptr>& addrs, std::vector<Address::ptr>
     return rt;
 }
 
-bool TcpServer::start()
+bool TcpServer::start(int acceptNum)
 {   // start tcp server
     if(!isStop())
     {
@@ -95,7 +95,10 @@ bool TcpServer::start()
     for(auto& sock : m_sockets)
     {
         auto t = std::bind(&TcpServer::startAccept, shared_from_this(), sock);
-        m_iomanager->schedule(TaskCoro20::create_coro(t));
+        while(acceptNum--)
+        {
+            m_iomanager->schedule(TaskCoro20::create_coro(t));
+        }
     }
     return true;
 }
