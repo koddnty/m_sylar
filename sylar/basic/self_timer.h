@@ -11,7 +11,7 @@
 #include "allHeader.h"
 #include "log.h"
 #include "singleton.h"
-// #include "coroutine/corobase.h"
+#include "coroutine/corobase.h"
 
 #ifdef SYLAR_USE_CORO20
     #include "coroutine/coro20/ioManager.h"
@@ -67,6 +67,7 @@ private:
     uint64_t m_interval;                        // 循环间隔时间
     uint64_t m_nextTime;                        // 到期时间
     TimeManager* m_manager;                     // timer管理者
+    // std::shared_mutex m_mutex;
     std::function<void()> m_main_cb;            // 主任务函数
     std::function<bool()> m_condition;          // 执行条件（默认无限循环
     std::function<void()> m_condition_cb;       // 条件不成立后执行函数
@@ -102,7 +103,7 @@ public:
     static TimeManager* getInstance();         // 获取timeManager
 
 private:
-    // std::shared_mutex m_rwMutex;
+    std::shared_mutex m_mutex;
     // std::set<Timer::ptr, Timer::Compare> m_timers;                  // 定时器合集
     std::map<int, Timer::ptr> m_timersMap;                      // （Timer唯一存储点）将决定timer的生命周期     
     IOManager* m_iom;                                           // 定时器管理类

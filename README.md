@@ -4,101 +4,99 @@ sylar项目地址:[sylar服务器框架原地址](https://github.com/sylar-yin/s
 
 sylar视频地址:[[C++高级教程]从零开始开发服务器框架(sylar)](https://www.bilibili.com/video/BV184411s7qF)
 
----
+## 项目介绍
 
-## 日志系统
+此项目原本是个人的学习项目，3个月学习后基本实现了原sylar项目的功能。但个人觉得掌握并不透彻，遂决定在原有框架的基础上，将原ucontext实现的协程模块替换为cpp20提供的无栈协程，并基于此实现iomanager等模块的适配。
 
-### 日志功能
+在后续的不断实现中，也发现了原sylar框架的许多不足之处，现在框架已经移除了ucontext(也就是原sylar框架使用的协程方法)及调度模块(可从历史提交找回)，只继续实现基于新的基于cpp20协程的模块，修复了许多原框架存在的内存泄漏、内存错误等问题同时也优化了部分模块如单锁的任务队列模块。同时感谢[Benny Huo](https://www.bennyhuo.com/book/cpp-coroutines/00-foreword.html)的协程技术博客，对项目协程模块提供了很大帮助。
 
-实现全局规范化日志管理，便于问题定位。
-通过为`logger`添加`event`来使用`logger`中的所有`appender`输出`formatter`中定义好的日志格式到`appender`对应的文件。
+现在框架具有一定的稳定性，详见[性能分析](./docs/performance/performance_analysis.md)。也已经支持了http协议的简单解析，后续准备不断实现更多功能以及对底层进行更多优化如实现异步日志等。同时如果有一起学习的小伙伴欢迎一起讨论。
 
-### 日志实现
+## 快速开始
 
-- 1 . 流式日志风格  
-- 2 . 日志格式自定义
-- 3 . 日志级别
-- 4 . 多日志分离
-- 5 . 全局日志管理
+### 项目依赖
 
-[日志结构思维导图（.drawio）](docs/log_moudle)
+- yaml-cpp   yaml解析器(配置模块)
 
-### 使用方法
+### 构建
 
-```cpp
-    // file_appender->setFormatter(LogFormatter::ptr( new LogFormatter("%d{%Y-%m-%d %H:%M:%S}%T[%p]%n")));可以设置formatter的pattern日志输出格式
+在build目录执行：
 
-    Logger::ptr logger(new Logger("ali"));      \\logger名称
-    LogAppender::ptr file_appender( new FileLogAppender("./log.txt"));   \\创建文件appender
-    file_appender->setLevel(LogLevel::ERROR);       \\设置文件等级
-    logger->addAppender(file_appender);             \\为logger添加appender
-    LoggerMgr::GetInstance()->addLogger(logger);     \\将logger添加到全局manager
-    auto i = LoggerMgr::GetInstance()->getLogger("ali");    \\获取名为ali的logger
-    M_SYLAR_LOG_ERROR(i) << "instance";             \\流式输出日志
-    // 输出日志级别要同时大于logger级别和appender的级别
+``` shell	
+cmake ..
+make -j8
 ```
 
-LogFormatter创建时自定义pattern日志格式支持的格式
 
-```cpp
-    // %m 输出代码中指定的日志信息
-    // %p 日志信息输出级别，及 DEBUG,INFO,ERROR等
-    // %r 累计毫秒数
-    // %c 日志名称
-    // %t 输出产生该日志的线程全名
-    // %F 协程id
-    // %d 时间
-    // %F 输出日志消息产生时所在的文件名称
-    // %L 输出代码中的行号
-    // %n 换行
-    // %s 普通字符串
-    // %T tab
-```
 
-## config配置模块
-
-模块添加了对各种数据的配置支持如基本变量,STL部分如`list`,`vector`,`unordered_set`,`set`,`unordered_map`,`map`的支持。并支持了yaml的日志导入功能。
-
-- 1 .yaml格式配置导入  
+### 简单实例(http)
 
 ``` cpp
-    YAML::Node root = YAML::LoadFile("<</pathToConfig/*.yaml>>");
-    m_sylar::configManager::LoadFromYaml(root);
+#include <cstdio>
+#include <memory>
+#include "basic/log.h"
+#include "basic/address.h"
+#include "http/httpServer.h"
+
+static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+
+void home_page(m_sylar::http::HttpSession::ptr session)
+{
+    session->getResponse()->setHeader("nihao", "110");
+    std::string message = "hello world";
+    session->getResponse()->setBody(message);
+}
+
+void rename_func(m_sylar::http::HttpSession::ptr session)
+{
+    session->getResponse()->setHeader("nihao", "110");
+    std::string message = "没有改名卡口我";
+    session->getResponse()->setBody(message);
+}
+
+void test_http_server(m_sylar::IOManager* iom)
+{
+    // 为一个httpServer绑定地址端口
+    m_sylar::http::HttpServer::ptr server(new m_sylar::http::HttpServer(iom));
+    m_sylar::Address::ptr addr = m_sylar::Address::LookupAnyIPAddress("0.0.0.0");
+    std::dynamic_pointer_cast<m_sylar::IPv4Address>(addr)->setPort(8803);
+    server->bind(addr);
+    
+    server->GET("/home", home_page);		// 配置serverlet路由
+
+    server->POST("/home/rename", rename_func);
+    server->start(5);		// 启动server,传参指定同一地址listen fd个数
+    M_SYLAR_LOG_INFO(g_logger) << "All Gate have been registered, ip:0.0.0.0:8803";
+    sleep(40);
+    server->stop();
+}
+
+int main(void)
+{
+    m_sylar::IOManager iom("httpServer", 4);    
+    test_http_server(&iom);
+    iom.autoStop();
+    return 0;
+}
 ```
 
-- 2 .yaml配置命名规则
 
-导入的配置名示例:
 
-``` yaml
-    logs:           //logs
-    - name: root            //logs.0
-        level: info
-        formatter: "%d%T%m%n"
-        appender:                   //logs.0.appender
-        - type: FileLogAppender             //logs.0.appender.1
-            file: log.txt                   //logs.0.appender.1.file
-        - type: StdoutLogAppender
-```
+其他部分如协程任务创建、调度、定时器等内容详见[接口与文档](# 接口与文档)，或参考代码实例。
 
-对应的file配置名则为 `logs.0.appender.0.file`
+## 接口与文档
 
-- 3 .日志变更监听回调功能
+- 基础模块
+    - [日志](./docs/basic_modules/log.md)
+    - [配置模块](./docs/basic_modules/config.md)
+    - [协程任务](./docs/cppcoro/task.md)
+    - [定时器模块](./docs/basic_modules/timer.md)
+- 底层模块
+    - [协程任务模块Task](./docs/cppcoro/task.md)
+    - [scheduler和iomanager](./docs/cppcoro/iomanager.md)
+    - [定时器模块](./docs/basic_modules/timer.md)(已经是基础模块，上文已提到)
+- 上层模块
+    - [socket封装](./docs/socket/socket.md)
+    - http相关
+        - [httpServer/serverlet](./docs/http/httpServer.md)
 
-支持对日志项的配置变更回调函数
-
-``` cpp
-    m_sylar::ConfigVar<std::string>::ptr test =
-        m_sylar::configManager::Lookup("logs.0.appender.0.file", std::string("HelloWorld"), "system port");
-    test->addListener(10, [test](const std::string& old_val, const std::string& new_val){
-        M_SYLAR_LOG_INFO(M_SYLAR_GET_LOGGER_ROOT()) << "reload [" << test->getName() << "] from [" << old_val << "] to [" << new_val << "]";
-    });
-```
-
-调用addListener添加变更回调函数,日志改变会自动执行对应函数
-
-## 接口与实现方式文档汇总
-
-- [io任务模块](./docs/ioManager.md)
-
-  - [定时器](./docs/timer.md)  

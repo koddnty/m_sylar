@@ -2,8 +2,6 @@
 #include <memory>
 #include "basic/self_timer.h"
 // #include "basic/hook.h"
-#include "coroutine/corobase.h"
-#include "basic/allHeader.h"
 
 
 static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
@@ -33,7 +31,7 @@ void condition_cb()
 void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim);
 void test1()
 {   
-    m_sylar::IOManager::ptr iom (new m_sylar::IOManager("timer_test", 12));
+    m_sylar::IOManager::ptr iom (new m_sylar::IOManager("timer_test", 1));
 
 
     m_sylar::TimeManager::ptr tim (new m_sylar::TimeManager(iom));
@@ -59,7 +57,6 @@ void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim)
 
     for(int i = 0; i < 100; i++)
     {
-        iom->schedule([](){
             // tim->addTimer(1 * 1000000, true, tim, ccb);
             int newfd = m_sylar::TimeManager::getInstance()->addConditionTimer(1 * 10000000, false, ccb, 
                 []() 
@@ -80,7 +77,6 @@ void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim)
             // std::cout << "取消timer结束" << ::std::endl;
 
             // sleep(5);
-        });
     }
 
 

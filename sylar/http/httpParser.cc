@@ -87,6 +87,11 @@ HttpRequestParser::HttpRequestParser()
     m_parser->data = this;
 }
 
+HttpRequestParser::~HttpRequestParser()
+{
+    delete m_parser;
+}
+
 void HttpRequestParser::on_http_field(void *data, const char *field, 
                 size_t flen, const char *value, size_t vlen)
 {
@@ -227,6 +232,8 @@ HttpResponseParser::HttpResponseParser()
 
     m_parser->data = this;
 }
+
+
 
 void HttpResponseParser::on_field_cb(void *data, const char *field, size_t flen, const char *value, size_t vlen)
 {

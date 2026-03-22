@@ -38,13 +38,13 @@ void test1()
 
 
     M_SYLAR_LOG_INFO(g_logger) << " 添加events";
-    iom.addEvent(sockfd, m_sylar::IOManager::Event::READ, [sockfd](){
+    iom.addEvent(sockfd, m_sylar::FdContext::Event::READ, [sockfd](){
         M_SYLAR_LOG_INFO(g_logger) << "检测到一个读事件， fd:" << sockfd;
     });
 
     // sleep(5);
 
-    iom.addEvent(sockfd, m_sylar::IOManager::Event::WRITE, [sockfd](){
+    iom.addEvent(sockfd, m_sylar::FdContext::Event::WRITE, [sockfd](){
         M_SYLAR_LOG_INFO(g_logger) << "检测到一个写事件， fd:" << sockfd;
     });
 
@@ -53,9 +53,6 @@ void test1()
 
     M_SYLAR_LOG_INFO(g_logger) << " 连接开始";
     int ct_rt = connect(sockfd, (sockaddr*) &server_addr, sizeof(server_addr));
-    ct_rt = connect(sockfd, (sockaddr*) &server_addr, sizeof(server_addr));
-    ct_rt = connect(sockfd, (sockaddr*) &server_addr, sizeof(server_addr));
-    ct_rt = connect(sockfd, (sockaddr*) &server_addr, sizeof(server_addr));
     M_SYLAR_LOG_INFO(g_logger) << " 连接完毕";
 
 

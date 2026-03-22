@@ -1,5 +1,4 @@
 #include "coroutine/corobase.h"
-
 #include "basic/log.h"
 #include <atomic>
 #include <ostream>
@@ -7,40 +6,40 @@
 
 std::atomic<int> count = 0;
 
-void func()
-{
-    count++;
-}
+// void func()
+// {
+//     count++;
+// }
 
-void test_func_task()
-{
-    m_sylar::Scheduler scheduler("test_coro_schedule", 12) ;
-    scheduler.start();
+// void test_func_task()
+// {
+//     m_sylar::Scheduler scheduler("test_coro_schedule", 12) ;
+//     scheduler.start();
 
-    for(int i = 0; i < 10000; i++)
-    {
-        scheduler.schedule(func);
-    }
-    std::cout << scheduler.getTaskCount() << std::endl;
-    sleep(10);
-    // sleep(1000);
-    std::cout << count << std::endl;
-    std::cout << scheduler.getTaskCount() << std::endl;
-    scheduler.autoStop();
-}
+//     for(int i = 0; i < 10000; i++)
+//     {
+//         scheduler.schedule(func);
+//     }
+//     std::cout << scheduler.getTaskCount() << std::endl;
+//     sleep(10);
+//     // sleep(1000);
+//     std::cout << count << std::endl;
+//     std::cout << scheduler.getTaskCount() << std::endl;
+//     scheduler.autoStop();
+// }
 
 
 
-void func_task()
-{
-    // std::cout << " func task running..." << std::endl;
-    count++;
-    return;
-}
+// void func_task()
+// {
+//     // std::cout << " func task running..." << std::endl;
+//     count++;
+//     return;
+// }
 
 m_sylar::Task<void, m_sylar::TaskBeginExecuter> task()
 {
-    // std::cout << "a coroutine task started" << std::endl;
+    m_sylar::IOManager::getInstance()->schedule(m_sylar::TaskCoro20::create_coro(task));
     count++;
     co_return;
 }
@@ -48,24 +47,24 @@ m_sylar::Task<void, m_sylar::TaskBeginExecuter> task()
 
 void test_coroutine_task()
 {
-    m_sylar::Scheduler scheduler("test_coroutine", 1);
-    scheduler.start();
+    // m_sylar::Scheduler scheduler("test_coroutine", 1);
+    m_sylar::IOManager iom("test_coroutine", 4);
     std::cout << "schedule task ..." << std::endl;
-    // scheduler.schedule(task);
-    // scheduler.schedule(static_cast<std::function<m_sylar::Task<void, m_sylar::TaskBeginExecuter>()>>(task));
-    // // scheduler.schedule(func_task);
-    // scheduler.schedule(static_cast<std::function<void()>>(func_task));
 
-    for(int i = 0; i < 1000; i++)
+    int total = 100000;
+    for(int i = 0; i < total; i++)
     {
-        // scheduler.schedule(func_task);
-        scheduler.schedule(static_cast<std::function<m_sylar::Task<void, m_sylar::TaskBeginExecuter>()>>(task));
+        iom.schedule(m_sylar::TaskCoro20::create_coro(task));
     }
 
     std::cout << "schedule task finished" << std::endl;
-    scheduler.getTaskCount();
-    scheduler.autoStop();
-    std::cout << count << std::endl;
+    iom.getTaskCount();
+    // iom.autoStop();
+    int count_begin = count;
+    int time = 120;
+    sleep(time);
+    iom.autoStop();
+    std::cout << "have runed " << count - count_begin << " in " << time << " sec" << std::endl;
 }
 
 int main(void)

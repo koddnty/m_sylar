@@ -1,20 +1,20 @@
 logs:
   - name: system
-    level: DEBUG
+    level: ERROR
     appenders:
       - type: StdoutLogAppender
-        level: DEBUG
+        level: ERROR
       - type: FileLogAppender
         file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/log/system_log.txt
-        level : DEBUG
+        level : ERROR
   - name: test_config
-    level: DEBUG
+    level: ERROR
     appenders:
       - type: FileLogAppender
         file: /home/ls20241009/user/code/project/sylar_cp/m_sylar/log/system_log.txt
-        level : DEBUG
+        level : ERROR
       - type: StdoutLogAppender
-        level: DEBUG
+        level: ERROR
 
 settings:
   running_path : "/home/ls20241009/user/code/project/sylar_cp/m_sylar"

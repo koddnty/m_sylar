@@ -16,10 +16,14 @@ namespace m_sylar
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 static thread_local Scheduler* tl_Scheduler;        // 当前线程调度器指针
 
+/**
+    @brief taskLoopNum为0则与thread_num保持一致
+*/
+
 Scheduler::Scheduler (const std::string& name, size_t thread_num, size_t taskLoopNum)
     : m_name(name), m_threads_count(thread_num)
     , m_autoStop(false), m_Stop(false)
-    , m_activeThreadCount(thread_num), m_task_pool(thread_num)
+    , m_activeThreadCount(thread_num), m_task_pool(const TaskPool &)
 {
 }
 
@@ -51,6 +55,16 @@ Scheduler* Scheduler::GetThis()
     return tl_Scheduler;
 }
 
+void taskAlloc(TaskCoro20&& task)
+{
+
+}
+
+void taskGet(std::list<TaskCoro20>& tasks)
+{
+
+}
+
 void Scheduler::ThreadInit()
 {
     run();
@@ -64,10 +78,18 @@ void Scheduler::run()
     {
         // 取任务
         {
-            // std::unique_lock<std::shared_mutex> r_lock(m_mutex);
-            while(!m_task_pool.taskGet(work_list) && m_task_pool.getTaskCount()) {}
-            
-            if(m_task_pool.getTaskCount() && m_idleThreadCount)
+            std::unique_lock<std::shared_mutex> r_lock(m_mutex);
+            // auto it = m_tasks.begin();
+            int task_len = MIN(10, m_tasks.size());
+            auto begin = m_tasks.begin();
+            auto end = std::next(begin, task_len);;
+            // if(it != m_tasks.end())
+            // {
+            //     curr_task = std::move(*it);
+            //     m_tasks.erase(it);
+            // }
+            work_list.splice(work_list.end(), m_tasks, begin, end);
+            if(m_tasks.size() && m_idleThreadCount)
             {
                 tickle();
             }

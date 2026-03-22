@@ -56,10 +56,10 @@ bool FdCtx::init()
     // 改变socketfd属性
     if(m_is_socket)
     {
-        int flag = original_fcntl(m_fd, F_GETFL,0);
+        int flag = fcntl(m_fd, F_GETFL,0);
         if(!(flag & O_NONBLOCK))
         {
-            original_fcntl(m_fd, F_SETFL, flag | O_NONBLOCK);
+            fcntl(m_fd, F_SETFL, flag | O_NONBLOCK);
         }
         m_sysNoblock = true;
     }
@@ -116,6 +116,14 @@ FdManager::~FdManager()
 
 }
 
+
+/**
+    @brief 创建fdctx管理，根据auto_create决定是否创建fdctx
+
+    @param fd 文件描述符
+
+    @param auto_create 如果为真，则会自动创建未创建fdctx的fd。
+*/
 FdCtx::ptr FdManager::get(int fd, bool auto_create) 
 {
     std::shared_lock<std::shared_mutex> rlock (m_rwMutex);

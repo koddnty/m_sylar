@@ -84,7 +84,7 @@ bool TcpServer::bind(std::vector<Address::ptr>& addrs, std::vector<Address::ptr>
     return rt;
 }
 
-bool TcpServer::start()
+bool TcpServer::start(int acceptNum)
 {   // start tcp server
     if(!isStop())
     {
@@ -94,7 +94,11 @@ bool TcpServer::start()
 
     for(auto& sock : m_sockets)
     {
-        m_iomanager->schedule(std::bind(&TcpServer::startAccept, shared_from_this(), sock));
+        auto t = std::bind(&TcpServer::startAccept, shared_from_this(), sock);
+        while(acceptNum--)
+        {
+            m_iomanager->schedule(TaskCoro20::create_coro(t));
+        }
     }
     return true;
 }
@@ -124,26 +128,31 @@ void TcpServer::setName(std::string name)
 
 }
 
-void TcpServer::handleClient(Socket::ptr client)
+Task<void, TaskBeginExecuter> TcpServer::handleClient(Socket::ptr client)
 {
     M_SYLAR_LOG_DEBUG(g_logger) << "new client";
     sleep(2);
+    co_return;
 }
 
-void TcpServer::startAccept(Socket::ptr sock)
+Task<void, TaskBeginExecuter> TcpServer::startAccept(Socket::ptr sock)
 {
     while(!isStop())
     {
-        Socket::ptr client = sock->accept();
+        Socket::ptr client = co_await sock->accept();
         if(client)
         {
-            m_iomanager->schedule(std::bind(&TcpServer::handleClient, shared_from_this(), client));
+            // std::cout << "new client" << std::endl;
+            auto t = std::bind(&TcpServer::handleClient, shared_from_this(), client);
+            m_iomanager->schedule(TaskCoro20::create_coro(t));
+
+            // auto t = [self = shared_from_this(), client]() -> Task<void, TaskBeginExecuter> {
+                // co_await self->handleClient(client);  // ✅ 动态绑定
+            // };
         }
         else 
         {
             M_SYLAR_LOG_WARN(g_logger) << "accept failed, errno : " << errno << " error : " << strerror(errno);
-                                    //    << "\n remote address: " << sock->getRemoteAddress() 
-                                    //    << "\n local address:  " << sock->getLocalAddress(); 
         }
     }
          
