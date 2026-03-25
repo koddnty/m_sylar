@@ -213,7 +213,7 @@ static Task<ssize_t> do_io(int fd, Original_fun func, const char* fun_name,
     if(!fd_ctx)
     {
         // 非socket
-        // M_SYLAR_LOG_DEBUG(g_logger) << "fd_Ctx is null, not a socket, fd = " << fd;
+        M_SYLAR_LOG_DEBUG(g_logger) << "fd_Ctx is null, not a socket, fd = " << fd;
         co_return func(fd, std::forward<Args>(args)...);
     }
     if (fd_ctx->is_closed())
@@ -243,10 +243,6 @@ retry:
         goto retry;
     }
 
-    if(n == -1 )
-    {
-        std::cout << "-=-=-=-=-==-=-=-=-=-=-=-=-\n";
-    }
     co_return n;
 }
 

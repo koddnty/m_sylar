@@ -42,6 +42,12 @@ bool HttpSession::setResponse()
     return true;
 }
 
+
+/**
+    @return -1 表示较为重要的服务端错误
+    @return -2 表示不重要的客户端或其他错误
+*/
+
 Task<int> HttpSession::recvRequest()
 {
     uint64_t buffer_size = m_request_parser->getBufferSize();
@@ -63,8 +69,20 @@ Task<int> HttpSession::recvRequest()
         }
         else if(message_len == -1)
         {   // 错误
-            M_SYLAR_LOG_WARN(g_logger) << "[httpSession] recv error, errorno:" << errno << " error:" << strerror(errno);
-            co_return -1;
+            // 只处理几个真正重要的错误
+            switch(errno) {
+                case EBADF:        // 9 - 无效文件描述符
+                case EFAULT:       // 14 - 无效内存地址
+                case ENOMEM:       // 12 - 内存不足
+                case EMFILE:       // 24 - 打开文件过多
+                case ENFILE:       // 23 - 系统文件表满
+                    M_SYLAR_LOG_ERROR(g_logger) << "recv critical error: " << strerror(errno);
+                    co_return -1;
+                    
+                default:
+                    // 其他所有错误（包括 EAGAIN, ECONNRESET 等）都静默处理
+                    co_return -2;
+            }
         }
         if(total_length > m_request_parser->getMaxReqSize())
         {
@@ -113,7 +131,7 @@ Task<int> HttpSession::sendResp()
         }
         if(send_size == -1)
         {
-            M_SYLAR_LOG_WARN(g_logger) << "send failed, errno:" << errno << " error:" << strerror(errno);
+            // M_SYLAR_LOG_WARN(g_logger) << "send failed, errno:" << errno << " error:" << strerror(errno);
             co_return -1;
         }
         offset += send_size;
@@ -189,12 +207,17 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         int rt = co_await session->recvRequest();
         // std::cout << "already resume handleClient" << std::endl;
         if(rt == 0) {break; /* 连接关闭 */}
-        else if(rt < 0)
+        else if(rt == -1)
         {
             M_SYLAR_LOG_WARN(g_logger) << "recv http request failed"
                                        << "\nclient:" << client->toString();
             break;
-        } 
+        }
+        else if(rt == -2)
+        {
+            break;
+        }
+
         // M_SYLAR_LOG_INFO(g_logger) << "request:\n" << *(session->getRequest());       
 
         // 更新session信息
