@@ -7,6 +7,7 @@
 #include <sys/epoll.h>
 #include "task.hpp"
 #include "fiber.h"
+// #include "hook.h"
 
 
 
@@ -160,6 +161,10 @@ private:
     FdContext::Event m_event;
 };
 
+
+/**
+    @brief 原子任务：关闭fd。此任务不会进行与epoll的状态同步，依赖epoll底层自动处理
+*/
 class FdContextManager::CLOSE_TASK : public FdContextManager::RegistedTask
 {
 public:

@@ -34,7 +34,11 @@ Socket::Socket(int family, int type, int protocol)
 
 Socket::~Socket()
 {
-    close();
+    if(m_sock_fd != -1)
+    {
+        // std::cout << "registe close fd, fd=" << m_sock_fd << std::endl;
+        IOManager::getInstance()->closeFd(m_sock_fd);
+    }
 }
 
 // easy create a socket 
@@ -154,6 +158,8 @@ bool Socket::setOption(int level, int option, const void* value, socklen_t len)
 
 Task<Socket::ptr> Socket::accept()
 {
+
+
     Socket::ptr new_sock {new Socket(m_family, m_type, m_protocol)};
     int new_sock_fd = co_await co_accept(m_sock_fd, nullptr, nullptr);
     if(new_sock_fd == -1)
@@ -187,8 +193,21 @@ bool Socket::init(int sock_fd)
 
 void Socket::initSock()
 {   // basic init, set address reuse
+    // int val = 1;
+    // setOption(SOL_SOCKET, SO_REUSEADDR, &val);          // set address reuse 
+    // if(m_type == SOCK_STREAM)
+    // {
+    //     setOption(IPPROTO_TCP, TCP_NODELAY, &val);      // turn off nagle
+    // }
+
     int val = 1;
-    setOption(SOL_SOCKET, SO_REUSEADDR, &val);          // set address reuse 
+
+    // setOption(SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &val);          // set address reuse 
+    setOption(SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
+    // setOption(SOL_SOCKET, SO_REUSEPORT, &val, sizeof(val));
+    int flags = fcntl(m_sock_fd, F_GETFL, 0);
+    fcntl(m_sock_fd, F_SETFL, flags | O_NONBLOCK);
+
     if(m_type == SOCK_STREAM)
     {
         setOption(IPPROTO_TCP, TCP_NODELAY, &val);      // turn off nagle
@@ -216,6 +235,13 @@ bool Socket::bind(const Address::ptr addr)
             return false;
         }
     }
+
+    if(m_is_set_reuseport)
+    {
+        setOption(SOL_SOCKET, SO_REUSEPORT, &m_is_set_reuseport, sizeof(m_is_set_reuseport));
+        m_is_set_reuseport = 0;
+    }
+
     if(addr->getFamily() != m_family)
     {
         M_SYLAR_LOG_ERROR(g_logger) << "family does not match between sockaddr(" << addr->getFamily() 
@@ -291,7 +317,9 @@ bool Socket::close()
     m_isConnected = false;
     if(m_sock_fd != -1)
     {
-        co_close(m_sock_fd);
+        // co_close(m_sock_fd);
+        // std::cout << "registe close fd, fd=" << m_sock_fd << std::endl;
+        IOManager::getInstance()->closeFd(m_sock_fd);
         m_sock_fd = -1;
     }
     return false;
@@ -349,7 +377,7 @@ Task<int> Socket::recv(const void* buffer, size_t length, int flags)
     {
         co_return co_await co_recv(m_sock_fd, (void*)buffer, length, flags);
     }
-    co_return -1;
+    co_return -2;
 }
 
 Task<int> Socket::recv(const iovec* buffers, size_t length, int flags)

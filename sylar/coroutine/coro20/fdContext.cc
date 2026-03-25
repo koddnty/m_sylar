@@ -1,4 +1,5 @@
 #include "fdContext.h"
+#include "hook.h"
 #include <string.h>
 
 namespace m_sylar
@@ -208,6 +209,7 @@ FCM::DEL_TASK::DEL_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event e
 
 void FCM::DEL_TASK::run()
 {
+    // std::cout << "delete task, fd=" << m_fd_ctx_manager->m_fdcontex->getFd() << std::endl;
     FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
     m_fd_ctx_manager->m_fdcontex->delEvent(m_event);
     if(m_cb)
@@ -221,6 +223,7 @@ FCM::ADD_TASK::ADD_TASK(FdContextManager::ptr fd_ctx_manager, TaskCoro20&& task,
 
 void FCM::ADD_TASK::run()
 {
+    // std::cout << "add task, fd=" << m_fd_ctx_manager->m_fdcontex->getFd() << std::endl;
     FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
     m_fd_ctx_manager->m_fdcontex->addEvent(m_event, std::move(m_task));
     if(m_cb)
@@ -235,6 +238,7 @@ FCM::TRIGGER_TASK::TRIGGER_TASK(FdContextManager::ptr fd_ctx_manager, FdContext:
 
 void FCM::TRIGGER_TASK::run()
 {
+    // std::cout << "trigger task, fd=" << m_fd_ctx_manager->m_fdcontex->getFd() << std::endl;
     FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
     m_fd_ctx_manager->m_fdcontex->trigger(m_event);
     if(m_cb)
@@ -250,10 +254,13 @@ void FCM::CLOSE_TASK::run()
 {
     FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
     // m_fd_ctx_manager->m_fdcontex->trigger(m_event);
+    // std::cout << "close task, fd=" << m_fd_ctx_manager->m_fdcontex->getFd() << std::endl;
+    int fd = m_fd_ctx_manager->m_fdcontex->getFd();
     m_fd_ctx_manager->m_fdcontex->reset();
     if(m_cb)
         m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
-    close(m_fd_ctx_manager->m_fdcontex->getFd());
+    co_close(fd);
+    // m_fd_ctx_manager->m_fdcontex->reset();
 }
 
 

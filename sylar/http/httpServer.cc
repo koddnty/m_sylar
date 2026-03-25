@@ -140,7 +140,7 @@ void HttpServer::registerUrl(const std::string& url, HandlerFunc cb, http::HttpM
     m_urls[url] = {method, cb};
 }
 
-bool HttpServer::start(int acceptNum)
+bool HttpServer::start()
 {
     if(!isStop())
     {
@@ -151,10 +151,7 @@ bool HttpServer::start(int acceptNum)
     for(auto& sock : getSockets())
     {
         auto t = std::bind(&HttpServer::startAccept, std::dynamic_pointer_cast<HttpServer>(shared_from_this()), sock);
-        while(acceptNum--)
-        {
-            getIomanager()->schedule(TaskCoro20::create_coro(t));
-        }
+        getIomanager()->schedule(TaskCoro20::create_coro(t));
     }
     return true;
 }
@@ -212,6 +209,8 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         execHandler(session->getRequest()->getPath(), session);         // 处理回调
         co_await session->sendResp();                // 发送响应报文
     } while (is_keep_alive);
+    // client->close();
+    // IOManager::getInstance()->closeFd(client->getSocket());     // 通过ioamanger关闭fd,保证fd正常关闭
     client->close();
     co_return;
 }

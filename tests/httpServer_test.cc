@@ -25,12 +25,12 @@ void test_http_server(m_sylar::IOManager* iom)
     m_sylar::http::HttpServer::ptr server(new m_sylar::http::HttpServer(iom));
     m_sylar::Address::ptr addr = m_sylar::Address::LookupAnyIPAddress("0.0.0.0");
     std::dynamic_pointer_cast<m_sylar::IPv4Address>(addr)->setPort(8803);
-    server->bind(addr);
+    server->bind(addr, 4);
     
     server->GET("/home", home_page);
 
     server->POST("/home/rename", rename_func);
-    server->start(5);
+    server->start();
     M_SYLAR_LOG_INFO(g_logger) << "All Gate have been registered, ip:0.0.0.0:8803";
     sleep(1000);
     server->stop();

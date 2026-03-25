@@ -9,7 +9,9 @@
 #include "log.h"
 #include "singleton.h"
 
-/*
+/**
+    @brief 此库仅做非阻塞io fd管理，不会对fd进行打开关闭等操作。
+    
     为hook管理打开的socketfd， 确保ioManager可用性
     用户设置阻塞时，仅改变FdCtx不改变fd状态
     用户设置非阻塞，直接使用非阻塞的原函数

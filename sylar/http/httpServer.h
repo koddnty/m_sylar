@@ -57,7 +57,7 @@ public:
 
     void registerUrl(const std::string& url, HandlerFunc cb, http::HttpMethod method);
 
-    bool start(int acceptNum = 1) override;
+    bool start() override;
     
     void GET(const std::string& url, HandlerFunc cb);
     void POST(const std::string& url, HandlerFunc cb);

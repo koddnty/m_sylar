@@ -113,6 +113,10 @@ private:
 
 
 // template<typename Original_fun>
+
+/**
+    @brief 当前ioAwaiter仅会在有事件的时候唤醒协程，但不会进行读取或对事件处理，且返回值无效
+ */
 class io_Awaiter : public Awaiter<int> , public std::enable_shared_from_this<io_Awaiter>
 {   // co_await do_io使用的Awiater,自动注册iomanager并在有信息时恢复协程。
     // 返回-1代表失败，-2代表应重试
@@ -204,13 +208,6 @@ template<typename Original_fun, typename ... Args>
 static Task<ssize_t> do_io(int fd, Original_fun func, const char* fun_name, 
     uint32_t event, int type, Args&& ... args)
 {   // 文件描述符 原io函数 原函数名称 事件(读/写) 定时器任务类型(读/写) io函数其他参数
-    // if(!m_sylar::is_hook_enable())
-    // {
-    //     // std::cout << "NOHOOK" << std::endl;
-    //     co_return func(fd, std::forward<Args>(args)...);
-    // }
-    
-    // std::cout << "HOOKED" << std::endl;
     // 对fd状态检查
     m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd, false);
     if(!fd_ctx)
@@ -243,14 +240,12 @@ retry:
     if(n == -1 && errno == EAGAIN)
     {
         int rt = co_await io_Awaiter(fd, (m_sylar::FdContext::Event)event, time_out);      // 恢复时代表fd可进行event操作或者由于超时返回
-        if(rt == io_Awaiter::State::READY)
-        {   // 有数据时回退并尝试获取数据，其他情况直接返回并退出
-            goto retry;
-        }
-        else if(rt == io_Awaiter::State::TIMO)
-        {
-            errno = ETIMEDOUT;
-        }
+        goto retry;
+    }
+
+    if(n == -1 )
+    {
+        std::cout << "-=-=-=-=-==-=-=-=-=-=-=-=-\n";
     }
     co_return n;
 }
@@ -485,10 +480,11 @@ int co_close(int fd){
 
     if(IOManager::getInstance())
     {
-        IOManager::getInstance()->closeFd(fd);
+        // IOManager::getInstance()->closeFd(fd);
     }
-    // return close(fd);
-    return fd;
+    m_sylar::FdMgr::GetInstance()->del(fd);
+    return close(fd);
+    // return fd;
 }
 
 // functional       

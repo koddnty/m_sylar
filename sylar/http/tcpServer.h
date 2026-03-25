@@ -26,9 +26,9 @@ public:
     TcpServer(IOManager* io_manager = IOManager::getInstance());
     virtual ~TcpServer();
 
-    virtual bool bind(Address::ptr addr);
-    virtual bool bind(std::vector<Address::ptr>& addrs, std::vector<Address::ptr>& failed);
-    virtual bool start(int acceptNum = 1);           // 不同上层协议必须实现
+    virtual bool bind(Address::ptr addr, int num = 1);
+    virtual bool bind(std::vector<std::pair<Address::ptr, int>>& addrs_num, std::vector<Address::ptr>& failed);
+    virtual bool start();           // 不同上层协议必须实现
     virtual bool stop();
 
     uint64_t getRTimeout() const { return m_readtimeout;}
