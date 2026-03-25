@@ -443,7 +443,7 @@ public:
     Awaiter(Awaiter&& other) = delete;
 
 public:
-    bool await_ready()
+    virtual bool await_ready()
     {
         return false;
     }
@@ -654,7 +654,7 @@ public:
     Awaiter(Awaiter&& other) = delete;
 
 public:
-    bool await_ready()
+    virtual bool await_ready()
     {
         return false;
     }

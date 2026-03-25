@@ -38,7 +38,7 @@ void test_http_server(m_sylar::IOManager* iom)
 
 int main(void)
 {
-    m_sylar::IOManager iom("httpServer", 4);    
+    m_sylar::IOManager iom("httpServer", 8);    
     // iom.schedule(test_http_server);
     test_http_server(&iom);
     // sleep(1000);

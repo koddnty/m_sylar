@@ -132,7 +132,6 @@ public:
         IOManager::getInstance()->delEvent(m_fd, m_event);
     }
 
-    
 
     void on_suspend()override
     {
