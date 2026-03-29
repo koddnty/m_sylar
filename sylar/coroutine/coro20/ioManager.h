@@ -29,6 +29,7 @@ public:
     IOManager& addOnceEvent(int fd, FdContext::Event event, std::function<void()> cb_func);       // 只会单次执行回调的事件
     IOManager& delEvent(int fd, FdContext::Event event);
     IOManager& closeFd(int fd);
+    IOManager& closeWithNoClose(int fd);            // (可能很奇怪，但没办法)关闭一个连接但不会close Fd， 用于第三方接口管理的fd处理。
     IOManager& cancelEvent(int fd, FdContext::Event event);
     IOManager& cancelAll(int fd);
 

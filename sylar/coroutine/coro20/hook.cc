@@ -467,18 +467,27 @@ m_sylar::Task<ssize_t> co_sendmsg(int sockfd, const struct msghdr *msg, int flag
                 msg, flags); 
 }
 
-// close
-int co_close(int fd){
+// close, 一般mod不用设置，若为非0值则只进行epoll等清理不会closeFd.
+int co_close(int fd, int mod){
 
-
-    m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
-
-    if(IOManager::getInstance())
-    {
-        // IOManager::getInstance()->closeFd(fd);
+    if(mod == 0) {
+        m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
+        if(IOManager::getInstance())
+        {
+            // IOManager::getInstance()->closeFd(fd);
+        }
+        m_sylar::FdMgr::GetInstance()->del(fd);
+        return close(fd);
     }
-    m_sylar::FdMgr::GetInstance()->del(fd);
-    return close(fd);
+    else{
+        m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
+        if(IOManager::getInstance())
+        {
+            // IOManager::getInstance()->closeFd(fd);
+        }
+        m_sylar::FdMgr::GetInstance()->del(fd);
+        return -1;
+    }
     // return fd;
 }
 

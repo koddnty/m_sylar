@@ -69,6 +69,7 @@ public:
     class ADD_TASK;                // 添加事件回调任务
     class TRIGGER_TASK;            // 触发事件回调任务
     class CLOSE_TASK;              // 触发文件描述符关闭
+    class CLOSE_TASK_NOCLOSEFD;     // 关闭连接不关闭socket, 用于第三方fd接口管理
 
 public:
     FdContextManager(int fd);
@@ -83,6 +84,7 @@ public:
     void addEvent(FdContext::Event event, TaskCoro20&& task, std::function<void(FdContext::ptr, FdContext::Event )> cb);
     void delEvent(FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> cb);
     void closeEvent(FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> cb);
+    void closeEventNoCloseFd(FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> cb);
 
 private:
     /**
@@ -163,13 +165,26 @@ private:
 
 
 /**
-    @brief 原子任务：关闭fd。此任务不会进行与epoll的状态同步，依赖epoll底层自动处理
+    @brief 原子任务：关闭fd。
 */
 class FdContextManager::CLOSE_TASK : public FdContextManager::RegistedTask
 {
 public:
     using ptr = std::shared_ptr<CLOSE_TASK>;
     CLOSE_TASK(FdContextManager::ptr fd_ctx_manager, FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> m_cb);
+
+    void run() override;
+    
+private:   
+    FdContext::Event m_event;
+};
+
+
+class FdContextManager::CLOSE_TASK_NOCLOSEFD : public FdContextManager::RegistedTask
+{
+public:
+    using ptr = std::shared_ptr<CLOSE_TASK>;
+    CLOSE_TASK_NOCLOSEFD(FdContextManager::ptr fd_ctx_manager, FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> m_cb);
 
     void run() override;
     

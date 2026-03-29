@@ -151,6 +151,12 @@ void FdContextManager::closeEvent(FdContext::Event event, std::function<void(FdC
     addTask(__task);
 }
 
+void FdContextManager::closeEventNoCloseFd(FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> cb)
+{
+    RegistedTask::ptr __task = std::make_shared<CLOSE_TASK_NOCLOSEFD>(shared_from_this(), event, cb);
+    addTask(__task);
+}
+
 
 void FdContextManager::solveTasks()
 {   // 函数调用时状态为busy
@@ -261,6 +267,21 @@ void FCM::CLOSE_TASK::run()
         m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
     co_close(fd);
     // m_fd_ctx_manager->m_fdcontex->reset();
+}
+
+
+FCM::CLOSE_TASK_NOCLOSEFD::CLOSE_TASK_NOCLOSEFD(FdContextManager::ptr fd_ctx_manager, FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event)> m_cb)
+    : FCM::RegistedTask(fd_ctx_manager, m_cb), m_event(event)
+{}
+
+void FCM::CLOSE_TASK_NOCLOSEFD::run()
+{
+    FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
+    int fd = m_fd_ctx_manager->m_fdcontex->getFd();
+    m_fd_ctx_manager->m_fdcontex->reset();
+    if(m_cb)
+        m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
+    co_close(fd, 1);
 }
 
 

@@ -52,7 +52,7 @@ m_sylar::Task<ssize_t> co_sendto(int sockfd, const void* buf, size_t len, int fl
 
 m_sylar::Task<ssize_t> co_sendmsg(int sockfd, const struct msghdr *msg, int flags);
 
-int co_close(int fd);
+int co_close(int fd, int mod = 0);
 
 int co_fcntl (int fd, int op, ...  );
 

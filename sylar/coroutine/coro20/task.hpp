@@ -556,7 +556,7 @@ public:
 
 
 public:
-    bool await_ready()
+    bool await_ready() override
     {
         return false;
     }
@@ -669,9 +669,6 @@ public:
 
     void await_resume()
     {
-        // if (!m_result.has_value()) {
-        //     throw std::runtime_error("No result available");
-        // }
         before_resume();
         m_result->getOrThrow();
     }
@@ -702,10 +699,8 @@ protected:
 
 protected:
     // 结果对子类可见，方便灵活操作
-    std::optional<Result<void>> m_result{};
-
     void resume() {
-
+        m_result = Result<void>();
         dispatch([this]() {
             // 将 value 封装到 _result 当中，await_resume 时会返回 value
 
@@ -730,6 +725,7 @@ protected:
     }
 
 private:
+    std::optional<Result<void>> m_result{};
     std::coroutine_handle<> m_handle;
     AbstractExecuter* m_executer = NULL;
 };
@@ -1000,7 +996,7 @@ public:
     }
 
 public:
-    bool await_ready()
+    bool await_ready() override
     {
         return false;
     }
