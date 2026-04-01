@@ -168,7 +168,7 @@ IOManager& IOManager::closeWithNoClose(int fd) {
         return *this;
     }
     std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
-    m_fd_events[fd]->closeEvent(FdContext::NONE, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    m_fd_events[fd]->closeEventNoCloseFd(FdContext::NONE, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
     return *this;
 }
 

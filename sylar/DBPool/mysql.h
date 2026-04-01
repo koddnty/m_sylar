@@ -8,6 +8,8 @@
 
 namespace m_sylar{
 
+#define MYSQL_CONNECT_CREASE_SPEED 10
+
 // MYSQL awaiter, 仅通知，不执行
 class MysqlAwaiter : public Awaiter<void>{
 public: 
@@ -27,6 +29,7 @@ class MySQLResp{
 public: 
     using ptr = std::shared_ptr<MySQLResp>;
     MySQLResp(MYSQL* mysql);
+    MySQLResp() {m_state = false; }
     ~MySQLResp();
 
     class Value{
@@ -57,12 +60,13 @@ public:
 
 public:
     Row nextRow();
+    void resetRow();   // 把行索引设置为idx = 0;
 
 
 private:
     MYSQL_RES* m_respBody;
     int m_colCount = 0;
-    MYSQL_ROW row;
+    bool m_state = true;
 };
 
 
@@ -83,7 +87,7 @@ public:
     ~MySQLDB();
 
 public:
-MySQLDB& connect(const std::string& host,
+int connect(const std::string& host,
                         const std::string& user,
                         const std::string& passwd,
                         const std::string& db,
@@ -102,15 +106,67 @@ private:
 
 
 
-class MySQLDBManager{
+class MySQLPoolManager{
 public:
-    using ptr = std::shared_ptr<MySQLDBManager>;
+    using ptr = std::shared_ptr<MySQLPoolManager>;
+
+    MySQLPoolManager(int min_conn, int max_conn);
+    ~MySQLPoolManager();
+
+    enum State{
+        INIT = 0,
+        READY = 1,
+        FULL = 2,
+        CLOSED = 4,
+        CLOSING = 8,
+        ERROR = 16
+    };
+
+    struct MySQLConnectInfo {
+        std::string host;
+        std::string user;
+        std::string passwd;
+        std::string db;
+        unsigned int port;
+        unsigned long clientflag;
+    };
+    
+    Task<MySQLResp::ptr> executeQuery(const std::string& query);
+
+    int init(const std::string& host,
+                                        const std::string& user,
+                                        const std::string& passwd,
+                                        const std::string& db,
+                                        unsigned int port,
+                                        unsigned long clientflag);
+    void close();           // 涉及fd的关闭，请勿在绑定的iomanager结束前调用，否则可能会造成其他错误，此函数为阻塞函数
+
+    int registeConnCb(std::function<void()> cb);        // 用于awaiter的回调
+    int tickle();                                       // 有新连接时的回调, 用于连接耗尽时阻塞控制, 若状态为关闭则全部tickle.
+
+    bool checkRunState();           // 若当前连接池处于正常可运行状体则返回true;
 
 
+
+protected:
+    int borrowOneConn();               // 线程不安全, 返回空闲连接索引
+    int returnConnn(int free_idx);              // 线程不安全
+    int expand();                               // 线程安全
 
 private:
-    std::list<MySQLDB::ptr> m_freePool;
-    std::list<MySQLDB::ptr> m_usingPool;
+    std::shared_mutex m_ConnectPoolMutex;           // 连接获取等使用锁
+
+    std::vector<MySQLDB::ptr> m_connectors;         // 所有连接
+    std::list<int> m_freeConnInfos;                 // 空闲信息表[连接对应idx]
+     
+    std::list<std::function<void()>> m_waitConnCb;              // 有新连接可用时会唤醒其中一个任务，优先队列
+    std::atomic<int> m_connectorCount = 0;                       // 当前连接数目
+    std::atomic<int> m_busyConnCount = 0;
+    int m_minConnector;
+    int m_maxConnector;
+    std::atomic<State> m_state;
+
+    MySQLConnectInfo m_connectorBaseInfo;               // 连接基本信息， 用于扩容。
 };
 
 }

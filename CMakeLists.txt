@@ -96,6 +96,10 @@ target_include_directories(sylar PUBLIC
 
 
 # mysql测试
+add_executable(poolmysql_test tests/sql/poolmysql_test.cc)
+add_dependencies(poolmysql_test sylar)
+target_link_libraries(poolmysql_test sylar ${LIB_LIB})
+
 add_executable(mysql_conntest tests/sql/mysql_test.cc)
 add_dependencies(mysql_conntest sylar)
 target_link_libraries(mysql_conntest sylar ${LIB_LIB})
