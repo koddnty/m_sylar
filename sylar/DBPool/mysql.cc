@@ -37,19 +37,25 @@ void MysqlAwaiter::before_resume() {
 
 // 响应封装
 MySQLResp::MySQLResp(MYSQL* mysql){
+    m_respBody = nullptr;
+    m_colCount = 0;
+    m_state = false;
     if(mysql == nullptr) {
-        m_state = false;
         return;
     }
     m_respBody = mysql_store_result(mysql);
     m_colCount = mysql_field_count(mysql);
     if(!m_respBody || !m_colCount) {
-        m_state = false;
+        return;
     }
+    m_state = true;
 }
 
 MySQLResp::~MySQLResp(){
-    mysql_free_result(m_respBody);
+    if(m_respBody) {
+        mysql_free_result(m_respBody);
+        m_respBody = nullptr;
+    }
 }
 
 
@@ -65,7 +71,7 @@ MySQLResp::Value::Value(){
 std::string MySQLResp::Value::get(){
     if(!m_isValid){
         M_SYLAR_LOG_WARN(g_logger) << "failed to get Value data, invalid Value ";
-        return nullptr;
+        return "";
     }
     return std::string(m_data, m_length);
 }
@@ -102,8 +108,9 @@ MySQLResp::Value MySQLResp::Row::nextValue(){
 }
 
 MySQLResp::Row MySQLResp::nextRow(){
-    if(!m_state) {
+    if(!m_state || !m_respBody) {
         M_SYLAR_LOG_ERROR(g_logger) << "failed to get next row: MySQL response is invalid or null resp"; 
+        return {nullptr, 0, nullptr};
     }
     auto row = mysql_fetch_row(m_respBody);
     auto len = mysql_fetch_lengths(m_respBody);
@@ -112,8 +119,9 @@ MySQLResp::Row MySQLResp::nextRow(){
 
 
 void MySQLResp::resetRow() {
-    if(!m_state) {
+    if(!m_state || !m_respBody) {
         M_SYLAR_LOG_ERROR(g_logger) << "failed to get next row: MySQL response is invalid null resp"; 
+        return;
     }
     mysql_data_seek(m_respBody, 0);
     return; 
@@ -171,15 +179,15 @@ int MySQLDB::connect(const std::string& host,
 
 Task<MySQLResp::ptr> MySQLDB::executeQuery(const std::string& query){
     int err = 0;
-    if (mysql_options(m_mysql, MYSQL_OPT_NONBLOCK, 0)) {
-        std::cout << "mysql_optins failed : " << mysql_error(m_mysql) << std::endl;
-    }
+    // if (mysql_options(m_mysql, MYSQL_OPT_NONBLOCK, 0)) {
+    //     std::cout << "mysql_optins failed : " << mysql_error(m_mysql) << std::endl;
+    // }
     int status = mysql_real_query_start(&err, m_mysql, query.c_str(), query.length());
     
     if(err) {
         std::cout << std::string("mysql_real_query_start failed, error : ") + mysql_error(m_mysql) << std::endl;
         std::string errinfo = std::string("mysql_real_query_start failed, error : ") + mysql_error(m_mysql);
-        throw std::runtime_error(errinfo.c_str());
+        co_return nullptr;
     }
 
     if(status == 0) {
@@ -193,7 +201,7 @@ Task<MySQLResp::ptr> MySQLDB::executeQuery(const std::string& query){
         status = mysql_real_query_cont(&err, m_mysql, status);
         if(err) {
             std::string errinfo = std::string("mysql_real_query_start failed, error : ") + mysql_error(m_mysql);
-            throw std::runtime_error(errinfo.c_str());
+            co_return nullptr;
         }
     }
 
@@ -251,7 +259,7 @@ MySQLPoolManager::~MySQLPoolManager() {
 
 Task<MySQLResp::ptr> MySQLPoolManager::executeQuery(const std::string& query) {
     if(!checkRunState()) {
-        co_return std::make_shared<MySQLResp>();
+        co_return nullptr;
     }
 
     // 获取一个连接
@@ -262,7 +270,9 @@ retry:
     connectorIdx = borrowOneConn();
     if(connectorIdx >= 0) {        // 有当前可用连接
         MySQLResp::ptr resp = co_await m_connectors[connectorIdx]->executeQuery(query);
-        returnConnn(connectorIdx);      // 归还
+        if(-1 == returnConnn(connectorIdx)) {   // 归还
+            M_SYLAR_LOG_ERROR(g_logger) << "failed to return connect source";
+        }      
         co_return resp;
     }
     else {  // 正繁忙，无空闲
@@ -312,6 +322,7 @@ int MySQLPoolManager::init(const std::string& host,
         return -1;
     }
     m_connectorCount = m_minConnector;
+    m_state = READY;
     return 0;
 }
 
@@ -371,6 +382,7 @@ int MySQLPoolManager::tickle() {
     w_lock.unlock();
 
     for(auto it : temp_tasks) {
+        // it();
         IOManager::getInstance()->schedule(TaskCoro20::create_func(it));            // 可行否？<...>
     }
     return 0;
@@ -384,6 +396,10 @@ int MySQLPoolManager::borrowOneConn(){
 
     if(m_state == READY) {
         // 获取资源序号
+        if(m_freeConnInfos.size() == 0) {
+            M_SYLAR_LOG_ERROR(g_logger) << "state is not consistent with freeConnInfos[]";
+            return -1;
+        }
         int connectorIdx = m_freeConnInfos.front();
         m_freeConnInfos.pop_front();
         M_SYLAR_ASSERT2(connectorIdx >= 0 && connectorIdx < m_connectorCount, "connector is out of range");
@@ -404,12 +420,14 @@ int MySQLPoolManager::returnConnn(int free_idx){
     }
     // 资源归还
     m_freeConnInfos.push_back({free_idx});
+    m_busyConnCount--;
     if(m_state == FULL) {
         m_state = READY;
     }
     // 唤醒部分等待者
     w_lock.unlock();
     tickle();
+    std::cout << "\n pool state: free:" << m_freeConnInfos.size();
     return 0;
 }
 

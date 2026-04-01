@@ -29,7 +29,7 @@ class MySQLResp{
 public: 
     using ptr = std::shared_ptr<MySQLResp>;
     MySQLResp(MYSQL* mysql);
-    MySQLResp() {m_state = false; }
+    MySQLResp() { m_state = false; m_respBody = nullptr; }
     ~MySQLResp();
 
     class Value{
@@ -64,7 +64,7 @@ public:
 
 
 private:
-    MYSQL_RES* m_respBody;
+    MYSQL_RES* m_respBody {nullptr};
     int m_colCount = 0;
     bool m_state = true;
 };
