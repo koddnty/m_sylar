@@ -44,7 +44,9 @@ MySQLResp::MySQLResp(MYSQL* mysql){
         return;
     }
     m_respBody = mysql_store_result(mysql);
+    if(!m_respBody) {return; }
     m_colCount = mysql_field_count(mysql);
+    m_rowCount =  mysql_num_rows(m_respBody);
     if(!m_respBody || !m_colCount) {
         return;
     }
@@ -127,6 +129,58 @@ void MySQLResp::resetRow() {
     return; 
 }
 
+int MySQLResp::formatDate() {
+    if(!m_state || !m_respBody) {
+        M_SYLAR_LOG_ERROR(g_logger) << "failed to formatDate: MySQL response is invalid or null resp"; 
+        return -1;
+    }
+    std::vector<std::vector<std::pair<char*, size_t>>*> map;
+    map.resize(m_colCount);
+    for(int i = 0; i < m_colCount; i++) {
+        MYSQL_FIELD* field = mysql_fetch_field(m_respBody);
+        std::string col_name = std::string(field->name, field->name_length);
+        m_respMapData[col_name] = {};
+        map[i] = &m_respMapData[col_name];  // 第一维为列，第二维值
+        map[i]->resize(m_rowCount);
+    }
+
+    // 数据填充
+    if(m_respBody) {
+        auto row = nextRow();
+        for(int row_idx = 0; row; (row_idx++, row = nextRow())) {
+            auto col = row.nextValue();
+            for(int col_idx = 0; col; (col_idx++, col = row.nextValue())) {
+                size_t length = 0;
+                char* data = col.get(length);
+                (*map[col_idx])[row_idx] = std::pair<char*, size_t> (data, length);
+            }
+        }
+        resetRow();
+    }
+    else {
+        M_SYLAR_LOG_ERROR(g_logger) << "failed to formatDate: MySQL response is invalid or null resp"; 
+        return -1;
+    }
+    return 0;
+}
+
+std::string MySQLResp::ColProxy::operator[](int i) {
+    M_SYLAR_ASSERT2(m_state && m_vec && i >= 0 && i < m_vec->size(), "index out of range");
+    return std::string((*m_vec)[i].first, (*m_vec)[i].second); 
+}
+
+MySQLResp::ColProxy MySQLResp::operator[](std::string fieldName) {
+    auto iterat = m_respMapData.find(fieldName);
+    if(iterat == m_respMapData.end()) {
+        M_SYLAR_LOG_ERROR(g_logger) << "can not find the colume named " << fieldName;
+        return ColProxy();
+    }
+    else {
+        return ColProxy(iterat->second);
+    }
+}
+
+
 
 
 
@@ -184,15 +238,17 @@ Task<MySQLResp::ptr> MySQLDB::executeQuery(const std::string& query){
     // }
     int status = mysql_real_query_start(&err, m_mysql, query.c_str(), query.length());
     
+    if(status == 0) {
+        co_return std::make_shared<MySQLResp>(m_mysql);
+    }
+
     if(err) {
         std::cout << std::string("mysql_real_query_start failed, error : ") + mysql_error(m_mysql) << std::endl;
         std::string errinfo = std::string("mysql_real_query_start failed, error : ") + mysql_error(m_mysql);
         co_return nullptr;
     }
 
-    if(status == 0) {
-        co_return std::make_shared<MySQLResp>(m_mysql);
-    }
+
 
 
 
@@ -427,7 +483,7 @@ int MySQLPoolManager::returnConnn(int free_idx){
     // 唤醒部分等待者
     w_lock.unlock();
     tickle();
-    std::cout << "\n pool state: free:" << m_freeConnInfos.size();
+    // std::cout << "\n pool state: free:" << m_freeConnInfos.size();
     return 0;
 }
 

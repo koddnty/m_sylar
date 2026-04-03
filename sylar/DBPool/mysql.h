@@ -2,6 +2,8 @@
 #include <iostream>
 #include <memory>
 #include <mariadb/mysql.h>
+#include <map>
+#include <vector>
 #include "coroutine/corobase.h"
 #include "basic/log.h"
 
@@ -60,12 +62,35 @@ public:
 
 public:
     Row nextRow();
-    void resetRow();   // 把行索引设置为idx = 0;
+    void resetRow();            // 把行索引设置为idx = 0;
+    int formatDate();           // 格式化数据到map
 
+
+public: 
+    class ColProxy {
+    public:
+        ColProxy(std::vector<std::pair<char*, size_t>>& vec) : m_vec(&vec){
+        }
+
+        ColProxy() {
+            m_vec = nullptr;
+            m_state = false;
+        }
+
+        std::string operator[](int i);
+
+    private: 
+        std::vector<std::pair<char*, size_t>>* m_vec;
+        bool m_state = true;
+    };
+
+    ColProxy operator[](std::string fieldName);
 
 private:
     MYSQL_RES* m_respBody {nullptr};
     int m_colCount = 0;
+    int m_rowCount = 0;
+    std::map<std::string, std::vector<std::pair<char*, size_t>>> m_respMapData {};
     bool m_state = true;
 };
 
