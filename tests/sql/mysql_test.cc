@@ -3,7 +3,7 @@
 #include "coroutine/corobase.h"
 
 
-m_sylar::Task<void, m_sylar::TaskBeginExecuter> sqlTask(m_sylar::MySQLDB* mysql) {
+m_sylar::Task<void, m_sylar::TaskBeginExecuter> sqlTask(m_sylar::MySQLConn* mysql) {
 
     std::string sql = "select * from learn";
     m_sylar::MySQLResp::ptr task = co_await mysql->executeQuery(sql);
@@ -26,7 +26,7 @@ m_sylar::Task<void, m_sylar::TaskBeginExecuter> sqlTask(m_sylar::MySQLDB* mysql)
 
 int main(void) {
 
-    m_sylar::MySQLDB mysql;
+    m_sylar::MySQLConn mysql;
     try{
         mysql.connect("localhost", "koddnty", "73256", "KoddntyDB", 3306, 0);
     } 

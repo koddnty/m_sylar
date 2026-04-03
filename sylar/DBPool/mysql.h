@@ -95,9 +95,9 @@ private:
 };
 
 
-class MySQLDB{
+class MySQLConn{
 public:
-    using ptr = std::shared_ptr<MySQLDB>;
+    using ptr = std::shared_ptr<MySQLConn>;
 
     enum State{
         READY = 0,
@@ -108,8 +108,8 @@ public:
         INIT = 16
     };
  
-    MySQLDB();
-    ~MySQLDB();
+    MySQLConn();
+    ~MySQLConn();
 
 public:
 int connect(const std::string& host,
@@ -181,11 +181,11 @@ protected:
 private:
     std::shared_mutex m_ConnectPoolMutex;           // 连接获取等使用锁
 
-    std::vector<MySQLDB::ptr> m_connectors;         // 所有连接
+    std::vector<MySQLConn::ptr> m_connectors;         // 所有连接
     std::list<int> m_freeConnInfos;                 // 空闲信息表[连接对应idx]
      
     std::list<std::function<void()>> m_waitConnCb;              // 有新连接可用时会唤醒其中一个任务，优先队列
-    std::atomic<int> m_connectorCount = 0;                       // 当前连接数目
+    std::atomic<int> m_connectorCount = 0;                       // 当前连接数目, 记录所有已连接的连接
     std::atomic<int> m_busyConnCount = 0;
     int m_minConnector;
     int m_maxConnector;

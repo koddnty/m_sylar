@@ -189,7 +189,7 @@ MySQLResp::ColProxy MySQLResp::operator[](std::string fieldName) {
 
 
 // MYSQL 封装
-MySQLDB::MySQLDB(){
+MySQLConn::MySQLConn(){
     m_mysql = mysql_init(nullptr);
     if(m_mysql == nullptr) {
         M_SYLAR_LOG_ERROR(g_logger) << "failed to init a mysql instence";
@@ -198,21 +198,26 @@ MySQLDB::MySQLDB(){
     m_state = State::INIT;
 }
 
-MySQLDB::~MySQLDB(){
+MySQLConn::~MySQLConn(){
     if(m_state != State::INIT && m_mysql) {
-        std::cout << "mysql 析构， fd = " << mysql_get_socket(m_mysql) << std::endl;
+        // std::cout << "mysql 析构， fd = " << mysql_get_socket(m_mysql) << std::endl;
         // IOManager::getInstance()->delEvent( mysql_get_socket(m_mysql), (FdContext::Event)(FdContext::Event::READ | FdContext::Event::WRITE));
         // IOManager::getInstance()->closeWithNoClose( mysql_get_socket(m_mysql));
         mysql_close(m_mysql);
     }
 }
 
-int MySQLDB::connect(const std::string& host,
+int MySQLConn::connect(const std::string& host,
                         const std::string& user,
                         const std::string& passwd,
                         const std::string& db,
                         unsigned int port,
                         unsigned long clientflag) {
+
+    // 状态同步
+    if (mysql_options(m_mysql, MYSQL_OPT_NONBLOCK, 0)) {
+        std::cout << "1mysql_optins failed : " << mysql_error(m_mysql) << std::endl;
+    }
 
     MYSQL* rt = mysql_real_connect(m_mysql, host.c_str(), user.c_str(), passwd.c_str(), 
                                     db.c_str(), port, NULL, clientflag);
@@ -221,17 +226,14 @@ int MySQLDB::connect(const std::string& host,
         return -1;
     }
 
-    // 状态同步
-    if (mysql_options(m_mysql, MYSQL_OPT_NONBLOCK, 0)) {
-        std::cout << "1mysql_optins failed : " << mysql_error(m_mysql) << std::endl;
-    }
+
     // m_mysql = rt;
     m_state = State::READY;
     return 0;
 }
 
 
-Task<MySQLResp::ptr> MySQLDB::executeQuery(const std::string& query){
+Task<MySQLResp::ptr> MySQLConn::executeQuery(const std::string& query){
     int err = 0;
     // if (mysql_options(m_mysql, MYSQL_OPT_NONBLOCK, 0)) {
     //     std::cout << "mysql_optins failed : " << mysql_error(m_mysql) << std::endl;
@@ -304,7 +306,7 @@ MySQLPoolManager::MySQLPoolManager(int min_conn, int max_conn) {
     }
     m_connectors.resize(max_conn);
     for(int i = 0; i < max_conn; i++) {
-        m_connectors[i] = std::make_shared<MySQLDB>();
+        m_connectors[i] = std::make_shared<MySQLConn>();
     }
     m_minConnector = min_conn;
     m_maxConnector = max_conn;
