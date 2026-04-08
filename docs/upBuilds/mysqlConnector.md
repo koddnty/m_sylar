@@ -73,13 +73,17 @@ int main(void) {
 
 ## API参考
 
-| 函数/接口名称                                                | 功能                                | 所属类           | 等级 |
-| :----------------------------------------------------------- | ----------------------------------- | ---------------- | ---- |
-| [MySQLPoolManager(int min_conn, int max_conn)](#MySQLPoolManager(int min_conn, int max_conn)) | 创建一个连接池并绑定到一个iomanager | MySQLPoolManager | 用户 |
-| [MySQLPoolManager::init(...)](#MySQLPoolManager::init(...))  | 初始化一个连接池，设定其参数        | MySQLPoolManager | 用户 |
-| [MySQLPoolManager::close()](#MySQLPoolManager::close())      | 关闭一个数据库连接池                | MySQLPoolManager | 用户 |
-| [Task<MySQLResp::ptr > executeQuery(const std::string& query);](#Task<MySQLResp::ptr > executeQuery(const std::string& query);) | 异步执行一个sql语句。               | MySQLPoolManager | 用户 |
-|                                                              |                                     |                  |      |
+| 函数/接口名称                                                | 功能                                | 所属类           | 等级   |
+| :----------------------------------------------------------- | ----------------------------------- | ---------------- | ------ |
+| [MySQLPoolManager(int min_conn, int max_conn)](#MySQLPoolManager(int min_conn, int max_conn)) | 创建一个连接池并绑定到一个iomanager | MySQLPoolManager | 用户   |
+| [MySQLPoolManager::init(...)](#MySQLPoolManager::init(...))  | 初始化一个连接池，设定其参数        | MySQLPoolManager | 用户   |
+| [MySQLPoolManager::close()](#MySQLPoolManager::close())      | 关闭一个数据库连接池                | MySQLPoolManager | 用户   |
+| [Task<MySQLResp::ptr > executeQuery(const std::string& query);](#Task<MySQLResp::ptr > executeQuery(const std::string& query);) | 异步执行一个sql语句。               | MySQLPoolManager | 用户   |
+| bool checkRunState();                                        | 检查线程池运行状态。                | MySQLPoolManager | 用户   |
+| [int registeConnCb(std::function<void()> cb); ](#int registeConnCb(std::function<void()> cb); ) | 注册连接资源可用任务回调            | MySQLPoolManager | 开发者 |
+| [int tickle();](#int tickle();)                              | 唤醒一个回调，与registeConnCb配合。 | MySQLPoolManager | 开发者 |
+|                                                              |                                     |                  |        |
+|                                                              |                                     |                  |        |
 
 
 
@@ -119,6 +123,20 @@ int main(void) {
 **描述：**执行一个sql语句，请使用co_await获取其返回值。非阻塞，线程安全。
 
 **返回值：**sql执行成功则会返回数据封装，详见其他同文档api,若失败(如空iomanager或关闭的连接池)返回nullptr。
+
+#### int registeConnCb(std::function<void()> cb);
+
+**描述：**此函数将维护一个回调队列。当有可用资源时会直接运行注册的回调，若没有可用连接，会将任务加入队列并在有可用连接时回调任务。
+
+**参数：** cb：当连接池有新的连接可用时将执行的回调操作
+
+**返回值：**0：成功运行; -1：运行失败并打印错误日志。
+
+#### int tickle();
+
+**描述** 线程安全函数，新资源到来时会触发固定数量（新资源数量）个注册的回调，并使用iomanager接口异步执行。
+
+**返回值** ``0``：成功运行; -1：运行失败并打印错误日志。
 
 <...待完善>
 

@@ -440,7 +440,6 @@ int MySQLPoolManager::tickle() {
     w_lock.unlock();
 
     for(auto it : temp_tasks) {
-        // it();
         IOManager::getInstance()->schedule(TaskCoro20::create_func(it));            // 可行否？<...>
     }
     return 0;
