@@ -1,6 +1,7 @@
 #include <iostream>
 #include <memory>
 #include "basic/self_timer.h"
+#include "coroutine/corobase.h"
 // #include "basic/hook.h"
 
 
@@ -83,10 +84,35 @@ void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim)
     sleep(1000);
 }
 
+m_sylar::Task<void, m_sylar::TaskBeginExecuter> timeoutEvent() {
+    co_await m_sylar::co_sleep(4);
+    co_return;
+}
 
+void timeoutTask(){
+    std::cout << "timeout Task runned";
+    return;
+}
+
+void test2() {
+
+
+    std::shared_ptr<m_sylar::TimeLimitInfo::State> eventState = std::make_shared<m_sylar::TimeLimitInfo::State>();
+    m_sylar::TimeManager::getInstance()->addEventWithTimeout(10, m_sylar::FdContext::READ, timeoutTask, 4000000, eventState);
+
+    sleep(10);
+    std::cout << "task State: " << *eventState;
+    return;
+}
 
 int main(void) 
 {
-    test1();
+    // test1();
+    m_sylar::IOManager iom ("test timeout event", 4);
+    m_sylar::TimeManager tim (&iom);
+    iom.schedule(test2);
+
+    sleep(5);
+    iom.autoStop();
     return 0;
 }

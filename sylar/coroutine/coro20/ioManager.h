@@ -33,6 +33,8 @@ public:
     IOManager& cancelEvent(int fd, FdContext::Event event);
     IOManager& cancelAll(int fd);
 
+
+
     static IOManager* getInstance();
     void stateSync(FdContext::ptr fd_ctx, FdContext::Event origin_state);
     const FdContextManager::ptr getContext(int fd) {return m_fd_events[fd]; }
