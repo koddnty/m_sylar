@@ -22,12 +22,23 @@ MysqlAwaiter::~MysqlAwaiter(){
 
 void MysqlAwaiter::on_suspend() {
     // auto self = shared_from_this();
-    m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
+    uint64_t timeOut = 5000000; // 5s
+    TimeManager* tim = m_sylar::TimeManager::getInstance();
+    std::shared_ptr<TimeLimitInfo::State> state = std::make_shared<TimeLimitInfo::State> ();
     // 回调事件注册
-    iom->addEvent(m_fd, m_event, [this](){  
-        resume();
-    });
-
+    tim->addEventWithTimeout(m_fd, m_event, [this, state](){  
+        if(*state == TimeLimitInfo::FINISHED) {
+            resume(IOState::SUCCESS);
+        }
+        else if(*state == TimeLimitInfo::TIMEOUT) {
+            M_SYLAR_LOG_WARN(g_logger) << "mysqlAwaiter timed out";
+            resume(IOState::TIMEOUT);
+        }
+        else {
+            M_SYLAR_LOG_WARN(g_logger) << "mysqlAwaiter trigged with a bad IOState Type";
+            resume(IOState::UNKNOWN);
+        }
+    }, timeOut, state, 1);
 }
 
 void MysqlAwaiter::before_resume() {
@@ -36,7 +47,7 @@ void MysqlAwaiter::before_resume() {
 
 
 // 响应封装
-MySQLResp::MySQLResp(MYSQL* mysql){
+MySQLResp::MySQLResp(MYSQL* mysql, IOState::State state){
     m_respBody = nullptr;
     m_colCount = 0;
     m_state = false;
@@ -51,6 +62,7 @@ MySQLResp::MySQLResp(MYSQL* mysql){
         return;
     }
     m_state = true;
+    m_IOstate = state;
 }
 
 MySQLResp::~MySQLResp(){
@@ -247,19 +259,19 @@ Task<MySQLResp::ptr> MySQLConn::executeQuery(const std::string& query){
     if(err) {
         std::cout << std::string("mysql_real_query_start failed, error : ") + mysql_error(m_mysql) << std::endl;
         std::string errinfo = std::string("mysql_real_query_start failed, error : ") + mysql_error(m_mysql);
-        co_return nullptr;
+        co_return std::make_shared<MySQLResp>(m_mysql, IOState::FAILED);
     }
 
 
-
-
-
     while(status){
-        co_await MysqlAwaiter(m_mysql, status);
+        IOState::State state = co_await MysqlAwaiter(m_mysql, status);
+        if(state == IOState::TIMEOUT) {
+            co_return std::make_shared<MySQLResp>(m_mysql, IOState::TIMEOUT);
+        }
         status = mysql_real_query_cont(&err, m_mysql, status);
         if(err) {
             std::string errinfo = std::string("mysql_real_query_start failed, error : ") + mysql_error(m_mysql);
-            co_return nullptr;
+            co_return std::make_shared<MySQLResp>(m_mysql, IOState::FAILED);
         }
     }
 
@@ -317,7 +329,7 @@ MySQLPoolManager::~MySQLPoolManager() {
 
 Task<MySQLResp::ptr> MySQLPoolManager::executeQuery(const std::string& query) {
     if(!checkRunState()) {
-        co_return nullptr;
+        co_return std::make_shared<MySQLResp>(nullptr, IOState::FAILED);
     }
 
     // 获取一个连接
@@ -342,13 +354,13 @@ retry:
             // 等待
             co_await MySQLGetConnAwaiter(this);
             if(!checkRunState()) {      // 不在运行，
-                co_return nullptr;
+                co_return std::make_shared<MySQLResp>(nullptr, IOState::FAILED);
             }
         }
         goto retry;
     }
     M_SYLAR_LOG_ERROR(g_logger) << "bad code branch";
-    co_return nullptr;
+    co_return std::make_shared<MySQLResp>(nullptr, IOState::FAILED);
 }
 
 int MySQLPoolManager::init(const std::string& host,

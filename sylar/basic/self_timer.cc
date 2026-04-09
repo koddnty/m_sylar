@@ -196,7 +196,7 @@ int TimeManager::addConditionTimer(uint64_t intervalTime, bool is_cycle,
 
 
 IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, TaskCoro20&& task, 
-                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState){
+                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag){
     IOManager* iom = IOManager::getInstance();
     std::shared_ptr<TimeLimitInfo> exeInfo = std::make_shared<TimeLimitInfo>();
     std::shared_ptr<uint64_t> timerfd = std::make_shared<uint64_t>(0);
@@ -209,9 +209,14 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, Task
     int iom_fd = fd;
     FdContext::Event iom_event = event;
     *timerfd = TimeManager::getInstance()->addConditionTimer(timeout, false, 
-        [taskwrapper, rtState, iom_fd, iom_event]() mutable {
+        [taskwrapper, rtState, iom_fd, iom_event, closeFlag]() mutable {
             *rtState = TimeLimitInfo::State::TIMEOUT;
-            IOManager::getInstance()->delEvent(iom_fd, iom_event); // 删除事件
+            if(closeFlag) {
+                IOManager::getInstance()->closeWithNoClose(iom_fd); // 完全删除事件
+            }
+            else {
+                IOManager::getInstance()->delEvent(iom_fd, iom_event); // 删除事件
+            }
             IOManager::getInstance()->schedule(std::move((*taskwrapper)));
         }, 
         [exeInfo]() {  // 判断回调是否执行
@@ -242,7 +247,7 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, Task
 }       
 
 IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, std::function<void()> cb_func, 
-                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState){
+                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag){
     IOManager* iom = IOManager::getInstance();
     std::shared_ptr<TimeLimitInfo> exeInfo = std::make_shared<TimeLimitInfo>();
     std::shared_ptr<uint64_t> timerfd = std::make_shared<uint64_t>(0);
@@ -255,9 +260,14 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, std:
     int iom_fd = fd;
     FdContext::Event iom_event = event;
     *timerfd = TimeManager::getInstance()->addConditionTimer(timeout, false, 
-        [taskwrapper, rtState, iom_fd, iom_event]() mutable {
+        [taskwrapper, rtState, iom_fd, iom_event, closeFlag]() mutable {
             *rtState = TimeLimitInfo::State::TIMEOUT;
-            IOManager::getInstance()->delEvent(iom_fd, iom_event); // 删除事件
+            if(closeFlag) {
+                IOManager::getInstance()->closeWithNoClose(iom_fd); // 完全删除事件
+            }
+            else {
+                IOManager::getInstance()->delEvent(iom_fd, iom_event); // 删除事件
+            }
             IOManager::getInstance()->schedule(std::move((*taskwrapper)));
         }, 
         [exeInfo]() {  // 判断回调是否执行

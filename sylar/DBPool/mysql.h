@@ -14,7 +14,7 @@ namespace m_sylar{
 #define MYSQL_CONNECT_CREASE_SPEED 10
 
 // MYSQL awaiter, 仅通知，不执行
-class MysqlAwaiter : public Awaiter<void>{
+class MysqlAwaiter : public Awaiter<IOState::State>{
 public: 
     MysqlAwaiter(MYSQL* mysql, int status);
     ~MysqlAwaiter();
@@ -32,8 +32,8 @@ private:
 class MySQLResp{
 public: 
     using ptr = std::shared_ptr<MySQLResp>;
-    MySQLResp(MYSQL* mysql);
-    MySQLResp() { m_state = false; m_respBody = nullptr; }
+    MySQLResp(MYSQL* mysql, IOState::State state = IOState::SUCCESS);
+    MySQLResp(IOState::State state = IOState::INIT) { m_state = false; m_respBody = nullptr; m_IOstate = state;}
     ~MySQLResp();
 
     class Value{
@@ -67,6 +67,9 @@ public:
     void resetRow();            // 把行索引设置为idx = 0;
     int formatDate();           // 格式化数据到map
 
+    IOState::State getState() const {return m_IOstate;}
+    MySQLResp& setState(IOState::State state) {m_IOstate = state; return *this;}
+
 
 public: 
     class ColProxy {
@@ -94,6 +97,7 @@ private:
     int m_rowCount = 0;
     std::map<std::string, std::vector<std::pair<char*, size_t>>> m_respMapData {};
     bool m_state = true;
+    IOState::State m_IOstate = IOState::INIT;
 };
 
 

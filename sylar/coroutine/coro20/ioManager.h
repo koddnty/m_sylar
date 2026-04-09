@@ -12,6 +12,16 @@
 namespace m_sylar
 {
 
+class IOState {
+public:
+    enum State {
+        SUCCESS = 0,
+        TIMEOUT = 1,
+        FAILED = 2,
+        UNKNOWN = 3,
+        INIT = 4,
+    };
+};
 
 
 class IOManager : public Scheduler
