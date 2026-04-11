@@ -127,6 +127,7 @@ int connect(const std::string& host,
 
 Task<MySQLResp::ptr> executeQuery(const std::string& query);
 
+MYSQL* getMYSQL() const {return m_mysql; }
     
 
 private:

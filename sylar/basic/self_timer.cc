@@ -73,7 +73,7 @@ Timer::Timer(uint64_t intervalTime, bool is_cycle,
 
 Timer::~Timer()
 {
-    close(m_timeFd);  
+    // co_close(m_timeFd);  
 }
 
 
@@ -212,7 +212,7 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, Task
         [taskwrapper, rtState, iom_fd, iom_event, closeFlag]() mutable {
             *rtState = TimeLimitInfo::State::TIMEOUT;
             if(closeFlag) {
-                IOManager::getInstance()->closeFd(iom_fd); // 完全删除事件
+                IOManager::getInstance()->closeWithNoClose(iom_fd); // 完全删除事件
             }
             else {
                 IOManager::getInstance()->delEvent(iom_fd, iom_event); // 删除事件
@@ -265,7 +265,7 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, std:
         [taskwrapper, rtState, iom_fd, iom_event, closeFlag]() mutable {
             *rtState = TimeLimitInfo::State::TIMEOUT;
             if(closeFlag) {
-                IOManager::getInstance()->closeFd(iom_fd);         // 删除事件
+                IOManager::getInstance()->closeWithNoClose(iom_fd);         // 删除事件
             }
             else {
                 IOManager::getInstance()->delEvent(iom_fd, iom_event);      // 完全删除事件
@@ -308,7 +308,7 @@ void TimeManager::cancelTimer(Timer::ptr timer)
     auto it = m_timersMap.find(timer->m_timeFd);
     if(it != m_timersMap.end())
     {
-        m_iom->delEvent(timer->m_timeFd, FdContext::READ);
+        m_iom->closeFd(timer->m_timeFd);
         m_timersMap.erase(it);
     }
     else
@@ -327,7 +327,7 @@ void TimeManager::cancelTimer(int timerFd)
     auto it = m_timersMap.find(timerFd);
     if(it != m_timersMap.end())
     {
-        m_iom->delEvent(timerFd, FdContext::READ);
+        m_iom->closeFd(timerFd);
         m_timersMap.erase(it);
     }
     else

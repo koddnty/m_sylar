@@ -494,6 +494,10 @@ int MySQLPoolManager::returnConnn(int free_idx){
     if(m_state == FULL) {
         m_state = READY;
     }
+    if(-1 == mysql_reset_connection(m_connectors[free_idx]->getMYSQL())) {
+        const char* error = mysql_error(m_connectors[free_idx]->getMYSQL());
+        M_SYLAR_LOG_ERROR(g_logger) << "failed to reset a connection, error: " << error;
+    }
     // 唤醒部分等待者
     w_lock.unlock();
     tickle();

@@ -29,7 +29,6 @@ FdContext& FdContext::addEvent(Event event, TaskCoro20&& task)
         m_cb_write = std::move(task);
     }
     return *this;
-
 }
 
 FdContext& FdContext::delEvent(Event event)
