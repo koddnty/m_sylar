@@ -469,7 +469,7 @@ m_sylar::Task<ssize_t> co_sendmsg(int sockfd, const struct msghdr *msg, int flag
 
 // close, 一般mod不用设置，若为非0值则只进行epoll等清理不会closeFd.
 int co_close(int fd, int mod){
-
+    // M_SYLAR_LOG_DEBUG(g_logger) << "co_close fd=" << fd << " in " << mod << " mod";
     if(mod == 0) {
         m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
         if(IOManager::getInstance())

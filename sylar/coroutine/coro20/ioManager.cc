@@ -224,11 +224,9 @@ void IOManager::stateSync(FdContext::ptr fd_ctx, FdContext::Event origin_event)
 
     rt = epoll_ctl(m_epollFd, epoll_ctl_state, fd_ctx->getFd(), &ep_event);
 
-
-
-    if(epoll_ctl_state == EPOLL_CTL_DEL){
-        M_SYLAR_LOG_DEBUG(g_logger) << "del " << fd_ctx->getFd();
-    }
+    // if(epoll_ctl_state == EPOLL_CTL_DEL){
+    //     M_SYLAR_LOG_DEBUG(g_logger) << "del " << fd_ctx->getFd();
+    // }
 
     if(rt == -1)
     {   // 错误检查

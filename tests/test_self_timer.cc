@@ -108,7 +108,7 @@ void test2() {
 int main(void) 
 {
     // test1();
-    m_sylar::IOManager iom ("test timeout event", 4);
+    m_sylar::IOManager iom ("test timeout event", 1);
     m_sylar::TimeManager tim (&iom);
     iom.schedule(test2);
 

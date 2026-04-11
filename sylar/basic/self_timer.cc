@@ -212,12 +212,13 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, Task
         [taskwrapper, rtState, iom_fd, iom_event, closeFlag]() mutable {
             *rtState = TimeLimitInfo::State::TIMEOUT;
             if(closeFlag) {
-                IOManager::getInstance()->closeWithNoClose(iom_fd); // 完全删除事件
+                IOManager::getInstance()->closeFd(iom_fd); // 完全删除事件
             }
             else {
                 IOManager::getInstance()->delEvent(iom_fd, iom_event); // 删除事件
             }
-            IOManager::getInstance()->schedule(std::move((*taskwrapper)));
+            // IOManager::getInstance()->schedule(std::move((*)));
+            (*taskwrapper).start();
         }, 
         [exeInfo]() {  // 判断回调是否执行
             if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::TIMEOUT)) {
@@ -236,7 +237,8 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, Task
             // 可以执行，取消定时器。
             *rtState = TimeLimitInfo::State::FINISHED;
             TimeManager::getInstance()->cancelTimer(*timerfd);
-            IOManager::getInstance()->schedule(std::move((*taskwrapper)));
+            // IOManager::getInstance()->schedule(std::move((*taskwrapper)));
+            (*taskwrapper).start();
         } 
         else {      // 超时或其他， 无操作
         }
@@ -263,10 +265,10 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, std:
         [taskwrapper, rtState, iom_fd, iom_event, closeFlag]() mutable {
             *rtState = TimeLimitInfo::State::TIMEOUT;
             if(closeFlag) {
-                IOManager::getInstance()->closeWithNoClose(iom_fd); // 完全删除事件
+                IOManager::getInstance()->closeFd(iom_fd);         // 删除事件
             }
             else {
-                IOManager::getInstance()->delEvent(iom_fd, iom_event); // 删除事件
+                IOManager::getInstance()->delEvent(iom_fd, iom_event);      // 完全删除事件
             }
             IOManager::getInstance()->schedule(std::move((*taskwrapper)));
         }, 

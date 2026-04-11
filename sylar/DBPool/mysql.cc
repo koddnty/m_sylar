@@ -51,18 +51,18 @@ MySQLResp::MySQLResp(MYSQL* mysql, IOState::State state){
     m_respBody = nullptr;
     m_colCount = 0;
     m_state = false;
+    m_IOstate = state;
     if(mysql == nullptr) {
         return;
     }
     m_respBody = mysql_store_result(mysql);
     if(!m_respBody) {return; }
     m_colCount = mysql_field_count(mysql);
-    m_rowCount =  mysql_num_rows(m_respBody);
+    m_rowCount = mysql_num_rows(m_respBody);
     if(!m_respBody || !m_colCount) {
         return;
     }
     m_state = true;
-    m_IOstate = state;
 }
 
 MySQLResp::~MySQLResp(){
@@ -265,6 +265,7 @@ Task<MySQLResp::ptr> MySQLConn::executeQuery(const std::string& query){
 
     while(status){
         IOState::State state = co_await MysqlAwaiter(m_mysql, status);
+        // M_SYLAR_LOG_DEBUG(g_logger) << "origin state: " << state;
         if(state == IOState::TIMEOUT) {
             co_return std::make_shared<MySQLResp>(m_mysql, IOState::TIMEOUT);
         }

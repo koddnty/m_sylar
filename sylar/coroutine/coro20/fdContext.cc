@@ -220,6 +220,7 @@ void FCM::DEL_TASK::run()
     m_fd_ctx_manager->m_fdcontex->delEvent(m_event);
     if(m_cb)
         m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 先状态同步
+
 }
 
 
@@ -279,8 +280,8 @@ void FCM::CLOSE_TASK_NOCLOSEFD::run()
     FdContext::Event  origin_state = m_fd_ctx_manager->m_fdcontex->getEvent();
     int fd = m_fd_ctx_manager->m_fdcontex->getFd();
     m_fd_ctx_manager->m_fdcontex->reset();
-    // if(m_cb)
-    //     m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
+    if(m_cb)
+        m_cb(m_fd_ctx_manager->m_fdcontex, origin_state); // 状态同步
     co_close(fd, 1);
 }
 

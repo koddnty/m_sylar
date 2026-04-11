@@ -28,17 +28,24 @@ m_sylar::Task<void, m_sylar::TaskBeginExecuter> testNext () {
 
 
 m_sylar::Task<void, m_sylar::TaskBeginExecuter> testMap() {
-    std::string sql = "SELECT SLEEP(10)";
+    std::string sql = "SELECT * from learn";
     std::cout << ">" << std::flush;
     m_sylar::MySQLResp::ptr resp = co_await mysql_pool_mgr->executeQuery(sql);
-    resp->formatDate();
+    // std::cout << "--state: " << resp->getState() << std::endl;
+    // if(resp->getState() == m_sylar::IOState::SUCCESS) {
+    //     resp->formatDate();
+    // }
     if(resp->getState() == m_sylar::IOState::TIMEOUT) {
         std::cout << "o" << std::flush;
     }
-    else {
+    else if(resp->getState() == m_sylar::IOState::SUCCESS) {
         std::cout << "|" << std::flush;
+        resp->formatDate();
+        std::cout << (*resp)["name"][0] << std::endl;
     }
-    // std::cout << (*resp)["telephone_num"][4] << std::endl;
+    else {
+        std::cout << "f" << std::flush;
+    }
 }
 
 int main(void) {
@@ -59,6 +66,8 @@ int main(void) {
         // iom.schedule(m_sylar::TaskCoro20::create_coro(testNext));
         iom.schedule(m_sylar::TaskCoro20::create_coro(testMap));
     }
+
+
 
     sleep(30);       // 等待执行到一半的协程任务。
     iom.autoStop();
