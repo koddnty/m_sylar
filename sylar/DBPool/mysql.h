@@ -11,12 +11,13 @@
 
 namespace m_sylar{
 
-#define MYSQL_CONNECT_CREASE_SPEED 10
+#define MYSQL_CONNECT_CREASE_SPEED 10           // 连接池单次扩容容量
+#define MYSQL_QUERY_TIMEOUT 5000000             // 最大语句查询超时时间
 
 // MYSQL awaiter, 仅通知，不执行
 class MysqlAwaiter : public Awaiter<IOState::State>{
 public: 
-    MysqlAwaiter(MYSQL* mysql, int status);
+    MysqlAwaiter(MYSQL* mysql, int status, uint64_t timeOut);
     ~MysqlAwaiter();
 
     void on_suspend()override;
@@ -25,6 +26,7 @@ public:
 
 private:
     int m_fd = -1;
+    uint64_t m_timeout;
     FdContext::Event m_event {FdContext::NONE};
 };
 
@@ -182,7 +184,7 @@ public:
 
 protected:
     int borrowOneConn();               // 线程不安全, 返回空闲连接索引
-    int returnConnn(int free_idx);              // 线程不安全
+    int returnConnn(int free_idx, bool isTimeOut = false);              // 线程不安全
     int expand();                               // 线程安全
 
 private:
@@ -192,7 +194,7 @@ private:
     std::list<int> m_freeConnInfos;                 // 空闲信息表[连接对应idx]
      
     std::list<std::function<void()>> m_waitConnCb;              // 有新连接可用时会唤醒其中一个任务，优先队列
-    std::atomic<int> m_connectorCount = 0;                       // 当前连接数目, 记录所有已连接的连接
+    std::atomic<int> m_connectorCount = 0;                       // 当前连接数目, 记录所有已连接的连接, 若存在失败连接，会影响此值
     std::atomic<int> m_busyConnCount = 0;
     int m_minConnector;
     int m_maxConnector;

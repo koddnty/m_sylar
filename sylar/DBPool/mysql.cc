@@ -4,7 +4,8 @@ namespace m_sylar
 {
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
-MysqlAwaiter::MysqlAwaiter(MYSQL* mysql, int status){
+MysqlAwaiter::MysqlAwaiter(MYSQL* mysql, int status, uint64_t timeOut){
+    m_timeout = timeOut;
     m_fd = mysql_get_socket(mysql);
     if(status & MYSQL_WAIT_READ ){
         m_event = (FdContext::Event)(m_event | FdContext::Event::READ);
@@ -22,7 +23,6 @@ MysqlAwaiter::~MysqlAwaiter(){
 
 void MysqlAwaiter::on_suspend() {
     // auto self = shared_from_this();
-    uint64_t timeOut = 5000000; // 5s
     TimeManager* tim = m_sylar::TimeManager::getInstance();
     std::shared_ptr<TimeLimitInfo::State> state = std::make_shared<TimeLimitInfo::State> ();
     // 回调事件注册
@@ -38,7 +38,7 @@ void MysqlAwaiter::on_suspend() {
             M_SYLAR_LOG_WARN(g_logger) << "mysqlAwaiter trigged with a bad IOState Type";
             resume(IOState::UNKNOWN);
         }
-    }, timeOut, state, 1);
+    }, m_timeout, state, 1);
 }
 
 void MysqlAwaiter::before_resume() {
@@ -264,7 +264,8 @@ Task<MySQLResp::ptr> MySQLConn::executeQuery(const std::string& query){
 
 
     while(status){
-        IOState::State state = co_await MysqlAwaiter(m_mysql, status);
+        uint64_t timeout = MYSQL_QUERY_TIMEOUT;
+        IOState::State state = co_await MysqlAwaiter(m_mysql, status, timeout);
         // M_SYLAR_LOG_DEBUG(g_logger) << "origin state: " << state;
         if(state == IOState::TIMEOUT) {
             co_return std::make_shared<MySQLResp>(m_mysql, IOState::TIMEOUT);
@@ -339,11 +340,16 @@ Task<MySQLResp::ptr> MySQLPoolManager::executeQuery(const std::string& query) {
     // 获取连接并执行
 retry:
     connectorIdx = borrowOneConn();
-    if(connectorIdx >= 0) {        // 有当前可用连接
+    if(connectorIdx >= 0) {        // 有当前可用连接std::string finishQuery = "RESET SESSION;";
+        // std::string finishQuery =   "SET @@session.autocommit = 1; SET @@session.transaction_isolation = 'REPEATABLE-READ';RESET SESSION;"
+        std::string finishQuery = "RESET SESSION;";
         MySQLResp::ptr resp = co_await m_connectors[connectorIdx]->executeQuery(query);
-        if(-1 == returnConnn(connectorIdx)) {   // 归还
+        MySQLResp::ptr resetPtr = co_await m_connectors[connectorIdx]->executeQuery(finishQuery);
+        bool isTimo = (resp->getState() == IOState::TIMEOUT || resetPtr->getState() == IOState::TIMEOUT);
+        if(-1 == returnConnn(connectorIdx, isTimo)) {   // 归还
             M_SYLAR_LOG_ERROR(g_logger) << "failed to return connect source";
-        }      
+        }    
+
         co_return resp;
     }
     else {  // 正繁忙，无空闲
@@ -483,10 +489,25 @@ int MySQLPoolManager::borrowOneConn(){
     return -1;
 }
 
-int MySQLPoolManager::returnConnn(int free_idx){
+int MySQLPoolManager::returnConnn(int free_idx, bool isTimeOut){
     std::unique_lock<std::shared_mutex> w_lock(m_ConnectPoolMutex);
     if(!checkRunState() || (free_idx < 0 || free_idx >= m_maxConnector)) {
         return -1;
+    }
+
+    if(isTimeOut) {
+        w_lock.unlock();
+        MySQLConn::ptr new_connect = std::make_shared<MySQLConn>();
+        int rt = new_connect->connect(m_connectorBaseInfo.host , m_connectorBaseInfo.user, m_connectorBaseInfo.passwd,
+                            m_connectorBaseInfo.db, m_connectorBaseInfo.port, m_connectorBaseInfo.clientflag);
+        if(rt == -1) {
+            M_SYLAR_LOG_ERROR(g_logger) << "failed to connect to database: " << m_connectorBaseInfo.host;
+            m_connectorCount--;
+            m_busyConnCount--;
+            return -1;
+        }
+        m_connectors[free_idx] = new_connect;
+        w_lock.lock();
     }
     // 资源归还
     m_freeConnInfos.push_back({free_idx});
@@ -494,10 +515,7 @@ int MySQLPoolManager::returnConnn(int free_idx){
     if(m_state == FULL) {
         m_state = READY;
     }
-    if(-1 == mysql_reset_connection(m_connectors[free_idx]->getMYSQL())) {
-        const char* error = mysql_error(m_connectors[free_idx]->getMYSQL());
-        M_SYLAR_LOG_ERROR(g_logger) << "failed to reset a connection, error: " << error;
-    }
+
     // 唤醒部分等待者
     w_lock.unlock();
     tickle();

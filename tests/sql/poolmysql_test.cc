@@ -28,7 +28,7 @@ m_sylar::Task<void, m_sylar::TaskBeginExecuter> testNext () {
 
 
 m_sylar::Task<void, m_sylar::TaskBeginExecuter> testMap() {
-    std::string sql = "SELECT SLEEP(10) AS name";
+    std::string sql = "SELECT SLEEP(1) AS name";
     std::cout << ">" << std::flush;
     m_sylar::MySQLResp::ptr resp = co_await mysql_pool_mgr->executeQuery(sql);
     // std::cout << "--state: " << resp->getState() << std::endl;
@@ -52,7 +52,7 @@ m_sylar::Task<void, m_sylar::TaskBeginExecuter> testMap() {
 }
 
 int main(void) {
-    m_sylar::MySQLPoolManager dbPool(10, 20);
+    m_sylar::MySQLPoolManager dbPool(10, 15);
     //dbPool.init("<地址>", "<用户名>", "<数据库密码>", "<数据库名称>", <端口>, 0))
     if(-1 == dbPool.init("localhost", "koddnty", "73256", "KoddntyDB", 3306, 0)) {
         std::cout << "failed to init dbPool" << std::endl;
