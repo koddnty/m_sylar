@@ -121,9 +121,6 @@ class io_Awaiter : public Awaiter<int> , public std::enable_shared_from_this<io_
 {   // co_await do_io使用的Awiater,自动注册iomanager并在有信息时恢复协程。
     // 返回-1代表失败，-2代表应重试
 public:
-    // doIo_Awaiter(int fd, m_sylar::IOManager::Event event, std::function<void()> deal_func)
-    //     : m_fd(fd), m_event(event), m_deal_func(deal_func) {}
-
     io_Awaiter(int fd, m_sylar::FdContext::Event event, uint64_t timo = -1)
         : m_fd(fd), m_timo(timo), m_event(event) {}
 
@@ -137,45 +134,31 @@ public:
     {
         // auto self = shared_from_this();
         m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
+        // m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
         std::shared_ptr<fdTimerInfo> fdtino (new fdTimerInfo);
         std::weak_ptr<fdTimerInfo> wfdtino (fdtino);
-        
+        TimeLimitInfo::StatePtr timeState = std::make_shared<TimeLimitInfo::State> ();
+        uint64_t timeOut = HOOK_IOAWAIT_TIMEOUT;
         // 回调事件注册
+        // tim->addEventWithTimeout(m_fd, m_event, [this, timeState](){  // 回调函数，当有io事件可用或超时时恢复协程
+        //     // resume(timeState);        
+        //     if(*timeState == TimeLimitInfo::FINISHED) {
+        //         resume(IOState::SUCCESS);
+        //     }
+        //     else if(*timeState == TimeLimitInfo::TIMEOUT) {
+        //         M_SYLAR_LOG_WARN(g_logger) << "IOawaiter timed out";
+        //         resume(IOState::TIMEOUT);
+        //     }
+        //     else {
+        //         M_SYLAR_LOG_WARN(g_logger) << "IOawaiter trigged with a bad IOState Type";
+        //         resume(IOState::UNKNOWN);
+        //     }
+        // }, timeOut, timeState);
+
         iom->addEvent(m_fd, m_event, [this](){  // 回调函数，当有io事件可用或超时时恢复协程
             resume(m_state);
             // IOManager::getInstance()->delEvent(fd, event);
         });
-
-
-
-        // 设置取消定时器
-        // auto canceler = [wfdtino, weak_self](){
-        //             // 设置取消fd
-        //             auto self = weak_self.lock();
-        //             if(!self) {return; }
-        //             auto t = wfdtino.lock();
-        //             if(t && t->setTimo())
-        //             {   // 存活且成功设置超时
-        //                 self->m_state = TIMO;    // 超时
-        //                 IOManager::getInstance()->cancelEvent(self->m_fd, self->m_event);    // 恢复协程
-        //             }
-        //             // 不存活或超时设置失败
-        //             return;
-        //         };
-        // if(m_timo != (uint64_t)-1){
-        //     m_time_fd = tim->addConditionTimer(m_timo, false, [](){}, 
-        //         [wfdtino](){
-        //             if(wfdtino.lock() && wfdtino.lock()->getState() == fdTimerInfo::FINISHED)
-        //             {
-        //                 // 事件已执行
-        //                 return true;
-        //             }
-        //             // 事件未执行
-        //             return false;
-        //         }, canceler 
-        //     );
-            
-        // }
     }
 
     void before_resume() override

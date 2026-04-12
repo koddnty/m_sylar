@@ -7,6 +7,8 @@
 
 namespace m_sylar
 {
+#define HOOK_IOAWAIT_TIMEOUT 5000000            // ioawait超时时间
+
     bool is_hook_enable();
     void set_hook_state(bool flags);
 

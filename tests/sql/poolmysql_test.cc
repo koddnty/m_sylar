@@ -28,7 +28,7 @@ m_sylar::Task<void, m_sylar::TaskBeginExecuter> testNext () {
 
 
 m_sylar::Task<void, m_sylar::TaskBeginExecuter> testMap() {
-    std::string sql = "SELECT SLEEP(1) AS name";
+    std::string sql = "SELECT SLEEP(10) AS name";
     std::cout << ">" << std::flush;
     m_sylar::MySQLResp::ptr resp = co_await mysql_pool_mgr->executeQuery(sql);
     // std::cout << "--state: " << resp->getState() << std::endl;

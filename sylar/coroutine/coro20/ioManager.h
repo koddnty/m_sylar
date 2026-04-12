@@ -15,11 +15,11 @@ namespace m_sylar
 class IOState {
 public:
     enum State {
-        SUCCESS = 0,
-        TIMEOUT = 1,
-        FAILED = 2,
-        UNKNOWN = 3,
-        INIT = 4,
+        SUCCESS = 0,            // 成功
+        TIMEOUT = 1,            // 超时
+        FAILED = 2,             // IO请求失败
+        UNKNOWN = 3,            // 未知问题
+        INIT = 4,               // 初始化的状态
     };
 };
 

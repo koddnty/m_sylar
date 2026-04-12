@@ -84,6 +84,8 @@ public:
         ERROR = 2,
         TIMEOUT = 3,
     };
+    using ptr = std::shared_ptr<TimeLimitInfo>;
+    using StatePtr = std::shared_ptr<TimeLimitInfo::State>;
     TimeLimitInfo() {}
     State getState() {
         return m_state.load();

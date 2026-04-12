@@ -12,7 +12,7 @@
 namespace m_sylar{
 
 #define MYSQL_CONNECT_CREASE_SPEED 10           // 连接池单次扩容容量
-#define MYSQL_QUERY_TIMEOUT 5000000             // 最大语句查询超时时间
+#define MYSQL_QUERY_TIMEOUT 6000000             // 最大语句查询超时时间
 
 // MYSQL awaiter, 仅通知，不执行
 class MysqlAwaiter : public Awaiter<IOState::State>{
