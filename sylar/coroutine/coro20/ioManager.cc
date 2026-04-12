@@ -162,6 +162,16 @@ IOManager& IOManager::closeFd(int fd)
     return *this;
 }
 
+IOManager& IOManager::closeWithNoClose(int fd) {
+    if(fd >= m_fd_events.size())
+    {
+        return *this;
+    }
+    std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
+    m_fd_events[fd]->closeEventNoCloseFd(FdContext::NONE, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    return *this;
+}
+
 
 IOManager& IOManager::cancelEvent(int fd, FdContext::Event event)
 {
@@ -214,17 +224,15 @@ void IOManager::stateSync(FdContext::ptr fd_ctx, FdContext::Event origin_event)
 
     rt = epoll_ctl(m_epollFd, epoll_ctl_state, fd_ctx->getFd(), &ep_event);
 
-
-
-    if(epoll_ctl_state == EPOLL_CTL_DEL){
-        M_SYLAR_LOG_DEBUG(g_logger) << "del " << fd_ctx->getFd();
-    }
+    // if(epoll_ctl_state == EPOLL_CTL_DEL){
+    //     M_SYLAR_LOG_DEBUG(g_logger) << "del " << fd_ctx->getFd();
+    // }
 
     if(rt == -1)
     {   // 错误检查
         M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]faield to sync state, fd=" << fd_ctx->getFd()
-                                    << "origin:" << origin_event << " new:" << fd_ctx->getEvent()
-                                    << " errno=" << errno << " error:" << strerror(errno);
+                                    << "\norigin:" << origin_event << " new: " << fd_ctx->getEvent()
+                                    << "\nerrno= " << errno << " error: " << strerror(errno);
     }
     return;
 }

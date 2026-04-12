@@ -12,6 +12,16 @@
 namespace m_sylar
 {
 
+class IOState {
+public:
+    enum State {
+        SUCCESS = 0,            // 成功
+        TIMEOUT = 1,            // 超时
+        FAILED = 2,             // IO请求失败
+        UNKNOWN = 3,            // 未知问题
+        INIT = 4,               // 初始化的状态
+    };
+};
 
 
 class IOManager : public Scheduler
@@ -29,8 +39,11 @@ public:
     IOManager& addOnceEvent(int fd, FdContext::Event event, std::function<void()> cb_func);       // 只会单次执行回调的事件
     IOManager& delEvent(int fd, FdContext::Event event);
     IOManager& closeFd(int fd);
+    IOManager& closeWithNoClose(int fd);            // (可能很奇怪，但没办法)关闭一个连接但不会close Fd， 用于第三方接口管理的fd处理。
     IOManager& cancelEvent(int fd, FdContext::Event event);
     IOManager& cancelAll(int fd);
+
+
 
     static IOManager* getInstance();
     void stateSync(FdContext::ptr fd_ctx, FdContext::Event origin_state);

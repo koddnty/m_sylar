@@ -76,6 +76,34 @@ private:
 
 
 
+class TimeLimitInfo {
+public: 
+    enum State {        //  WAITING->FINISHED/ERROR/TIMEOUT
+        WAITING = 0,
+        FINISHED = 1,
+        ERROR = 2,
+        TIMEOUT = 3,
+    };
+    using ptr = std::shared_ptr<TimeLimitInfo>;
+    using StatePtr = std::shared_ptr<TimeLimitInfo::State>;
+    TimeLimitInfo() {}
+    State getState() {
+        return m_state.load();
+    }
+    /** @brief 将原本是origin_state的状态替换为new_state, 失败则返回-1， 成功返回0 */
+    int setState(State origin_state, State new_state) {
+        State expect = origin_state;
+        if(m_state.compare_exchange_strong(expect, new_state)) {
+            return 0;
+        }
+        else {
+            return -1;
+        }
+    }
+protected:
+    std::atomic<State> m_state = WAITING;
+};
+
 
 
 // 定时器管理类
@@ -96,6 +124,18 @@ public:
         std::function<void()> main_cb,
         std::function<bool()> condition,
         std::function<void()> condition_cb);                        // 添加条件定时器, usec
+
+    /** 
+        @brief _WithTimeout系列函数，在原有addEvent基础上为事件添加i时间限制功能，方便诸如超时系统开发。
+
+        @param closeFlag 此参数正常情况下不要修改，如果改为非0值，将会在一个事件超时后直接关闭fd管理（以及所有事件）， 详见closeWithNoClose.  
+    */
+
+    IOManager& addEventWithTimeout(int fd, FdContext::Event event, TaskCoro20&& task, 
+                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag = 0);        // usec, 1000,000
+    IOManager& addEventWithTimeout(int fd, FdContext::Event event, std::function<void()> cb_func, 
+                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag = 0);
+
 
     void cancelTimer(Timer::ptr timer);                             // 取消定时器
     void cancelTimer(int timerFd);

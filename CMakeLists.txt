@@ -4,16 +4,16 @@ project(m_sylar)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
-# set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=thread")
 # 原
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
-# set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=address -fno-omit-frame-pointer -g")
 
 
 set ( LIB_LIB
     pthread
     dl
     yaml-cpp::yaml-cpp
+    mysqlcppconnx
+    mariadb
 )
 
 option(SYLAR_USE_CORO20 "Use C++20 coroutine implementation, OFF if NOT" ON)       # 底层协程实现配置
@@ -58,6 +58,13 @@ set(CORO20_SOURCES
     sylar/coroutine/coro20/taskPool.cc
 )
 
+# 数据库连接池模
+
+set(DBPOOL_SOURCES
+    sylar/DBPool/mysql.cc
+    sylar/DBPool/factory.cc
+)
+
 # 选择模块
 
 add_definitions(-DSYLAR_USE_CORO20)
@@ -71,18 +78,33 @@ add_library(sylar STATIC
     ${BASIC_SOURCES}
     ${HTTP_SOURCES}
     ${COROUTINE_SOURCES}
+    ${DBPOOL_SOURCES}
 )
 
 
 
 target_include_directories(sylar PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/sylar
+    /usr/include/mysql-cppconn
 )
 
 # include_directories(
 #     ${CMAKE_CURRENT_SOURCE_DIR}
 #     ${CMAKE_CURRENT_SOURCE_DIR}/sylar
 # )
+
+
+
+# mysql测试
+add_executable(poolmysql_test tests/sql/poolmysql_test.cc)
+add_dependencies(poolmysql_test sylar)
+target_link_libraries(poolmysql_test sylar ${LIB_LIB})
+
+add_executable(mysql_conntest tests/sql/mysql_test.cc)
+add_dependencies(mysql_conntest sylar)
+target_link_libraries(mysql_conntest sylar ${LIB_LIB})
+
+
 
 # add_executable(taskCoro_test tests/lab_test/taskCoro_test.cc)
 # add_dependencies(taskCoro_test sylar)

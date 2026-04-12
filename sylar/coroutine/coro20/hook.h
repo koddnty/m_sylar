@@ -7,6 +7,8 @@
 
 namespace m_sylar
 {
+#define HOOK_IOAWAIT_TIMEOUT 5000000            // ioawait超时时间
+
     bool is_hook_enable();
     void set_hook_state(bool flags);
 
@@ -52,7 +54,7 @@ m_sylar::Task<ssize_t> co_sendto(int sockfd, const void* buf, size_t len, int fl
 
 m_sylar::Task<ssize_t> co_sendmsg(int sockfd, const struct msghdr *msg, int flags);
 
-int co_close(int fd);
+int co_close(int fd, int mod = 0);
 
 int co_fcntl (int fd, int op, ...  );
 
@@ -65,8 +67,6 @@ int co_getsockopt(int sockfd, int level, int optname,
 int co_setsockopt(int sockfd, int level, int optname,
                     const void* optval,
                     socklen_t optlen);
-
-
 }
 
 
