@@ -25,7 +25,7 @@ void test_http_server(m_sylar::IOManager* iom)
     m_sylar::http::HttpServer::ptr server(new m_sylar::http::HttpServer(iom));
     m_sylar::Address::ptr addr = m_sylar::Address::LookupAnyIPAddress("0.0.0.0");
     std::dynamic_pointer_cast<m_sylar::IPv4Address>(addr)->setPort(8803);
-    server->bind(addr, 8);
+    server->bind(addr, 6);
     
     server->GET("/home", home_page);
 

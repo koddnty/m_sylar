@@ -199,7 +199,7 @@ void HttpServer::execHandler(const std::string& url, HttpSession::ptr session)
 Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
 {
     bool is_keep_alive = false;
-    M_SYLAR_LOG_INFO(g_logger) << "newClient, socket :" << *client;
+    // M_SYLAR_LOG_INFO(g_logger) << "newClient, socket :" << *client;         
     do
     {
         HttpSession::ptr session(new HttpSession(client));

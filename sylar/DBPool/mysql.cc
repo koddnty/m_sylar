@@ -313,17 +313,9 @@ private:
 
 
 
-MySQLPoolManager::MySQLPoolManager(int min_conn, int max_conn) {
-    m_state = INIT;
-    if(min_conn < 0 || max_conn < 0 || max_conn < min_conn) {
-        throw std::runtime_error("failed to create a msyql db connector manager, min_conn or max_conn invalid");
-    }
-    m_connectors.resize(max_conn);
-    for(int i = 0; i < max_conn; i++) {
-        m_connectors[i] = std::make_shared<MySQLConn>();
-    }
-    m_minConnector = min_conn;
-    m_maxConnector = max_conn;
+MySQLPoolManager::MySQLPoolManager(int min_conn, int max_conn)
+    : m_sylar::DBPool<MySQLConn, MySQLResp>(min_conn, max_conn) {
+
 }
 
 MySQLPoolManager::~MySQLPoolManager() {
