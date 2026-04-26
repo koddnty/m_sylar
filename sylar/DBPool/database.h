@@ -8,6 +8,10 @@
 namespace m_sylar {
 
 
+/**
+    * 数据库连接池接口类, 连接池管理器需要继承此类并实现相关接口
+    负责连接池的创建与连接销毁，但不负责扩容等操作，须实现对应接口
+ */
 template<typename ConnType, typename RespType>       // 数据库返回类型
 class DBPool {
 public: 
@@ -37,14 +41,32 @@ public:
     ~DBPool() {
     }
 
+    bool checkRunState() {
+        switch(m_state) {
+            case INIT:
+            case CLOSED:
+            case CLOSING:
+            case ERROR:
+                return false;
+            case READY:
+            case FULL:
+                return true;
+        }
+        return false;
+    }
+    void close() {
+        m_state = CLOSING;
+        tickle();       // 唤醒所有回调
+    }
+
     virtual Task<std::shared_ptr<RespType>> executeQuery(const std::string& query) = 0;
     virtual int registeConnCb(std::function<void()> cb) = 0;        // 用于awaiter的回调
     virtual int tickle() = 0;                                       // 有新连接时的回调, 用于连接耗尽时阻塞控制, 若状态为关闭则全部tickle.
 
 protected:
-    virtual int borrowOneConn() = 0;               // 线程不安全, 返回空闲连接索引
+    virtual int borrowOneConn() = 0;                            // 线程不安全, 返回空闲连接索引
     virtual int returnConnn(int free_idx, bool isTimeOut = false) = 0;              // 线程不安全
-    virtual int expand() = 0;                               // 线程安全
+    virtual int expand() = 0;                               // 线程安全, 扩展连接池, 返回扩容后连接数目, -1表示失败
 
 protected: 
     std::list<int> m_freeConnInfos;                     // 空闲信息表[连接对应idx]

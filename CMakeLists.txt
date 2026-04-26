@@ -112,7 +112,9 @@ add_executable(mysql_conntest tests/sql/mysql_test.cc)
 add_dependencies(mysql_conntest sylar)
 target_link_libraries(mysql_conntest sylar ${LIB_LIB})
 
-
+add_executable(poolredis_test tests/sql/poolredis_test.cc)
+add_dependencies(poolredis_test sylar)
+target_link_libraries(poolredis_test sylar ${LIB_LIB})
 
 # add_executable(taskCoro_test tests/lab_test/taskCoro_test.cc)
 # add_dependencies(taskCoro_test sylar)

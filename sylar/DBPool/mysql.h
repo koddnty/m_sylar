@@ -136,7 +136,6 @@ MYSQL* getMYSQL() const {return m_mysql; }
 private:
     MYSQL* m_mysql {nullptr};
     State m_state {State::INIT};
-    std::string name;
 };
 
 
@@ -165,12 +164,12 @@ public:
                                         const std::string& db,
                                         unsigned int port,
                                         unsigned long clientflag);
-    void close();           // 涉及fd的关闭，请勿在绑定的iomanager结束前调用，否则可能会造成其他错误，此函数为阻塞函数
+    // void close();           // 涉及fd的关闭，请勿在绑定的iomanager结束前调用，否则可能会造成其他错误，此函数为阻塞函数
 
     int registeConnCb(std::function<void()> cb) override;        // 用于awaiter的回调
     int tickle() override;                                       // 有新连接时的回调, 用于连接耗尽时阻塞控制, 若状态为关闭则全部tickle.
 
-    bool checkRunState();           // 若当前连接池处于正常可运行状体则返回true;
+    // bool checkRunState();           // 若当前连接池处于正常可运行状体则返回true;
 
 
 

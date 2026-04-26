@@ -74,8 +74,6 @@ int main(void) {
         iom.schedule(m_sylar::TaskCoro20::create_coro(testMap));
     }
 
-
-
     sleep(30);       // 等待执行到一半的协程任务。
     iom.autoStop();
     dbPool.close();
