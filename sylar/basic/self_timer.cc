@@ -73,7 +73,7 @@ Timer::Timer(uint64_t intervalTime, bool is_cycle,
 
 Timer::~Timer()
 {
-    close(m_timeFd);  
+    // co_close(m_timeFd);  
 }
 
 
@@ -194,6 +194,112 @@ int TimeManager::addConditionTimer(uint64_t intervalTime, bool is_cycle,
 }
 
 
+
+IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, TaskCoro20&& task, 
+                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag){
+    IOManager* iom = IOManager::getInstance();
+    std::shared_ptr<TimeLimitInfo> exeInfo = std::make_shared<TimeLimitInfo>();
+    std::shared_ptr<uint64_t> timerfd = std::make_shared<uint64_t>(0);
+    std::shared_ptr<TaskCoro20> taskwrapper = std::make_shared<TaskCoro20>(std::move(task));
+    if(timeout < 1000) {
+        M_SYLAR_LOG_WARN(g_logger) << "timeout is too short, may cause some other problems";
+    }
+
+    // 定时器注册
+    int iom_fd = fd;
+    FdContext::Event iom_event = event;
+    *timerfd = TimeManager::getInstance()->addConditionTimer(timeout, false, 
+        [taskwrapper, rtState, iom_fd, iom_event, closeFlag]() mutable {
+            *rtState = TimeLimitInfo::State::TIMEOUT;
+            if(closeFlag) {
+                IOManager::getInstance()->closeWithNoClose(iom_fd); // 完全删除事件
+            }
+            else {
+                IOManager::getInstance()->delEvent(iom_fd, iom_event); // 删除事件
+            }
+            // IOManager::getInstance()->schedule(std::move((*)));
+            (*taskwrapper).start();
+        }, 
+        [exeInfo]() {  // 判断回调是否执行
+            if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::TIMEOUT)) {
+                // 执行成功，当前任务超时，进入超时逻辑, 取消注册的事件。
+                return true;        
+            }
+            else {
+                return false;       // 无处理逻辑。
+            }
+        }, 
+        [](){});
+
+    // 回调事件注册
+    iom->addEvent(fd, event, [timerfd, exeInfo, taskwrapper, rtState]() mutable {
+        if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::FINISHED)) {
+            // 可以执行，取消定时器。
+            *rtState = TimeLimitInfo::State::FINISHED;
+            TimeManager::getInstance()->cancelTimer(*timerfd);
+            // IOManager::getInstance()->schedule(std::move((*taskwrapper)));
+            (*taskwrapper).start();
+        } 
+        else {      // 超时或其他， 无操作
+        }
+        return;
+    });
+
+    return *iom;
+}       
+
+IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, std::function<void()> cb_func, 
+                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag){
+    IOManager* iom = IOManager::getInstance();
+    std::shared_ptr<TimeLimitInfo> exeInfo = std::make_shared<TimeLimitInfo>();
+    std::shared_ptr<uint64_t> timerfd = std::make_shared<uint64_t>(0);
+    std::shared_ptr<std::function<void()>> taskwrapper = std::make_shared<std::function<void()>>(std::move(cb_func));
+    if(timeout < 1000) {
+        M_SYLAR_LOG_WARN(g_logger) << "timeout too short (<1ms), may cause unexpected behavior";
+    }
+
+    // 定时器注册
+    int iom_fd = fd;
+    FdContext::Event iom_event = event;
+    *timerfd = TimeManager::getInstance()->addConditionTimer(timeout, false, 
+        [taskwrapper, rtState, iom_fd, iom_event, closeFlag]() mutable {
+            *rtState = TimeLimitInfo::State::TIMEOUT;
+            if(closeFlag) {
+                IOManager::getInstance()->closeWithNoClose(iom_fd);         // 删除事件
+            }
+            else {
+                IOManager::getInstance()->delEvent(iom_fd, iom_event);      // 完全删除事件
+            }
+            IOManager::getInstance()->schedule(std::move((*taskwrapper)));
+        }, 
+        [exeInfo]() {  // 判断回调是否执行
+            if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::TIMEOUT)) {
+                // 执行成功，当前任务超时，进入超时逻辑, 取消注册的事件。
+                return true;        
+            }
+            else {
+                return false;       // 无处理逻辑。
+            }
+        }, 
+        [](){});
+
+    // 回调事件注册
+    iom->addEvent(fd, event, [timerfd, exeInfo, taskwrapper, rtState]() mutable {
+        if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::FINISHED)) {
+            // 可以执行，取消定时器。
+            *rtState = TimeLimitInfo::State::FINISHED;
+            TimeManager::getInstance()->cancelTimer(*timerfd);
+            IOManager::getInstance()->schedule(std::move((*taskwrapper)));
+        } 
+        else {      // 超时或其他， 无操作
+        }
+        return;
+    });
+
+    return *iom;
+}
+
+
 void TimeManager::cancelTimer(Timer::ptr timer)
 {
 
@@ -202,7 +308,7 @@ void TimeManager::cancelTimer(Timer::ptr timer)
     auto it = m_timersMap.find(timer->m_timeFd);
     if(it != m_timersMap.end())
     {
-        m_iom->delEvent(timer->m_timeFd, FdContext::READ);
+        m_iom->closeFd(timer->m_timeFd);
         m_timersMap.erase(it);
     }
     else
@@ -221,7 +327,7 @@ void TimeManager::cancelTimer(int timerFd)
     auto it = m_timersMap.find(timerFd);
     if(it != m_timersMap.end())
     {
-        m_iom->delEvent(timerFd, FdContext::READ);
+        m_iom->closeFd(timerFd);
         m_timersMap.erase(it);
     }
     else

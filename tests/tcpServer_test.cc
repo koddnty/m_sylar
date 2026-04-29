@@ -22,9 +22,9 @@ int test(m_sylar::IOManager* iom)
     m_sylar::http::HttpServer::ptr server (new m_sylar::http::HttpServer(iom));
 
 
-    std::vector<m_sylar::Address::ptr> addrs;
+    std::vector<std::pair<m_sylar::Address::ptr, int>> addrs;
     std::vector<m_sylar::Address::ptr> fails;
-    addrs.push_back(host_addr);
+    addrs.push_back({host_addr, 1});
     // addrs.push_back(host_addr2);
     
     server->bind(addrs, fails);

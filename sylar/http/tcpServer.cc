@@ -40,51 +40,54 @@ TcpServer::~TcpServer()
     m_sockets.clear();
 }
 
-bool TcpServer::bind(Address::ptr addr)
+bool TcpServer::bind(Address::ptr addr, int num)
 {   // if success, return true, or false.
-    std::vector<Address::ptr> addrs;
-    addrs.push_back(addr);
+    std::vector<std::pair<Address::ptr, int>> addrs;
+    addrs.push_back({addr, num});
     std::vector<Address::ptr> failes;
     return bind(addrs, failes);
 }
 
-bool TcpServer::bind(std::vector<Address::ptr>& addrs, std::vector<Address::ptr>& failed)
+bool TcpServer::bind(std::vector<std::pair<Address::ptr, int>>& addrs_num, std::vector<Address::ptr>& failed)
 {   // if all successed, return true. return false if one address failed
-    bool rt;
-    for(auto& addr : addrs)
+    bool rt = true;
+    for(auto& addr : addrs_num)
     {
-        Socket::ptr sock = Socket::CreateTCP(addr);
-        if(!sock->bind(addr))
-        {
-            M_SYLAR_LOG_ERROR(g_logger) << "bind failed, server name : " << m_name 
-                                        << " errno : " << errno << " error : " << strerror(errno)
-                                        << " \nlocal address :       " << sock->getLocalAddress()->toString()
-                                        << " \nremote address :      " << addr->toString();
+        for(int i = 0; i < addr.second; i++)
+        {   // 单地址多次bind,使用REUSEPORT选项
+            Socket::ptr sock = Socket::CreateTCP(addr.first);
+            if(!sock->bind(addr.first))
+            {
+                M_SYLAR_LOG_ERROR(g_logger) << "bind failed, server name : " << m_name 
+                                            << " errno : " << errno << " error : " << strerror(errno)
+                                            << " \nlocal address :       " << sock->getLocalAddress()->toString()
+                                            << " \nremote address :      " << addr.first->toString();
 
-            failed.push_back(addr);
-            rt = false;
-            continue;
-        }
-        if(!sock->listen())
-        {
-            M_SYLAR_LOG_ERROR(g_logger) << "listen failed, server name : " << m_name 
-                                        << " errno : " << errno << " error : " << strerror(errno)
-                                        << " \naddr :        " << addr->toString()
-                                        << " \nlocal address :       " << sock->getLocalAddress()->toString()
-                                        << " \nremote address :       " << sock->getRemoteAddress()->toString();
-            failed.push_back(addr);
-            rt = false;
-            continue;
-        }
+                failed.push_back(addr.first);
+                rt = false;
+                continue;
+            }
+            if(!sock->listen())
+            {
+                M_SYLAR_LOG_ERROR(g_logger) << "listen failed, server name : " << m_name 
+                                            << " errno : " << errno << " error : " << strerror(errno)
+                                            << " \naddr :        " << addr.first->toString()
+                                            << " \nlocal address :       " << sock->getLocalAddress()->toString()
+                                            << " \nremote address :       " << sock->getRemoteAddress()->toString();
+                failed.push_back(addr.first);
+                rt = false;
+                continue;
+            }
 
-        M_SYLAR_LOG_INFO(g_logger) << "bind and listen successed, address : " << addr->toString()
-                                   << "\n socket fd=" << sock->toString();
-        m_sockets.push_back(sock);
+            M_SYLAR_LOG_INFO(g_logger) << "bind and listen successed, address : " << addr.first->toString()
+                                    << "\n socket fd=" << sock->toString();
+            m_sockets.push_back(sock);
+        }
     }
     return rt;
 }
 
-bool TcpServer::start(int acceptNum)
+bool TcpServer::start()
 {   // start tcp server
     if(!isStop())
     {
@@ -95,10 +98,7 @@ bool TcpServer::start(int acceptNum)
     for(auto& sock : m_sockets)
     {
         auto t = std::bind(&TcpServer::startAccept, shared_from_this(), sock);
-        while(acceptNum--)
-        {
-            m_iomanager->schedule(TaskCoro20::create_coro(t));
-        }
+        m_iomanager->schedule(TaskCoro20::create_coro(t));
     }
     return true;
 }

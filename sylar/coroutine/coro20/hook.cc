@@ -113,13 +113,14 @@ private:
 
 
 // template<typename Original_fun>
+
+/**
+    @brief 当前ioAwaiter仅会在有事件的时候唤醒协程，但不会进行读取或对事件处理，且返回值无效
+ */
 class io_Awaiter : public Awaiter<int> , public std::enable_shared_from_this<io_Awaiter>
 {   // co_await do_io使用的Awiater,自动注册iomanager并在有信息时恢复协程。
     // 返回-1代表失败，-2代表应重试
 public:
-    // doIo_Awaiter(int fd, m_sylar::IOManager::Event event, std::function<void()> deal_func)
-    //     : m_fd(fd), m_event(event), m_deal_func(deal_func) {}
-
     io_Awaiter(int fd, m_sylar::FdContext::Event event, uint64_t timo = -1)
         : m_fd(fd), m_timo(timo), m_event(event) {}
 
@@ -128,51 +129,36 @@ public:
         IOManager::getInstance()->delEvent(m_fd, m_event);
     }
 
-    
 
     void on_suspend()override
     {
         // auto self = shared_from_this();
         m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
+        // m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
         std::shared_ptr<fdTimerInfo> fdtino (new fdTimerInfo);
         std::weak_ptr<fdTimerInfo> wfdtino (fdtino);
-        
+        TimeLimitInfo::StatePtr timeState = std::make_shared<TimeLimitInfo::State> ();
+        uint64_t timeOut = HOOK_IOAWAIT_TIMEOUT;
         // 回调事件注册
+        // tim->addEventWithTimeout(m_fd, m_event, [this, timeState](){  // 回调函数，当有io事件可用或超时时恢复协程
+        //     // resume(timeState);        
+        //     if(*timeState == TimeLimitInfo::FINISHED) {
+        //         resume(IOState::SUCCESS);
+        //     }
+        //     else if(*timeState == TimeLimitInfo::TIMEOUT) {
+        //         M_SYLAR_LOG_WARN(g_logger) << "IOawaiter timed out";
+        //         resume(IOState::TIMEOUT);
+        //     }
+        //     else {
+        //         M_SYLAR_LOG_WARN(g_logger) << "IOawaiter trigged with a bad IOState Type";
+        //         resume(IOState::UNKNOWN);
+        //     }
+        // }, timeOut, timeState);
+
         iom->addEvent(m_fd, m_event, [this](){  // 回调函数，当有io事件可用或超时时恢复协程
             resume(m_state);
             // IOManager::getInstance()->delEvent(fd, event);
         });
-
-
-
-        // 设置取消定时器
-        // auto canceler = [wfdtino, weak_self](){
-        //             // 设置取消fd
-        //             auto self = weak_self.lock();
-        //             if(!self) {return; }
-        //             auto t = wfdtino.lock();
-        //             if(t && t->setTimo())
-        //             {   // 存活且成功设置超时
-        //                 self->m_state = TIMO;    // 超时
-        //                 IOManager::getInstance()->cancelEvent(self->m_fd, self->m_event);    // 恢复协程
-        //             }
-        //             // 不存活或超时设置失败
-        //             return;
-        //         };
-        // if(m_timo != (uint64_t)-1){
-        //     m_time_fd = tim->addConditionTimer(m_timo, false, [](){}, 
-        //         [wfdtino](){
-        //             if(wfdtino.lock() && wfdtino.lock()->getState() == fdTimerInfo::FINISHED)
-        //             {
-        //                 // 事件已执行
-        //                 return true;
-        //             }
-        //             // 事件未执行
-        //             return false;
-        //         }, canceler 
-        //     );
-            
-        // }
     }
 
     void before_resume() override
@@ -204,19 +190,12 @@ template<typename Original_fun, typename ... Args>
 static Task<ssize_t> do_io(int fd, Original_fun func, const char* fun_name, 
     uint32_t event, int type, Args&& ... args)
 {   // 文件描述符 原io函数 原函数名称 事件(读/写) 定时器任务类型(读/写) io函数其他参数
-    // if(!m_sylar::is_hook_enable())
-    // {
-    //     // std::cout << "NOHOOK" << std::endl;
-    //     co_return func(fd, std::forward<Args>(args)...);
-    // }
-    
-    // std::cout << "HOOKED" << std::endl;
     // 对fd状态检查
     m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd, false);
     if(!fd_ctx)
     {
         // 非socket
-        // M_SYLAR_LOG_DEBUG(g_logger) << "fd_Ctx is null, not a socket, fd = " << fd;
+        M_SYLAR_LOG_DEBUG(g_logger) << "fd_Ctx is null, not a socket, fd = " << fd;
         co_return func(fd, std::forward<Args>(args)...);
     }
     if (fd_ctx->is_closed())
@@ -243,15 +222,9 @@ retry:
     if(n == -1 && errno == EAGAIN)
     {
         int rt = co_await io_Awaiter(fd, (m_sylar::FdContext::Event)event, time_out);      // 恢复时代表fd可进行event操作或者由于超时返回
-        if(rt == io_Awaiter::State::READY)
-        {   // 有数据时回退并尝试获取数据，其他情况直接返回并退出
-            goto retry;
-        }
-        else if(rt == io_Awaiter::State::TIMO)
-        {
-            errno = ETIMEDOUT;
-        }
+        goto retry;
     }
+
     co_return n;
 }
 
@@ -477,18 +450,28 @@ m_sylar::Task<ssize_t> co_sendmsg(int sockfd, const struct msghdr *msg, int flag
                 msg, flags); 
 }
 
-// close
-int co_close(int fd){
-
-
-    m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
-
-    if(IOManager::getInstance())
-    {
-        IOManager::getInstance()->closeFd(fd);
+// close, 一般mod不用设置，若为非0值则只进行epoll等清理不会closeFd.
+int co_close(int fd, int mod){
+    // M_SYLAR_LOG_DEBUG(g_logger) << "co_close fd=" << fd << " in " << mod << " mod";
+    if(mod == 0) {
+        m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
+        if(IOManager::getInstance())
+        {
+            // IOManager::getInstance()->closeFd(fd);
+        }
+        m_sylar::FdMgr::GetInstance()->del(fd);
+        return close(fd);
     }
-    // return close(fd);
-    return fd;
+    else{
+        m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
+        if(IOManager::getInstance())
+        {
+            // IOManager::getInstance()->closeFd(fd);
+        }
+        m_sylar::FdMgr::GetInstance()->del(fd);
+        return -1;
+    }
+    // return fd;
 }
 
 // functional       

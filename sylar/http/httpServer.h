@@ -49,7 +49,8 @@ private:
 class HttpServer : public TcpServer
 {
 public:
-    using HandlerFunc = std::function<void(HttpSession::ptr)>;
+    // using HandlerFunc = std::function<void(HttpSession::ptr)>;
+    using HandlerFunc = Task<void>(*)(HttpSession::ptr);
     using ptr = std::shared_ptr<HttpServer>;
 
     HttpServer(IOManager* iomanager = IOManager::getInstance()) : TcpServer(iomanager){}
@@ -57,17 +58,17 @@ public:
 
     void registerUrl(const std::string& url, HandlerFunc cb, http::HttpMethod method);
 
-    bool start(int acceptNum = 1) override;
+    bool start() override;
     
     void GET(const std::string& url, HandlerFunc cb);
     void POST(const std::string& url, HandlerFunc cb);
 
 
-    void execHandler(const std::string& url, HttpSession::ptr session);
+    Task<void> execHandler(const std::string& url, HttpSession::ptr session);
 private:
     Task<void, TaskBeginExecuter> handleClient(Socket::ptr client) override;
     Task<void, TaskBeginExecuter> startAccept(Socket::ptr sock) override;
-    std::map<std::string, std::pair<HttpMethod, std::function<void(HttpSession::ptr)>>> m_urls;
+    std::map<std::string, std::pair<HttpMethod, HandlerFunc>> m_urls;
 };
 
 // using HttpMgr = Singleton<HttpServer>;

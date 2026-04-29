@@ -11,6 +11,16 @@
 #include <sys/uio.h>
 
 
+/**
+    @brief socket，基于hook中co_系列函数以及ioanager的封装，其内部的关闭以及创建均会注册到fdmanager,fdContextManager,iomanager。
+        新的接口应保证各个模块间的状态一致性
+
+              socket
+             /  |  \
+            /   |   \
+        fdMgr IOMgr fdCtxMgr
+*/
+
 
 namespace m_sylar
 {
@@ -109,6 +119,7 @@ private:
     int m_family;               // socket family (AF_INET...)
     int m_protocol;             // protocol (OSTREAM)
     int m_type;                 // type, socket协议类型
+    int m_is_set_reuseport = 1;
     bool m_isConnected;
 
     Address::ptr m_local_address;

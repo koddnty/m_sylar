@@ -68,23 +68,24 @@ have runed 192999456 in 120 sec
 
 代码详见[代码](./../../tests/httpServer_test.cc)
 
-执行过程中4线程，发现并发仅有1.7wQPS（无日志情况下）且cpu占用率较低，需要进行进一步优化，但执行过程中并未发现内存泄漏与内存错误等问题。
 
-10分钟wrk测试中较为稳定，wrk压力测试结果如下,连接数1000,时600s:
+服务端4线程，3000并发情况，QPS约为3.7w/s。运行过程中没有发现明显内存泄漏与fd未回收情况
+
 
 ```she
-╭─koddnty@koddnty-Legion-Y7000P-IRX9 ~/user/garbages 
-╰─$ wrk -t8 -c1000 -d600s \
+(base) ╭─koddnty@koddnty-Legion-Y7000P-IRX9 ~/user/garbages 
+╰─$ wrk -t4 -c3000 -d30s \
   -H "Content-Type: application/json" \
   -s rename.lua \
   http://127.0.0.1:8803/home/rename
-Running 10m test @ http://127.0.0.1:8803/home/rename
-  8 threads and 1000 connections
+Running 30s test @ http://127.0.0.1:8803/home/rename
+  4 threads and 3000 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency    75.41ms   30.69ms 336.40ms   66.21%
-    Req/Sec     1.66k   785.62     7.48k    82.91%
-  7926384 requests in 10.00m, 687.89MB read
-Requests/sec:  13208.51
-Transfer/sec:      1.15MB
+    Latency    57.79ms   39.43ms 339.02ms   76.18%
+    Req/Sec     9.86k     3.68k   17.12k    65.51%
+  1125522 requests in 30.11s, 97.68MB read
+  Socket errors: connect 0, read 251852, write 0, timeout 0
+Requests/sec:  37379.36
+Transfer/sec:      3.24MB
 ```
 

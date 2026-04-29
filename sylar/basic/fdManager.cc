@@ -171,6 +171,10 @@ FdCtx::ptr FdManager::get(int fd, bool auto_create)
     return new_ctx;
 }
 
+/**
+    @brief 此函数仅删除记录，不会真正关闭fd.
+ */
+
 void FdManager::del(int fd)
 {
     // M_SYLAR_LOG_DEBUG(g_logger) << "delete a fd, fd=" << fd;

@@ -51,7 +51,7 @@ public:
         : m_func_task(task){ 
         m_type = FUNC;
     }
-
+    
     TaskCoro20() {
         m_is_inited = false;
     }
@@ -123,7 +123,7 @@ public:
 
     TaskCoro20(TaskCoro20&& other)          
         : m_func_task(other.m_func_task), m_coro_task(other.m_coro_task), m_task(std::move(other.m_task))
-        , m_is_inited(other.m_is_inited), m_finished(other.m_is_inited), m_type(other.m_type) {
+        , m_is_inited(other.m_is_inited), m_finished(other.m_finished), m_type(other.m_type) {
             other.m_type = UNKNOWN;
         }
     

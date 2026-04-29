@@ -42,6 +42,12 @@ bool HttpSession::setResponse()
     return true;
 }
 
+
+/**
+    @return -1 表示较为重要的服务端错误
+    @return -2 表示不重要的客户端或其他错误
+*/
+
 Task<int> HttpSession::recvRequest()
 {
     uint64_t buffer_size = m_request_parser->getBufferSize();
@@ -63,8 +69,20 @@ Task<int> HttpSession::recvRequest()
         }
         else if(message_len == -1)
         {   // 错误
-            M_SYLAR_LOG_WARN(g_logger) << "[httpSession] recv error, errorno:" << errno << " error:" << strerror(errno);
-            co_return -1;
+            // 只处理几个真正重要的错误
+            switch(errno) {
+                case EBADF:        // 9 - 无效文件描述符
+                case EFAULT:       // 14 - 无效内存地址
+                case ENOMEM:       // 12 - 内存不足
+                case EMFILE:       // 24 - 打开文件过多
+                case ENFILE:       // 23 - 系统文件表满
+                    M_SYLAR_LOG_ERROR(g_logger) << "recv critical error: " << strerror(errno);
+                    co_return -1;
+                    
+                default:
+                    // 其他所有错误（包括 EAGAIN, ECONNRESET 等）都静默处理
+                    co_return -2;
+            }
         }
         if(total_length > m_request_parser->getMaxReqSize())
         {
@@ -113,7 +131,7 @@ Task<int> HttpSession::sendResp()
         }
         if(send_size == -1)
         {
-            M_SYLAR_LOG_WARN(g_logger) << "send failed, errno:" << errno << " error:" << strerror(errno);
+            // M_SYLAR_LOG_WARN(g_logger) << "send failed, errno:" << errno << " error:" << strerror(errno);
             co_return -1;
         }
         offset += send_size;
@@ -140,7 +158,7 @@ void HttpServer::registerUrl(const std::string& url, HandlerFunc cb, http::HttpM
     m_urls[url] = {method, cb};
 }
 
-bool HttpServer::start(int acceptNum)
+bool HttpServer::start()
 {
     if(!isStop())
     {
@@ -151,10 +169,7 @@ bool HttpServer::start(int acceptNum)
     for(auto& sock : getSockets())
     {
         auto t = std::bind(&HttpServer::startAccept, std::dynamic_pointer_cast<HttpServer>(shared_from_this()), sock);
-        while(acceptNum--)
-        {
-            getIomanager()->schedule(TaskCoro20::create_coro(t));
-        }
+        getIomanager()->schedule(TaskCoro20::create_coro(t));
     }
     return true;
 }
@@ -170,21 +185,32 @@ void HttpServer::POST(const std::string& url, HandlerFunc cb)
     registerUrl(url, cb, HttpMethod::POST);
 }
 
-void HttpServer::execHandler(const std::string& url, HttpSession::ptr session)
+Task<void> HttpServer::execHandler(const std::string& url, HttpSession::ptr session)
 {
-    auto request_pair = m_urls.find(url);
+    // M_SYLAR_LOG_INFO(g_logger) << "url: " << url;
+    int idx = url.find("?");
+    std::string path = url;
+    if(idx != std::string::npos)
+    {
+        path = url.substr(0, idx);
+    }
+    M_SYLAR_LOG_INFO(g_logger) << "url: " << path;
+
+    auto request_pair = m_urls.find(path);
     if(request_pair == m_urls.end() ||
        session->getRequest()->getMethod() != request_pair->second.first)
     {   // 方法不匹配
-        return;
+        co_return;
     }
-    request_pair->second.second(session);
+    // request_pair->second.second(session);
+    co_await request_pair->second.second(session);
+    co_return;
 }
 
 Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
 {
     bool is_keep_alive = false;
-    M_SYLAR_LOG_INFO(g_logger) << "newClient, socket :" << *client;
+    // M_SYLAR_LOG_INFO(g_logger) << "newClient, socket :" << *client;         
     do
     {
         HttpSession::ptr session(new HttpSession(client));
@@ -192,12 +218,17 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         int rt = co_await session->recvRequest();
         // std::cout << "already resume handleClient" << std::endl;
         if(rt == 0) {break; /* 连接关闭 */}
-        else if(rt < 0)
+        else if(rt == -1)
         {
             M_SYLAR_LOG_WARN(g_logger) << "recv http request failed"
                                        << "\nclient:" << client->toString();
             break;
-        } 
+        }
+        else if(rt == -2)
+        {
+            break;
+        }
+
         // M_SYLAR_LOG_INFO(g_logger) << "request:\n" << *(session->getRequest());       
 
         // 更新session信息
@@ -209,9 +240,11 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         }
         is_keep_alive = session->isKeep();
 
-        execHandler(session->getRequest()->getPath(), session);         // 处理回调
+        co_await execHandler(session->getRequest()->getPath(), session);         // 处理回调
         co_await session->sendResp();                // 发送响应报文
     } while (is_keep_alive);
+    // client->close();
+    // IOManager::getInstance()->closeFd(client->getSocket());     // 通过ioamanger关闭fd,保证fd正常关闭
     client->close();
     co_return;
 }
@@ -235,7 +268,7 @@ Task<void, TaskBeginExecuter> HttpServer::startAccept(Socket::ptr sock)
         }
     }
     // 重新调度accept
-    std::cerr << "-";
+    // std::cerr << "-";
     auto t = std::bind(&HttpServer::startAccept, std::dynamic_pointer_cast<HttpServer>(shared_from_this()), sock);
     getIomanager()->schedule(TaskCoro20::create_coro(t));
     co_return;
