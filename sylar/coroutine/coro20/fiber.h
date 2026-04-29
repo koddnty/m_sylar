@@ -51,7 +51,7 @@ public:
         : m_func_task(task){ 
         m_type = FUNC;
     }
-
+    
     TaskCoro20() {
         m_is_inited = false;
     }

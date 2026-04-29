@@ -13,11 +13,8 @@
 #include "singleton.h"
 #include "coroutine/corobase.h"
 
-#ifdef SYLAR_USE_CORO20
-    #include "coroutine/coro20/ioManager.h"
-#else
-    #include "coroutine/ucontext/ioManager.h"
-#endif
+
+#include "coroutine/coro20/ioManager.h"
 
 namespace m_sylar {
 

@@ -86,6 +86,17 @@ add_library(sylar STATIC
 )
 
 
+# 1. 安装静态库
+install(TARGETS sylar
+    ARCHIVE DESTINATION lib  # 静态库(.a)安装到 /usr/local/lib
+)
+
+# 2. 安装头文件（整个目录）
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/sylar/
+    DESTINATION include/sylar
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
+    PATTERN ".DS_Store" EXCLUDE
+)
 
 target_include_directories(sylar PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/sylar

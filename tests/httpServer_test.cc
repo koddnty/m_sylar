@@ -6,18 +6,20 @@
 
 static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
-void home_page(m_sylar::http::HttpSession::ptr session)
+m_sylar::Task<void> home_page(m_sylar::http::HttpSession::ptr session)
 {
     session->getResponse()->setHeader("nihao", "110");
     std::string message = "hello world";
     session->getResponse()->setBody(message);
+    co_return;
 }
 
-void rename_func(m_sylar::http::HttpSession::ptr session)
+m_sylar::Task<void> rename_func(m_sylar::http::HttpSession::ptr session)
 {
     session->getResponse()->setHeader("nihao", "110");
     std::string message = "没有改名卡口我";
     session->getResponse()->setBody(message);
+    co_return;
 }
 
 void test_http_server(m_sylar::IOManager* iom)
