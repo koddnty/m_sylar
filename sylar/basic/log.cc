@@ -6,7 +6,7 @@ namespace m_sylar{
 Logger::Logger(const std::string& name){
     m_name = name;
     m_formatter.reset(new LogFormatter("╭─%d{%Y-%m-%d %H:%M:%S}%T[%p]%T[%c]%T[thread:%t fiber:%f]%T%F:%L%T%n╰─%m%n"));
-    m_level = LogLevel::DEBUG;
+    m_level = LogLevel::INFO;
 }
 
 std::string LogLevel::to_string(LogLevel::Level level){

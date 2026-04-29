@@ -8,18 +8,21 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
 
 
-set ( LIB_LIB
-    pthread
-    dl
-    yaml-cpp::yaml-cpp
-    mysqlcppconnx
-    mariadb
-)
+
 
 option(SYLAR_USE_CORO20 "Use C++20 coroutine implementation, OFF if NOT" ON)       # 底层协程实现配置
 
 find_package(yaml-cpp REQUIRED)
+find_library(MARIADB_LIB mariadb /usr/local/lib/mariadb)
+find_library(HIREDIS_LIB hiredis /usr/local/lib)
 
+set ( LIB_LIB
+    pthread
+    dl
+    yaml-cpp::yaml-cpp
+    ${MARIADB_LIB}
+    ${HIREDIS_LIB}
+)
 
 # 基础模块
 set(BASIC_SOURCES
@@ -62,6 +65,7 @@ set(CORO20_SOURCES
 
 set(DBPOOL_SOURCES
     sylar/DBPool/mysql.cc
+    sylar/DBPool/redis.cc
     sylar/DBPool/factory.cc
 )
 
@@ -82,6 +86,17 @@ add_library(sylar STATIC
 )
 
 
+# 1. 安装静态库
+install(TARGETS sylar
+    ARCHIVE DESTINATION lib  # 静态库(.a)安装到 /usr/local/lib
+)
+
+# 2. 安装头文件（整个目录）
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/sylar/
+    DESTINATION include/sylar
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
+    PATTERN ".DS_Store" EXCLUDE
+)
 
 target_include_directories(sylar PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/sylar
@@ -94,6 +109,10 @@ target_include_directories(sylar PUBLIC
 # )
 
 
+# redis 测试
+add_executable(redis_test tests/sql/redis_test.cc)
+add_dependencies(redis_test sylar)
+target_link_libraries(redis_test sylar ${LIB_LIB})
 
 # mysql测试
 add_executable(poolmysql_test tests/sql/poolmysql_test.cc)
@@ -104,7 +123,9 @@ add_executable(mysql_conntest tests/sql/mysql_test.cc)
 add_dependencies(mysql_conntest sylar)
 target_link_libraries(mysql_conntest sylar ${LIB_LIB})
 
-
+add_executable(poolredis_test tests/sql/poolredis_test.cc)
+add_dependencies(poolredis_test sylar)
+target_link_libraries(poolredis_test sylar ${LIB_LIB})
 
 # add_executable(taskCoro_test tests/lab_test/taskCoro_test.cc)
 # add_dependencies(taskCoro_test sylar)

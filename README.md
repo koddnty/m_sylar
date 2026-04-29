@@ -17,6 +17,17 @@ sylar视频地址:[[C++高级教程]从零开始开发服务器框架(sylar)](ht
 ### 项目依赖
 
 - yaml-cpp   yaml解析器(配置模块)
+- boost库
+- mariadb C connector
+- hiredis(C)
+``` shell
+# hiredis
+git clone git@github.com:redis/hiredis.git
+cd hiredis
+cmake .
+make
+sudo make install
+```
 
 ### 构建
 

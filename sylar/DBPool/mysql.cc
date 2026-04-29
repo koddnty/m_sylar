@@ -313,17 +313,9 @@ private:
 
 
 
-MySQLPoolManager::MySQLPoolManager(int min_conn, int max_conn) {
-    m_state = INIT;
-    if(min_conn < 0 || max_conn < 0 || max_conn < min_conn) {
-        throw std::runtime_error("failed to create a msyql db connector manager, min_conn or max_conn invalid");
-    }
-    m_connectors.resize(max_conn);
-    for(int i = 0; i < max_conn; i++) {
-        m_connectors[i] = std::make_shared<MySQLConn>();
-    }
-    m_minConnector = min_conn;
-    m_maxConnector = max_conn;
+MySQLPoolManager::MySQLPoolManager(int min_conn, int max_conn)
+    : m_sylar::DBPool<MySQLConn, MySQLResp>(min_conn, max_conn) {
+
 }
 
 MySQLPoolManager::~MySQLPoolManager() {
@@ -403,10 +395,10 @@ int MySQLPoolManager::init(const std::string& host,
     return 0;
 }
 
-void MySQLPoolManager::close() {
-    m_state = CLOSING;
-    tickle();       // 唤醒所有回调
-}
+// void MySQLPoolManager::close() {
+//     m_state = CLOSING;
+//     tickle();       // 唤醒所有回调
+// }
 
 int MySQLPoolManager::registeConnCb(std::function<void()> cb) {
     if(!checkRunState()) {
@@ -427,20 +419,20 @@ int MySQLPoolManager::registeConnCb(std::function<void()> cb) {
     return 0;
 }
 
-bool MySQLPoolManager::checkRunState() {
-    switch(m_state) {
-        case INIT:
-        case CLOSED:
-        case CLOSING:
-        case ERROR:
-            return false;
-        case READY:
-        case FULL:
-            return true;
-    }
-    M_SYLAR_LOG_WARN(g_logger) << "failed to check running state, unknown State";
-    return false;
-}
+// bool MySQLPoolManager::checkRunState() {
+//     switch(m_state) {
+//         case INIT:
+//         case CLOSED:
+//         case CLOSING:
+//         case ERROR:
+//             return false;
+//         case READY:
+//         case FULL:
+//             return true;
+//     }
+//     M_SYLAR_LOG_WARN(g_logger) << "failed to check running state, unknown State";
+//     return false;
+// }
 
 int MySQLPoolManager::tickle() {
     if(m_waitConnCb.empty()) {return 0;}

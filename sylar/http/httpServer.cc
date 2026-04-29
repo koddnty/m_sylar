@@ -185,21 +185,32 @@ void HttpServer::POST(const std::string& url, HandlerFunc cb)
     registerUrl(url, cb, HttpMethod::POST);
 }
 
-void HttpServer::execHandler(const std::string& url, HttpSession::ptr session)
+Task<void> HttpServer::execHandler(const std::string& url, HttpSession::ptr session)
 {
-    auto request_pair = m_urls.find(url);
+    // M_SYLAR_LOG_INFO(g_logger) << "url: " << url;
+    int idx = url.find("?");
+    std::string path = url;
+    if(idx != std::string::npos)
+    {
+        path = url.substr(0, idx);
+    }
+    M_SYLAR_LOG_INFO(g_logger) << "url: " << path;
+
+    auto request_pair = m_urls.find(path);
     if(request_pair == m_urls.end() ||
        session->getRequest()->getMethod() != request_pair->second.first)
     {   // 方法不匹配
-        return;
+        co_return;
     }
-    request_pair->second.second(session);
+    // request_pair->second.second(session);
+    co_await request_pair->second.second(session);
+    co_return;
 }
 
 Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
 {
     bool is_keep_alive = false;
-    M_SYLAR_LOG_INFO(g_logger) << "newClient, socket :" << *client;
+    // M_SYLAR_LOG_INFO(g_logger) << "newClient, socket :" << *client;         
     do
     {
         HttpSession::ptr session(new HttpSession(client));
@@ -229,7 +240,7 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         }
         is_keep_alive = session->isKeep();
 
-        execHandler(session->getRequest()->getPath(), session);         // 处理回调
+        co_await execHandler(session->getRequest()->getPath(), session);         // 处理回调
         co_await session->sendResp();                // 发送响应报文
     } while (is_keep_alive);
     // client->close();
