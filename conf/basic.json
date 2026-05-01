@@ -1,0 +1,34 @@
+{
+    "logs" : [
+        {
+            "name" : "system",
+            "level" : "ERROR",
+            "appenders" : [
+                {
+                    "type" : "StdoutLogAppender",
+                    "level" : "ERROR"
+                },
+                {
+                    "type" : "FileLogAppender",
+                    "file" : "/home/ls20241009/user/code/project/sylar_cp/m_sylar/log/system_log.txt",
+                    "level" : "ERROR"
+                }
+            ]
+        },
+        {
+            "name" : "test_config",
+            "level" : "ERROR",
+            "appenders" : [
+                {
+                    "type" : "FileLogAppender",
+                    "file" : "/home/ls20241009/user/code/project/sylar_cp/m_sylar/log/system_log.txt",
+                    "level" : "ERROR"
+                },
+                {
+                    "type" : "StdoutLogAppender",
+                    "level" : "ERROR"
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,200 @@
+*   cbbfdd8 Merge branch 'master' into develop
+|\  
+| *   fe99e18 Merge branch 'dbPool'
+| |\  
+| | * 3eb720b (fix) 修复http解析param问题 (fix) 修复http路由无协程支持问题 (feat) 新增cmake install (feat) 新增redis工厂函数
+| * |   6dcddf6 Merge branch 'dbPool' 新增基于mariaDB异步api实现的mysql数据库连接池。修复timer已知问题
+| |\ \  
+| | | | * b41e8e5 WIP on dbPool: 14342f5 (feat) 实现基本同步redis数据库连接池
+| | | |/| 
+| | | | * a853108 index on dbPool: 14342f5 (feat) 实现基本同步redis数据库连接池
+| | | |/  
+| | | * 14342f5 (feat) 实现基本同步redis数据库连接池
+| | | * 7de8451 (feat) 新增hiredis简易封装
+| | |/  
+| | * c75ec84 (feat) 代码补充
+| | * 65a27e5 (fix) 修复连接超时后归还产生的连接读到错误数据的问题 (feat) 完善连接归还操作，session重置。
+| | * fdfb80f (fix) 修复timer模块错误单独关闭fd而未通过iomanager底层封装关闭的问题。
+| | * 7b88e39 (fix) 修复timerManager限时任务接口返回IOState状态无效问题 (fix) 修复多mysql超时后产生的段错误
+| | * c358eb1 (feat)  新增mysql的SQLi执行超时返回，标准化io返回a状态类IOSate::State;
+| | * 47ad459 (feat) 新增timermanager的超时任务调度
+| | * 3e84d7c 完善模块功能文档
+| | * 5fdc133 (feat) 新增连接池模块文档（不完善） (fix) 修复mariaDB C API 调用顺序问题导致的非法读写问题
+| | * 810c03d (feat) 新增[]重载以随机访问数据库返回数据
+| | * e55ab8c (feat) 实现mysqlAwaiter, 实现基本的mysql异步协程调用 (fix) 修复schedule无法调度移动过的函数任务问题
+| | * 8563214 (feat) 新增MySQLPoolManager, 基本实现连接池框架，未完成验证
+| | * 80f2d73 (feat) 事件基本单个MSYQL异步访问支持 (warn) 存在maria库与当前框架底层冲突，暂时无法解决, 可能需要更改maria底层源码
+| |/  
+| * 6bcaf66 (feat) 文档整理，性能优化
+| * bf6618f (fix) 修复无效fd接受与send问题，QPS稳定2.6w/s
+| * bc05adc (fix) 修复io创建时阻塞的错误 (feat) 新增多fd同时bind相同地址功能
+| *   1ec55f3 Merge branch 'develop' (refactor) 基本完成协程，协程任务调度等底层模块的替换与重构，修复大量bug并做了性能和可靠性的测试
+| |\  
+| |/  
+|/|   
+* |   3b30669 Merge branch 'refactorToCppCoro' into develop (refactor) 基本完成协程，协程任务调度等底层模块的替换与重构，修复大量bug并做了性能和可靠性的测试
+|\ \  
+| * | f9368e0 (refactor) 代码整理，完善测试结果
+| * | 841c83d 文档更新
+| * | c2b202d (fix) 修复io——awaiter执行完毕无法及时删除回调导致重入的错误
+| * | 128b8aa (feat) 新增任务分配注册模块，避免单任务队列锁竞争
+| * | 6a909d9 (fix) 修复fdContextManager调度错误 (fix）完善协程线程安全性 (fix) 修复fd监听中epoll与FdContextManager事件不一致问题 (fix) 修复co_close在epoll_ctl与FdContextManger事件残留问题 (feat） FdContextManager添加原子事件CLOSE用于同步fd关闭时epoll与FdContextManager的事件一致性 (fix) 修复ioManager的人物LOCK自旋问题
+| * | a6428a2 (refactor) task.hpp调整，代码优化，协程状态控制增强
+| * | a11b6dd index on refactorToCppCoro: 938a5ca (refactor) 基本重构完成，QPS1.4w（带日志输出）
+| * | 938a5ca (refactor) 基本重构完成，QPS1.4w（带日志输出）
+| * | bf14618 (refactor) 合并stash内容
+| * | d25c8d2 (refactor) 重构iomanager，基本完成，需要调试
+| * | 5d477b0 （refactor）重构iomanager,实现各个fd事件注册顺序执行
+| * | 1eb02b3 (refactor) 重构ioManager,采用事件任务队列方式避免锁竞争和任务竞争
+| * | 4f1220c chore stash合并
+| * | 58089b7 chore: 添加编译缓存目录到.gitignore
+| * | 7a54614 (refactor) 重构tcpServer以支持cppcoro协程。
+| * | 2ef1a4d (fix) 修复task移动语义中，资源无法释放的问题
+| * | 5075aa7 (fix) 修复coro模块iomanager中存在的死锁问题。此问题会导致定时器回调触发异常以及其他一系列问题。 (fix) 修复iomanager的trigger函数中存在的生命周期管理问题。
+| | * 8225319 代码清理
+| | *   c4764c3 Merge branch 'develop' (release) v0.11
+| | |\  
+| |_|/  
+|/| |   
+* | | 01c0719 新增基于c++协程的任务任务调度方法，但与原协程在协程任务上不兼容 Merge branch 'Coroutine20Fiber' into develop
+|\| | 
+| * | ddabd3a 9
+| * | 00965dc (feat)	提供cpp20 TaskCoro 创建工厂函数，避免构造歧义
+| * | 8110d16 (feat) 修复协程任务封装时存在的拷贝构造导致的资源多次析构问题
+| * | 936e289 (feat) 新增cpp20 协程io函数
+| * | 099308f (feat) 新增cpp协程 iomanager模块并适配原有timeManager
+| * | 36939b8 (fix) 修复函数taskCORO封装移动后运行出错的问题 (feat) 新增TaskCoro20对应的schedule
+| * | fe05d93 (refactor) 调整协程运行逻辑，原协程需在外部保持task以确保协程执行完成,现外部task析构后会执行全部协程调用。适应schedule
+| * | 27484cd (feat) 完成协程任务封装基本测试
+| * | 9588839 (feat) 修复由于awaiter析构导致子协程过早析构的问题
+| * | 17db8a3 (feat) 新增awaiter基类
+| * | 1b8927d (feat) 新增协程executer调度器抽象类，更改调度器类可实现协程任务的调度。
+| * | 47f6d7e (feat) 新增cpp协程Task封装，为协程调度准备
+| * | 6ccd4ea (feat) 修复协程模块兼容性问题
+| * | d062385 (refactor)重构项目结构，以适配协程多模块实现。
+| * | 37da44c (feat) 实现基于cpp20协程的iomanager调度器以及基本测试
+| * | c4551e5 (feat) 实现iomanagerCoro2事件注册功能，待实现tickle和idle逻辑
+| * | 8a42622 (fix) 修复schedule调度任务时，任务异常多次处理情况
+|/ /  
+| *   0d3845a Merge branch 'develop' (feat) http服务模块完善，实现完整http解析响应。
+| |\  
+| |/  
+|/|   
+* |   6cbf428 Merge branch 'http' into develop (feat) 实现httpServer和uri注册监听功能
+|\ \  
+| * | 4b4c702 (feat) 实现cpp20协程任务和schedule类
+| * | 7c4e98a (fix) 修复任务调度中数据竞争问题
+| * | 1a8407e (feat) 新增http url注册功能， (feat) 新增回调函数执行，h完整响应报文回复功能 (wip) 调整请求响应处理，解决连接异常关闭问题
+| * | 5a7c1a4 (feat) 新增httpserver类作为http服务器类 (fix)  修复fdManager对fdctx管理错误和accept中新连接导致无限循环错误
+| * | c54f0b6 (fix) 修复Unixaddress地址地址长度问题 (feat) 完善tcpserver类框架，测试ipv4和unix功能
+| * | 5418588 (feat) 新增tcpServer基类与部分方法实现
+| | *   2082210 Merge branch 'develop' (feat)实现基本的http协议封装解析
+| | |\  
+| |_|/  
+|/| |   
+* | | be76ffc Merge branch 'http' into develop (feat)实现基本的http协议封装解析
+|\| | 
+| * | 2b55c21 (feat)实现http请求响应报文解析
+| * | 068efbf (feat) 实现request解析类，通过编译
+| * | b9df2ae (feat)测试http request和response
+| * | 5d7842b (feat) 完善httpresponse部分，整理类关系，通过编译
+| * | e53c4db (feat)实现httprequest部分函数声明并通过编译
+| * | 231ad12 实现http 请求类 函数 基本声明
+| |/  
+| * 57bf410 change file dirs
+| *   14de1c5 Merge branch 'develop'
+| |\  
+| |/  
+|/|   
+* |   ec8b681 Merge branch 'socket' into develop
+|\ \  
+| |/  
+|/|   
+| * 26ef577 (feat) 新增address模块说明文档
+| * 233d064 (feat) 新增socket类，并验证其功能性
+| * b5ed88e (feat) 部分实现socket各种函数封装
+| * ab89f12 (feat) 新增socket封装，并实现部分方法 (feat) 新增LIKELY,UNLIKELY分支预测宏
+| * cdf95dd (feat) 修改cmake文件增加头文件路径 (feat) 修复address的错误并进行基本测试
+| * 0ee87ad (feat) 新增域名到address的转换 (feat) 新增从网卡获取地址信息
+| * 5e48438 (feat) 完善ipv4 6的广播，子网地址，子网掩码部分
+| * fd3d7fd (feat) 新增sockaddr_un地址类型address实现 (feat) 完善Unknown地址类型
+| * 86f5516 (feat) 新增字节序转化功能 (feat) 实现ipv4、6部分细节
+|/  
+* 244c55d (feat)实现基础address框架
+*   30e7d63 Merge branch 'develop'
+|\  
+| * 7fa4f59 Merge branch 'hook' into develop
+|/| 
+| * 527fe8c (fix) 修复线程创建时同步问题
+| * ff4032f (fix) 修复ioManager创建事件时错误加锁问题 (fix) 修改timeManager,单线程管理者去除锁
+| * 79773ca (feat) 完善部分文档 (feat) 修复timer中回调多次触发的问题
+| * 3f08b24 (feat) 新增config模块文档，提供基本使用介绍 (feat) 补充对connect函数的hook
+| * 71e6ef8 (feat)实现除connect外其他读写，操作函数的hook。
+| * 1363d07 (feat) 为普通读写函数使用do_io模板增加定义 (feat) 为socket，accept，close函数增加定义
+| * 8f7ec5f (feat) 添加普通读写函数的模板hook函数（未验证）
+| * 8f9b23b (feat)新增Fd管理类，作为iomanger和hook的中间层(未完全实现)
+|/  
+* 68355a0 (feat)新增hook(sleep, usleep)
+*   77a37f7 Merge branch 'develop' 完成io管理模块的基本开发，实现基本的定时器功能
+|\  
+| * 114e076 (fix) - 修复timer定时器模块的bug - 完成对定时器模块的接口基本测试 (feat) - 提供定时器模块的函数接口文档
+| * dddfc86 (feat) 使用timerfd基本实现timer定时器（未测试） (fix)修改gitignore文件，排除build和bin的文件夹内容
+| * 791989a (feat)新创建timer.h, timer.cc, 准备timer基本实现框架。待完善。
+| * 5793a73 (fix) -修复多线程情况下无法正常运行监听fd的回调函数的情况  -修复主线程推出导致子线程无法正常推出的bug
+| * 629c308 (feature)创建iomanager测试程序test_iomanager.cc, 测试iomanager功能，修改bug。
+| * 2587258 (feat)待测试  -完成tickle() -完成stopping -完成idle() 待实现 -测试iomanager功能
+| * 3e9114c 新增iomanager.cc, iomanager.h,实现基本功能 待实现：-tickle() 	-stopping() 	-idle() 待验证功能实现。
+|/  
+*   7de2f71 Merge branch 'fiber' scheduler模块基本完成，第一次合并
+|\  
+| * cdd6862 scheduler模块基本完成
+| * 085ecad 无变更
+| *   9f0e56b e commit '6a65a0a' into fiber 头分离合并
+| |\  
+| | * 6a65a0a 修复scheduler相关问题
+| | * d4aad46 (fix)修复小的问题，丢弃useCaller功能“
+| |/  
+| * b42c4e5 (fix)修复推出协程重复进入的错误，修复协程析构时状态错误；遗留问题：线程无法正常关闭，调度器待完善
+| * 71619a1 (repeat) 数据同步
+| * 44d1a2b wip: scheduler -未完成：stopping tickle idle
+| * babdffb (feat/scheduler)完善scheduler部分
+| * 27d0347 (feat)为scheduler新增部分功能(未编译
+| * 16828df (feat) 调度器基础搭建 step_2
+| * 801e7f2 (feat)任务调度模块功能接口定义
+| * f6c685a (feat)新增日志线程名称显示功能
+| * c14a710 (fix)修复子协程无法析构的bug
+| * 503a1e6 (fix) 新增添默认system的log包括控制台和文件输入
+| * 6ff2cad (feat)提供基本fiber切换管理函数
+| * 45bd58c (feat)添加基本协程的构造与析构函数
+|/  
+* 44a7445 (feat)添加assert位置堆栈信息日志打印
+* 0239060 (feat)为config模块添加锁
+* 8851628 (feat) 为logger增添锁
+* 667e54e (fix)修复新线程创建后线程名初始化错误问题
+* cb5b0c7 (feat)添加线程类,包含基本线程创建,任务函数和线程命名等功能
+* 51475c6 (fix)修复配置导入appender的formatter无效的问题
+*   0d0d8b3 Merge branch 'master' into config 日志模块和配置模块基本功能完成
+|\  
+| *   ac6db81 Merge branch 'config 增添配置功能等'
+| |\  
+* | | 38772fd (fix)修复无formatter的appender无法使用logger默认formatter的问题
+* | | f2b3852 (fix)修复配置文件无法增添自定义appenderformatter的问题
+* | | e77b769 (feat) conf和log系统整合,conf配置log初步实现
+* | | 8683b92 自动添加没有的logger，用root作为默认logger，包含基础默认StdoutAppender
+| |/  
+|/|   
+* | 89f8bff (feat)添加配置变更监听函数和回调函数配置功能
+* | ebb72d7 (fix)修复了多次创建相同配置无法转换却无报错问题,修复复杂配置文件初始化问题
+* | 16351c5 (feat)常见STL配置加载list,set,unordered_set,map,unordered_map
+* | c029904 (feat) 为YAML导入提供vector类型
+* | f6c716f (feat)新增yaml配置展开加载功能
+* | aae96e8 (feat)新增yaml配置加载
+* | 69354d8 (feat)实现基本配置模块，支持自定义程序变量
+|/  
+* 734e3f9 添加readme文件
+* ab8e392 (feat/log_module) 新增formate自定义格式新增全局日志管理器，新增appender单独level设置
+* 1c81b73 (feat/log_module)新增宏定义，便捷日志输出
+* 7e47a81 (fix/log_moudle)修复先前代码编译错误问题和日志解析问题
+* 09ccf1a (feat/log_module) 完善formate功能,添加配置各种子items
+* 988a6b1 feat(log):日志模块-format解析半部分
+* 19eca7c 日志系统-基本appender

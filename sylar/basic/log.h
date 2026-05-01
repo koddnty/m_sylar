@@ -140,12 +140,51 @@ public:
     void setFormatter(LogFormatter::ptr val){m_formatter = val;}
     void setLevel(LogLevel::Level level){ m_level = level;}
     LogFormatter::ptr getFormatter(){return m_formatter;}
+
+    LogLevel::Level getLevel() const {return m_level;}
 protected:
     std::shared_mutex m_rwMutex;           // 读写锁
     LogLevel::Level m_level = LogLevel::UNKNOWN;        // appender独有日志级别
     LogFormatter::ptr m_formatter = nullptr;            // appender独有输出格式
 
 };
+
+
+//两个结构体与现有logger类对应
+struct LogAppenderDefine{
+    int type;                                           // 0.stdoutappender 1.fileappender,
+    LogLevel::Level level = LogLevel::UNKNOWN;        // appender独有日志级别
+    LogFormatter::ptr formatter;            // appender独有输出格式
+    std::string file = "";                          //appender 输出位置
+    bool isValid() const { return type == 0 || (type == 1 && !file.empty()); }
+    LogAppender::ptr toAppender() const;                      // 转换成appender对象
+
+    bool operator== (const LogAppenderDefine& other) const{
+        return level == other.level
+                && file == other.file
+                && other.formatter == formatter;
+    }
+
+};
+class Logger;
+struct LogDefine{
+    std::string name;                         // 日志名
+    LogLevel::Level level;                    // 日志输出最高级别
+    LogFormatter::ptr formatter = nullptr;    // 日志默认输出格式
+    std::vector<LogAppenderDefine> appenders;    //logger对应的appenders
+    std::shared_ptr<Logger> toLogger() const;                      // 转换成logger对象
+
+    bool operator== (const LogDefine& other) const {
+        return     other.name == name
+                && other.level == level
+                && other.formatter == formatter;
+    }
+
+    bool operator< (const LogDefine& other) const {
+        return name < other.name;
+    }
+};
+
 
 
 //日志输出
@@ -183,6 +222,9 @@ public:
     void setFormatter(LogFormatter::ptr formatter) {std::unique_lock<std::shared_mutex> w_lock (m_rwMutex); m_formatter = formatter;}
     void setFormatter(const std::string& pattern);
     LogFormatter::ptr getFormatter() {std::shared_lock<std::shared_mutex> r_lock (m_rwMutex); return m_formatter;}
+
+    LogDefine toDefine();                               // 转换成LogDefine对象
+
 private:
     mutable std::shared_mutex m_rwMutex;
     std::string m_name;                         // 日志名
@@ -212,6 +254,7 @@ public:
     }
     //文件打开函数，成功返回true
     bool reopen();
+    const std::string& getFileName() const { return m_file_name;}
 private:
     std::string  m_file_name;        //文件名
     std::ofstream m_file_stream;     //文件流
@@ -226,6 +269,11 @@ public:
 
     Logger::ptr getRootLogger () const {return m_root;}         // 获取root logger(默认logger)
     bool addLogger (Logger::ptr logger);                        // 添加logger(日志器)
+    int delLogger (const std::string& name);                    // 删除logger
+    int resetLoggerWith(const std::string& name, std::map<std::string, Logger::ptr>&& newLogger);                      // 重置logger
+    int resetLoggerWith(const std::string& name, const std::map<std::string, Logger::ptr>& newLogger);                      // 重置logger
+    std::set<LogDefine> toDefines();                              // 转换成LogDefine集合
+
 private:
     std::shared_mutex m_rwMutex;        //锁
     std::map<std::string, Logger::ptr> m_loggers;

@@ -131,7 +131,7 @@ void HttpRequest::setCookie(const std::string& key, const std::string& val)
     m_cookies[key] = val;
 }
 
-std::string HttpRequest::getParam(std::string& key, std::string val)
+std::string HttpRequest::getParam(const std::string& key, std::string val)
 {
     auto it = m_params.find(key);
     if(it != m_params.end())
@@ -141,7 +141,7 @@ std::string HttpRequest::getParam(std::string& key, std::string val)
     return val;
 }
 
-std::string HttpRequest::getCookie(std::string& key, std::string val)
+std::string HttpRequest::getCookie(const std::string& key, std::string val)
 {
     auto it = m_cookies.find(key);
     if(it != m_cookies.end())
@@ -151,17 +151,17 @@ std::string HttpRequest::getCookie(std::string& key, std::string val)
     return val;
 }
 
-void HttpRequest::delParam(std::string& key)
+void HttpRequest::delParam(const std::string& key)
 {
     m_params.erase(key);
 }
 
-void HttpRequest::delCookie(std::string& key)
+void HttpRequest::delCookie(const std::string& key)
 {
     m_cookies.erase(key);
 }
 
-bool HttpRequest::hasParam(std::string& key, std::string* val)
+bool HttpRequest::hasParam(const std::string& key, std::string* val)
 {
     auto it = m_params.find(key);
     if(it != m_params.end())
@@ -173,7 +173,7 @@ bool HttpRequest::hasParam(std::string& key, std::string* val)
     return false;
 }
 
-bool HttpRequest::hasCookie(std::string& key, std::string* val)
+bool HttpRequest::hasCookie(const std::string& key, std::string* val)
 {
     auto it = m_cookies.find(key);
     if(it != m_cookies.end())

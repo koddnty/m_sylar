@@ -17,56 +17,18 @@ namespace http
 
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 static ConfigVar<uint64_t>::ptr g_http_request_buffer_size = 
-    m_sylar::configManager::Lookup("http.request.buffer_size", (uint64_t)1024 * 5, "size of a buffer");
+    m_sylar::ConfigManager::LookUp("http.request.buffer_size", (uint64_t)1024 * 5, "size of a buffer");
 
 static ConfigVar<uint64_t>::ptr g_http_request_max_size = 
-    m_sylar::configManager::Lookup("http.request.max_message_size", (uint64_t)1024 * 1024 * 5, "max size of a request");
+    m_sylar::ConfigManager::LookUp("http.request.max_message_size", (uint64_t)1024 * 1024 * 5, "max size of a request");
 
 static ConfigVar<uint64_t>::ptr g_http_request_recv_timeout = 
-    m_sylar::configManager::Lookup("http.server.recv_timeout", (uint64_t)25 * 1000 * 1000, "time out to recv message");
+    m_sylar::ConfigManager::LookUp("http.server.recv_timeout", (uint64_t)25 * 1000 * 1000, "time out to recv message");
 
 static ConfigVar<uint64_t>::ptr g_http_request_send_timeout = 
-    m_sylar::configManager::Lookup("http.server.send_timeout", (uint64_t)10 * 1000 * 1000, "time out to send message");
+    m_sylar::ConfigManager::LookUp("http.server.send_timeout", (uint64_t)10 * 1000 * 1000, "time out to send message");
 
-static uint64_t s_http_request_buffer_size = 0;
-static uint64_t s_http_request_max_size = 0;
-static uint64_t s_http_request_recv_timeout = -1;
-static uint64_t s_http_request_send_timeout = -1;
 
-// update config values
-struct _configInitilizer
-{
-    _configInitilizer()
-    {
-        s_http_request_buffer_size = g_http_request_buffer_size->getValue();
-        s_http_request_max_size = g_http_request_max_size->getValue();
-        s_http_request_recv_timeout = g_http_request_recv_timeout->getValue();
-        s_http_request_send_timeout = g_http_request_send_timeout->getValue();
-        
-        g_http_request_buffer_size->addListener(1234 ,
-            [](const uint64_t& ov, const uint64_t& nv){
-                s_http_request_buffer_size = nv;
-            }
-        );
-        g_http_request_max_size->addListener(1235 ,
-            [](const uint64_t& ov, const uint64_t& nv){
-                s_http_request_max_size = nv;
-            }
-        );
-        g_http_request_recv_timeout->addListener(1236 ,
-            [](const uint64_t& ov, const uint64_t& nv){
-                s_http_request_recv_timeout = nv;
-                // std::cout << "ov : " << ov << " nv :" << nv;
-            }
-        );        
-        g_http_request_send_timeout->addListener(1237 ,
-            [](const uint64_t& ov, const uint64_t& nv){
-                s_http_request_send_timeout = nv;
-            }
-        );
-    }
-};
-static _configInitilizer __initier;
 
 
 
@@ -228,22 +190,22 @@ int HttpRequestParser::isFinished()
 
 uint64_t HttpRequestParser::getBufferSize()
 {
-    return s_http_request_buffer_size;
+    return g_http_request_buffer_size->getValue();
 }
 
 uint64_t HttpRequestParser::getMaxReqSize()
 {
-    return s_http_request_max_size;
+    return g_http_request_max_size->getValue();
 }
 
 uint64_t HttpRequestParser::getRecvTimeOut()
 {
-    return s_http_request_recv_timeout;
+    return g_http_request_recv_timeout->getValue();
 }
 
 uint64_t HttpRequestParser::getSendTimeOut()
 {
-    return s_http_request_send_timeout;
+    return g_http_request_send_timeout->getValue();
 }
 
 

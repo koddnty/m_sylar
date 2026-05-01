@@ -1,63 +1,107 @@
 #include "config.h"
-#include <cstdio>
+#include <fstream>
 
-namespace m_sylar{
-configManager::configValMap Get_Datas();
+namespace m_sylar {
 
 
-ConfigVarBase::ptr configManager::LookupBase(const std::string& name){
-    auto it = Get_Datas().find(name);
-    return it == Get_Datas().end() ? nullptr : it->second;
+ConfigData::ConfigData(ConfigData&& other)  {
+    if(this == &other){
+        return;
+    }
+    std::unique_lock<std::shared_mutex> twlock (this->m_mutex);
+    std::shared_lock<std::shared_mutex> owlock (other.m_mutex);
+
+    this->m_json_data = other.m_json_data;
+    this->m_cbs = other.m_cbs;
+    this->m_max_listener_id = other.m_max_listener_id;
+    other.m_cbs.clear();
+    other.m_max_listener_id = -1;
+    other.m_json_data.clear();
 }
 
-// 获取yaml所有节点输入到output
-static void ListAllMember(const std::string& prefix, const YAML::Node& node,
-    std::list<std::pair<std::string , const YAML::Node> >& output){
-    if(std::string::npos != prefix.find_first_not_of("qwertyuiopasdfghjklzxcvbnm._0123456789")){
-        M_SYLAR_LOG_ERROR(M_SYLAR_GET_LOGGER_ROOT()) << "Config invalid prefix" << prefix << ":" << node; 
-        return ;
+ConfigData& ConfigData::operator= (ConfigData&& other) {
+    if(this == &other){
+        return *this;
     }
-    output.push_back({prefix, node});
-    if(node.IsMap()){
-        for(auto& it : node){
-            ListAllMember(prefix.empty() ? it.first.Scalar() : prefix + "." + it.first.Scalar() , it.second, output);
-        }
-    }
-    else if(node.IsSequence()){
-        for(size_t i = 0; i < node.size(); i++){
-            if(node[i].IsMap()){
-                ListAllMember(prefix.empty() ? std::to_string(i) : prefix + "." + std::to_string(i) , node[i], output);
-            }
-        }
-    }
+    std::unique_lock<std::shared_mutex> twlock (this->m_mutex);
+    std::shared_lock<std::shared_mutex> owlock (other.m_mutex);
+
+    this->m_json_data = other.m_json_data;
+    this->m_cbs = other.m_cbs;
+    this->m_max_listener_id = other.m_max_listener_id;
+    other.m_cbs.clear();
+    other.m_max_listener_id = -1;
+    other.m_json_data.clear();
+
+    return *this;
 }
 
-//将每个节点创建为conf并注册到confManager
-void configManager::LoadFromYaml(const YAML::Node& root){
-    std::unique_lock<std::shared_mutex> w_lock (get_config_rwMutex());
-    
-    std::list<std::pair<std::string, const YAML::Node>> allNodes;
-    ListAllMember("", root, allNodes);
-    for(auto& it : allNodes){
-        std::string key = it.first;
-        fprintf(stdout, "%s\n", it.first.c_str());
-        if(key.empty()){
-            continue;
-        } 
-        std::transform(key.begin(), key.end(), key.begin(), ::tolower);
-        ConfigVarBase::ptr var = LookupBase(key);
-        if(var){
-            if(it.second.IsScalar()){
-                var->fromString(it.second.Scalar());
-            }
-            else{
-                std::stringstream ss;
-                ss << it.second;
-                var->fromString(ss.str());
-            }
-        }
+
+int ConfigData::setConfig(nlohmann::json&& json_data) {
+    std::unique_lock<std::shared_mutex> wlock(m_mutex);
+    m_json_data = std::move(json_data);
+    wlock.unlock();
+    std::shared_lock<std::shared_mutex> rlock(m_mutex);
+    for(const auto& it : m_cbs){
+        it.second(m_json_data);
     }
-} 
+    return 0;
+}
+
+
+int ConfigData::setConfig(const nlohmann::json& json_data) {
+    std::unique_lock<std::shared_mutex> wlock(m_mutex);
+    m_json_data = json_data;
+    std::shared_lock<std::shared_mutex> rlock(m_mutex);
+    for(const auto& it : m_cbs){
+        it.second(m_json_data);
+    }
+    return 0;
+}
+
+
+
+
+int ConfigData::addListener(int key, ConfigData::on_change_cb cb) {
+    std::unique_lock<std::shared_mutex> wlock(m_mutex);
+    if(key == -1){
+        key = ++m_max_listener_id;
+    }
+    m_cbs[key] = cb;
+    return key;
+}
+
+int ConfigData::delListener(int key) {
+    std::unique_lock<std::shared_mutex> wlock(m_mutex);
+    if(m_cbs.find(key) == m_cbs.end() || key <= -1){
+        return -1;
+    }
+    m_cbs.erase(key);
+    return 0;
+}
+
+
+int ConfigManager::LoadJson(const std::string& path, int config_id) {
+    return LoadJson(path.c_str());
+}
+
+int ConfigManager::LoadJson(const char* path, int config_id) {
+    std::ifstream file(path);
+    if(!file.is_open()) {
+        std::cerr << "Failed to open config file: " << path << std::endl;
+        return -1;
+    }
+
+    nlohmann::json json_data;
+    try {
+        file >> json_data;
+    } catch (const nlohmann::json::parse_error& e) {
+        // 日志错误
+        return -1;
+    }
+    getConfigData(config_id)->setConfig(std::move(json_data));
+    return 0;
+}
 
 
 }

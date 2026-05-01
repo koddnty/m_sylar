@@ -266,22 +266,22 @@ public:
     void setParam(const std::string& key, const std::string& val);
     void setCookie(const std::string& key, const std::string& val);
 
-    void setPath (std::string path) { m_path = path;}
-    void setQuery (std::string query) { m_query = query;}
-    void setFragment (std::string fragment) { m_fragment = fragment;}
+    void setPath (const std::string& path) { m_path = path;}
+    void setQuery (const std::string& query) { m_query = query;}
+    void setFragment (const std::string& fragment) { m_fragment = fragment;}
 
     MapType& getParams() {return m_params; }
     MapType& getCookies() {return m_cookies; }
     const std::string& getPath() const {return m_path; }
     const std::string& getQuery() const {return m_query; }
-    std::string getParam(std::string& key, std::string val = "");
-    std::string getCookie(std::string& key, std::string val = "");
+    std::string getParam(const std::string& key, std::string val = "");
+    std::string getCookie(const std::string& key, std::string val = "");
 
-    void delParam(std::string& key);
-    void delCookie(std::string& key);
+    void delParam(const std::string& key);
+    void delCookie(const std::string& key);
 
-    bool hasParam(std::string& key, std::string* val = nullptr);
-    bool hasCookie(std::string& key, std::string* val = nullptr);
+    bool hasParam(const std::string& key, std::string* val = nullptr);
+    bool hasCookie(const std::string& key, std::string* val = nullptr);
 
     bool updateHeader() override;
     std::ostream& dump(std::ostream& os) const override;
