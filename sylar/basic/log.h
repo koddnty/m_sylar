@@ -16,7 +16,7 @@
 
 #define M_SYLAR_LOG_EVENT(logger, level)\
     if(logger->getLevel() <= level) \
-        m_sylar::LogEventWrap(m_sylar::LogEvent::ptr(new m_sylar::LogEvent(__FILE__, __LINE__, 0 \
+        m_sylar::LogEventWrap(m_sylar::LogEvent::ptr(new m_sylar::LogEvent(__FILE_NAME__, __LINE__, 0 \
                     , m_sylar::getThreadId(), m_sylar::getThreadName(), m_sylar::getFiberId(), time(0), logger, level))).getSS()
 
 #define M_SYLAR_LOG_UNKNOWN(logger) M_SYLAR_LOG_EVENT(logger, m_sylar::LogLevel::UNKNOWN)
@@ -225,6 +225,27 @@ public:
 
     LogDefine toDefine();                               // 转换成LogDefine对象
 
+    const Logger& operator=(const Logger& other){
+        std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
+        std::shared_lock<std::shared_mutex> other_lock(other.m_rwMutex);
+        m_name = other.m_name;
+        m_level = other.m_level;
+        m_formatter = other.m_formatter;
+        m_Appenders = other.m_Appenders;
+        return *this;
+    }
+
+    const Logger& operator=(const Logger&& other){
+        std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
+        std::shared_lock<std::shared_mutex> other_lock(other.m_rwMutex);
+        m_name = other.m_name;
+        m_level = other.m_level;
+        m_formatter = std::move(other.m_formatter);
+        m_Appenders = std::move(other.m_Appenders);
+        return *this;
+    }
+
+
 private:
     mutable std::shared_mutex m_rwMutex;
     std::string m_name;                         // 日志名
@@ -270,8 +291,8 @@ public:
     Logger::ptr getRootLogger () const {return m_root;}         // 获取root logger(默认logger)
     bool addLogger (Logger::ptr logger);                        // 添加logger(日志器)
     int delLogger (const std::string& name);                    // 删除logger
-    int resetLoggerWithDefines(const std::string& name, std::map<std::string, Logger::ptr>&& newLogger);                      // 重置logger
-    int resetLoggerWithDefines(const std::string& name, const std::map<std::string, Logger::ptr>& newLogger);                      // 重置logger
+    int resetLoggerWithDefines(std::map<std::string, Logger::ptr>&& newLogger);                      // 重置logger
+    int resetLoggerWithDefines(const std::map<std::string, Logger::ptr>& newLogger);                      // 重置logger
     std::set<LogDefine> toDefines();                              // 转换成LogDefine集合
 
 private:

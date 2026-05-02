@@ -51,7 +51,7 @@ public:
             , const ValueType& default_value, const std::string& description = "", int config_id = 0, 
             typename ConfigVar<ValueType>::on_change_cb cb = nullptr){
         std::shared_lock<std::shared_mutex> rlock(getConfigRwMutex());
-        std::cout << "LookUp: " << path << std::endl;
+        // std::cout << "LookUp: " << path << std::endl;
         return std::make_shared<ConfigVar<ValueType>>(path, default_value, description, config_id, cb);
     }
 
@@ -113,6 +113,9 @@ public:
         else {
             m_val = FormatConversion<nlohmann::json, ValueType>()(json_data);
         }
+        if(cb) {
+            cb(m_val);
+        }
         
         // 添加监听器，监听配置项更新
         m_listen_key = ConfigManager::getConfigData(config_id)->addListener([this, path, cb](const nlohmann::json& new_val) {
@@ -122,7 +125,7 @@ public:
                     std::cout << "[config error] config path " << path << " not found in json data -> ConfigVar::ConfigVar()" << std::endl;
                     return;
                 }
-                std::cout << "getConfigData : " <<  json_data.dump(4) << std::endl;
+                // std::cout << "getConfigData : " <<  json_data.dump(4) << std::endl;
                 ValueType new_value = FormatConversion<nlohmann::json, ValueType>()(json_data);
                 setValue(new_value);
                 if(cb) {

@@ -9,7 +9,7 @@ void test1()
     m_sylar::Logger::ptr logger = M_SYLAR_LOG_NAME("system");
     m_sylar::Logger::ptr t_logger = M_SYLAR_LOG_NAME("test_config");
     M_SYLAR_LOG_INFO(logger) << "begin test config"; ;
-    std::string path = "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/conf/basic.json";
+    std::string path = "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/conf/test_config.json";
     auto test_logger = M_SYLAR_LOG_NAME("test_config");
 
     m_sylar::ConfigVar<std::string>::ptr g_test_student_name =

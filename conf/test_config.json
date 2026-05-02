@@ -16,19 +16,25 @@
             ]
         },
         {
-            "name" : "root",
+            "name" : "test_config",
             "level" : "INFO",
             "appenders" : [
                 {
-                    "type" : "StdoutLogAppender",
+                    "type" : "FileLogAppender",
+                    "file" : "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/build/test_config_log.txt",
                     "level" : "INFO"
                 },
                 {
-                    "type" : "FileLogAppender",
-                    "file" : "/home/ls20241009/user/code/project/sylar_cp/m_sylar/log/root_log.txt",
+                    "type" : "StdoutLogAppender",
+                    "formatter": "sssssuccess%d{%Y-%m-%d %H:%M:%S}%T[%p]%T[%c]%T[thread:%t fiber:%f]%T%F:%L%T%n%m%n",
                     "level" : "INFO"
                 }
             ]
         }
-    ]
+    ],
+    "test" : {
+        "student" : {
+            "name" : "modify name"
+        }
+    }
 }

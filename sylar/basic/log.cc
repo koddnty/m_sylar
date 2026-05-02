@@ -181,6 +181,7 @@ LogDefine Logger::toDefine() {
 }
 
 
+
 FileLogAppender::FileLogAppender(const std::string& file_name)
     : m_file_name(file_name){
         reopen();
@@ -521,13 +522,31 @@ int LoggerManager::delLogger(const std::string& name) {
     return 0;
 }
 
-int LoggerManager::resetLoggerWithDefines(const std::string& name, std::map<std::string, Logger::ptr>&& newLoggers) {
-    m_loggers = std::move(newLoggers);
+int LoggerManager::resetLoggerWithDefines(std::map<std::string, Logger::ptr>&& newLogger) {
+    for(auto logger : newLogger) {
+        if(m_loggers.find(logger.first) == m_loggers.end()){
+            // 新增项
+            m_loggers.insert({logger.first, std::move(logger.second)});
+        }
+        else {
+            // 更新项
+            *(m_loggers[logger.first]) = std::move(*logger.second);
+        }
+    }
     return 0;
 }
 
-int LoggerManager::resetLoggerWithDefines(const std::string& name, const std::map<std::string, Logger::ptr>& newLogger) {
-    m_loggers = newLogger;
+int LoggerManager::resetLoggerWithDefines(const std::map<std::string, Logger::ptr>& newLogger) {
+    for(auto logger : newLogger) {
+        if(m_loggers.find(logger.first) == m_loggers.end()){
+            // 新增项
+            m_loggers.insert({logger.first, logger.second});
+        }
+        else {
+            // 更新项
+            (*m_loggers[logger.first]) = (*logger.second);
+        }
+    }
     return 0;
 }              
 
@@ -645,8 +664,8 @@ public:
 
 
 void updataLogger(const std::set<LogDefine>& log_defines) {
-    std::cout << "updataLogger: " << std::endl;
-    std::cout << FormatConversion<std::set<LogDefine>, nlohmann::json>()(log_defines).dump(4) << std::endl;
+    // std::cout << "updataLogger: " << std::endl;
+    // std::cout << FormatConversion<std::set<LogDefine>, nlohmann::json>()(log_defines).dump(4) << std::endl;
     std::map<std::string, Logger::ptr> new_loggers;
     for(const auto& log_define : log_defines){
         Logger::ptr logger = log_define.toLogger();
@@ -654,7 +673,7 @@ void updataLogger(const std::set<LogDefine>& log_defines) {
             new_loggers[logger->getName()] = logger;
         }
     }
-    LoggerMgr::GetInstance()->resetLoggerWithDefines("logs", std::move(new_loggers));
+    LoggerMgr::GetInstance()->resetLoggerWithDefines(std::move(new_loggers));
 }
 
 //定义log日志配置
