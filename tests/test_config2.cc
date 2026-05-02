@@ -30,9 +30,18 @@ void test1()
     return;
 }
 
+void test2()
+{
+    m_sylar::Logger::ptr t_logger = M_SYLAR_LOG_NAME("system");
+    M_SYLAR_LOG_INFO(t_logger) << "before load test_config logger, stdout and build/log.txt";
+    std::string path = "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/conf/test_config.json";
+    m_sylar::ConfigManager::LoadJson(path);
+    M_SYLAR_LOG_INFO(t_logger) << "after load test_config logger, stdout and log/system_log.txt";
+}
+
 
 int main(void)
 {
-    test1();
+    test2();
     return 0;
 }

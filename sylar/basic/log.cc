@@ -467,6 +467,8 @@ LoggerManager::LoggerManager(){
     system->addAppender(StdoutLogAppender::ptr (new StdoutLogAppender));
 
     m_system = system;
+    m_loggers[m_root->getName()] = m_root;
+    m_loggers[m_system->getName()] = m_system;
     // LoggerMgr::GetInstance()->addLogger(m_root);
     // LoggerMgr::GetInstance()->addLogger(m_system);
 }
@@ -492,6 +494,7 @@ Logger::ptr LoggerManager::getLogger(const std::string& name){
         }
         // 为system提供初始化logger
         if(name == "system"){
+            std::cout << "提供默认system logger" << std::endl;
             return m_system;
         }
         Logger::ptr logger (new Logger(name));
