@@ -26,7 +26,7 @@ public:
     int setConfig(nlohmann::json&& json_data);              // 设置配置项，成功返回0
     int setConfig(const nlohmann::json& json_data);         // 设置配置项，成功返回0
 
-    int addListener(int key, ConfigData::on_change_cb cb);          // 添加更新回调
+    int addListener(ConfigData::on_change_cb cb);          // 添加更新回调
     int delListener(int key);                           // 删除更新回调             
 
     nlohmann::json& getJsonData() { std::shared_lock<std::shared_mutex> rlock(m_mutex); return m_json_data; }
@@ -48,9 +48,11 @@ public:
 
     template<typename ValueType>
     static ConfigVar<ValueType>::ptr LookUp(const std::string& path
-            , const ValueType& default_value, const std::string& description = "", int config_id = 0){
+            , const ValueType& default_value, const std::string& description = "", int config_id = 0, 
+            typename ConfigVar<ValueType>::on_change_cb cb = nullptr){
         std::shared_lock<std::shared_mutex> rlock(getConfigRwMutex());
-        return std::make_shared<ConfigVar<ValueType>>(path, default_value, description, config_id);
+        std::cout << "LookUp: " << path << std::endl;
+        return std::make_shared<ConfigVar<ValueType>>(path, default_value, description, config_id, cb);
     }
 
     // 使用静态函数返回静态成员变量，避免静态变量初始化顺序问题
@@ -82,82 +84,56 @@ public:
 template<typename T>
 class FormatConversion<nlohmann::json, T>{
 public:
-    const T& operator() (const nlohmann::json& v){
+    T operator() (const nlohmann::json& v){
         return v.get<T>();
     }
 };
 
 
-template<typename ValueType>
-const ValueType& getJsonValueByPath(const nlohmann::json& json_data, const std::string& path, int& rt){
-    int front_pos = 0, back_pos = 0;
-    const nlohmann::json* current_node = &json_data;
-    while(path.find('.', front_pos) != std::string::npos){
-        back_pos = path.find('.', front_pos);
-        std::string key = path.substr(front_pos, back_pos - front_pos);
-        if(std::isdigit(key[0])) {
-            int idx = std::stoi(key);
-            if(idx < 0 || idx >= current_node->size()){
-                rt = -1;
-                return ValueType();
-            }
-            current_node = &((*current_node)[idx]);
-        }
-        else {
-            if(current_node->find(key) == current_node->end()){
-                rt = -1;
-                return ValueType();
-            }
-            current_node = &((*current_node)[key]);
-        }
 
-        front_pos = back_pos + 1;
-    }
-
-    // 最后节点
-    std::string key = path.substr(front_pos);
-    if(std::isdigit(key[0])) {
-        int idx = std::stoi(key);
-        if(idx < 0 || idx >= current_node->size()){
-              rt = -1;
-            return ValueType();
-        }
-        current_node = &((*current_node)[idx]);
-        return current_node->get<ValueType>();
-    }
-
-    if(current_node->find(key) == current_node->end()){
-        rt = -1;
-        return ValueType();
-    }
-    current_node = &((*current_node)[key]);
-    rt = 0;
-    return current_node->get<ValueType>();
-}
-
+const int getJsonValueByPath(const nlohmann::json& json_data, const std::string& path, nlohmann::json& value);
 
 // 程序注册使用的单配置项
 template<typename ValueType>
 class ConfigVar {
 public:
     using ptr = std::shared_ptr<ConfigVar>;
+    using on_change_cb = std::function<void (const ValueType& new_val)>;
 
-    ConfigVar (const std::string& path, const ValueType& default_value, const std::string& description, int config_id = 0)
-            : m_path(path), m_description(description), m_val(default_value){
+    ConfigVar (const std::string& path, const ValueType& default_value, const std::string& description, int config_id = 0,
+               on_change_cb cb = nullptr)
+            : m_path(path), m_description(description){
+        // 读取当前配置
+        nlohmann::json json_data;
+        int rt = getJsonValueByPath(ConfigManager::getConfigData(config_id)->getJsonData(), path, json_data);
+        if(rt == -1) {
+            // not found in json data, use default value
+            m_val = default_value;
+        }
+        else {
+            m_val = FormatConversion<nlohmann::json, ValueType>()(json_data);
+        }
         
-        ConfigManager::getConfigData(config_id)->addListener(0, [this, &path](const nlohmann::json& new_val) {
-                int rt = 0;
-                nlohmann::json json_data = getJsonValueByPath<nlohmann::json>(new_val, path, rt);
+        // 添加监听器，监听配置项更新
+        m_listen_key = ConfigManager::getConfigData(config_id)->addListener([this, path, cb](const nlohmann::json& new_val) {
+                nlohmann::json json_data;
+                int rt = getJsonValueByPath(new_val, path, json_data);
                 if(rt == -1) {
-                    std::cout << "[config error] config path " << path << " not found in json data => ConfigVar::ConfigVar()" << std::endl;
+                    std::cout << "[config error] config path " << path << " not found in json data -> ConfigVar::ConfigVar()" << std::endl;
                     return;
                 }
+                std::cout << "getConfigData : " <<  json_data.dump(4) << std::endl;
                 ValueType new_value = FormatConversion<nlohmann::json, ValueType>()(json_data);
                 setValue(new_value);
+                if(cb) {
+                    cb(new_value);
+                }
         });
     }
 
-    ~ConfigVar() = default;
+    ~ConfigVar() {
+        ConfigManager::getConfigData()->delListener(m_listen_key);
+    }
 
     int setValue(const ValueType& value) {
         std::unique_lock<std::shared_mutex> wlock(m_mutex);
@@ -172,6 +148,7 @@ public:
 
 private:
     std::string m_path;
+    int m_listen_key;               // config监听器key
     std::string m_description;
     ValueType m_val;
     std::shared_mutex m_mutex;

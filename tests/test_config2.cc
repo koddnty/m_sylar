@@ -6,25 +6,27 @@
 
 void test1()
 {
-
-    YAML::Node root = YAML::LoadFile("/home/koddnty/user/projects/sylar/m_sylar/m_sylar/conf/basic.yaml");
-    m_sylar::configManager::LoadFromYaml(root);
+    m_sylar::Logger::ptr logger = M_SYLAR_LOG_NAME("system");
+    m_sylar::Logger::ptr t_logger = M_SYLAR_LOG_NAME("test_config");
+    M_SYLAR_LOG_INFO(logger) << "begin test config"; ;
+    std::string path = "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/conf/basic.json";
     auto test_logger = M_SYLAR_LOG_NAME("test_config");
 
-    static m_sylar::ConfigVar<int>::ptr g_2tcp_connect_timeout =
-        m_sylar::configManager::Lookup ("tcp.connect.timeout", 200, "tcp.connect.timeout");
+    m_sylar::ConfigVar<std::string>::ptr g_test_student_name =
+        m_sylar::ConfigManager::LookUp("test.student.name", std::string("liuyvqing"), "test_student_name");
 
-    YAML::Node rroot = YAML::LoadFile("/home/koddnty/user/projects/sylar/m_sylar/m_sylar/conf/basic.yaml");
-    m_sylar::configManager::LoadFromYaml(rroot);
+    M_SYLAR_LOG_INFO(logger) << "before test.student.name = " << g_test_student_name->getValue();
+    m_sylar::ConfigManager::LoadJson(path);
+    M_SYLAR_LOG_INFO(logger) << "after loaded test.student.name = " << g_test_student_name->getValue();
+    // t_logger = M_SYLAR_LOG_NAME("test_config");
+    M_SYLAR_LOG_INFO(t_logger) << "after loaded test.student.name = " << g_test_student_name->getValue();
+    
+    std::string user_config = "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/conf/local.json";
+    m_sylar::ConfigManager::LoadJson(user_config, 1);
+    m_sylar::ConfigVar<std::string>::ptr g_user_info =
+        m_sylar::ConfigManager::LookUp("user.0.info", std::string("root(default)"), "test_student_name", 1);
+    M_SYLAR_LOG_INFO(logger) << "user.0.info :" << g_user_info->getValue();
 
-    static m_sylar::ConfigVar<int>::ptr g_tcp_connect_timeout =
-        m_sylar::configManager::Lookup<int> ("tcp.connect.timeout");
-
-    if(!g_tcp_connect_timeout){
-        M_SYLAR_LOG_ERROR(test_logger) << "g_tcp_connect_timeout is null";
-    }
-
-    M_SYLAR_LOG_DEBUG(test_logger) << "tcp.connect.timeout = " << g_tcp_connect_timeout->getValue();
     return;
 }
 

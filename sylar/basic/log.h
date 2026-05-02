@@ -270,8 +270,8 @@ public:
     Logger::ptr getRootLogger () const {return m_root;}         // 获取root logger(默认logger)
     bool addLogger (Logger::ptr logger);                        // 添加logger(日志器)
     int delLogger (const std::string& name);                    // 删除logger
-    int resetLoggerWith(const std::string& name, std::map<std::string, Logger::ptr>&& newLogger);                      // 重置logger
-    int resetLoggerWith(const std::string& name, const std::map<std::string, Logger::ptr>& newLogger);                      // 重置logger
+    int resetLoggerWithDefines(const std::string& name, std::map<std::string, Logger::ptr>&& newLogger);                      // 重置logger
+    int resetLoggerWithDefines(const std::string& name, const std::map<std::string, Logger::ptr>& newLogger);                      // 重置logger
     std::set<LogDefine> toDefines();                              // 转换成LogDefine集合
 
 private:

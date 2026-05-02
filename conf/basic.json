@@ -2,33 +2,39 @@
     "logs" : [
         {
             "name" : "system",
-            "level" : "ERROR",
+            "level" : "INFO",
             "appenders" : [
                 {
                     "type" : "StdoutLogAppender",
-                    "level" : "ERROR"
+                    "level" : "INFO"
                 },
                 {
                     "type" : "FileLogAppender",
                     "file" : "/home/ls20241009/user/code/project/sylar_cp/m_sylar/log/system_log.txt",
-                    "level" : "ERROR"
+                    "level" : "INFO"
                 }
             ]
         },
         {
             "name" : "test_config",
-            "level" : "ERROR",
+            "level" : "INFO",
             "appenders" : [
                 {
                     "type" : "FileLogAppender",
-                    "file" : "/home/ls20241009/user/code/project/sylar_cp/m_sylar/log/system_log.txt",
-                    "level" : "ERROR"
+                    "file" : "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/build/test_config_log.txt",
+                    "level" : "INFO"
                 },
                 {
                     "type" : "StdoutLogAppender",
-                    "level" : "ERROR"
+                    "formatter": "sssssuccess%d{%Y-%m-%d %H:%M:%S}%T[%p]%T[%c]%T[thread:%t fiber:%f]%T%F:%L%T%n%m%n",
+                    "level" : "INFO"
                 }
             ]
         }
-    ]
+    ],
+    "test" : {
+        "student" : {
+            "name" : "modify name"
+        }
+    }
 }

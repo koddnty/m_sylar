@@ -60,9 +60,53 @@ int ConfigData::setConfig(const nlohmann::json& json_data) {
 }
 
 
+const int getJsonValueByPath(const nlohmann::json& json_data, const std::string& path, nlohmann::json& value) {
+    int front_pos = 0, back_pos = 0;
+    const nlohmann::json* current_node = &json_data;
+    while(path.find('.', front_pos) != std::string::npos){
+        back_pos = path.find('.', front_pos);
+        std::string key = path.substr(front_pos, back_pos - front_pos);
+        if(std::isdigit(key[0])) {
+            int idx = std::stoi(key);
+            if(idx < 0 || idx >= current_node->size()){
+                return -1;
+            }
+            current_node = &((*current_node)[idx]);
+        }
+        else {
+            if(current_node->find(key) == current_node->end()){
+                return -1;
+            }
+            current_node = &((*current_node)[key]);
+        }
+
+        front_pos = back_pos + 1;
+    }
+
+    // 最后节点
+    std::string key = path.substr(front_pos);
+    if(std::isdigit(key[0])) {
+        int idx = std::stoi(key);
+        if(idx < 0 || idx >= current_node->size()){
+                return -1;
+        }
+        current_node = &((*current_node)[idx]);
+        value = *current_node;
+        return 0;
+    }
+
+    if(current_node->find(key) == current_node->end()){
+        return -1;
+    }
+    current_node = &((*current_node)[key]);
+    value = *current_node;
+    return 0;
+}
 
 
-int ConfigData::addListener(int key, ConfigData::on_change_cb cb) {
+
+int ConfigData::addListener(ConfigData::on_change_cb cb) {
+    int key = -1;
     std::unique_lock<std::shared_mutex> wlock(m_mutex);
     if(key == -1){
         key = ++m_max_listener_id;
@@ -82,7 +126,7 @@ int ConfigData::delListener(int key) {
 
 
 int ConfigManager::LoadJson(const std::string& path, int config_id) {
-    return LoadJson(path.c_str());
+    return LoadJson(path.c_str(), config_id);
 }
 
 int ConfigManager::LoadJson(const char* path, int config_id) {

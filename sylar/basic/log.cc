@@ -5,15 +5,19 @@ namespace m_sylar{
 
 LogAppender::ptr LogAppenderDefine::toAppender() const {
     LogAppender::ptr new_appender;
-    if(typeid(*this) == typeid(StdoutLogAppender)){
+    if(type == 0){
         new_appender = std::make_shared<StdoutLogAppender>();
     }
-    else if(typeid(*this) == typeid(FileLogAppender)){
+    else if(type == 1){
         new_appender = std::make_shared<FileLogAppender>(file);
     }
     else{
         std::cout << "[log error]" << "unknown appender type => LogAppenderDefine::toAppender()" << std::endl;
         return nullptr;
+    }
+    new_appender->setLevel(level);
+    if(formatter){
+        new_appender->setFormatter(formatter);
     }
     return new_appender;
 }
@@ -21,9 +25,10 @@ LogAppender::ptr LogAppenderDefine::toAppender() const {
 
 std::shared_ptr<Logger> LogDefine::toLogger() const {
     Logger::ptr new_logger = std::make_shared<Logger>(name);
-
     new_logger->setLevel(level);
-    new_logger->setFormatter(formatter);
+    if(formatter){
+        new_logger->setFormatter(formatter);
+    }
     for(const auto& appender_define : appenders){
         LogAppender::ptr new_appender;
         new_logger->addAppender(appender_define.toAppender());
@@ -516,12 +521,12 @@ int LoggerManager::delLogger(const std::string& name) {
     return 0;
 }
 
-int LoggerManager::resetLoggerWith(const std::string& name, std::map<std::string, Logger::ptr>&& newLoggers) {
+int LoggerManager::resetLoggerWithDefines(const std::string& name, std::map<std::string, Logger::ptr>&& newLoggers) {
     m_loggers = std::move(newLoggers);
     return 0;
 }
 
-int LoggerManager::resetLoggerWith(const std::string& name, const std::map<std::string, Logger::ptr>& newLogger) {
+int LoggerManager::resetLoggerWithDefines(const std::string& name, const std::map<std::string, Logger::ptr>& newLogger) {
     m_loggers = newLogger;
     return 0;
 }              
@@ -544,10 +549,12 @@ template<>
 class FormatConversion<nlohmann::json, std::set<LogDefine>>{
 public:
     std::set<LogDefine> operator() (const nlohmann::json& v){
-        const nlohmann::json& logDefine_json = v["logs"];
+        //  = v["logs"];
+        const nlohmann::json& logDefine_json = v;
         std::set<LogDefine> logDefine_set;
         for(int i = 0; i < logDefine_json.size(); i++) {
             LogDefine ld;
+            // std::cout << v.dump(4) << std::endl;
             // 基本信息解析
             if(logDefine_json[i].find("name") != logDefine_json[i].end()) {
                 ld.name = logDefine_json[i]["name"];
@@ -595,6 +602,7 @@ public:
                     ld.appenders.push_back(new_appender);
                 }
             }
+            logDefine_set.insert(ld);
         }
         return logDefine_set;
     }
@@ -636,13 +644,25 @@ public:
 };
 
 
+void updataLogger(const std::set<LogDefine>& log_defines) {
+    std::cout << "updataLogger: " << std::endl;
+    std::cout << FormatConversion<std::set<LogDefine>, nlohmann::json>()(log_defines).dump(4) << std::endl;
+    std::map<std::string, Logger::ptr> new_loggers;
+    for(const auto& log_define : log_defines){
+        Logger::ptr logger = log_define.toLogger();
+        if(logger){
+            new_loggers[logger->getName()] = logger;
+        }
+    }
+    LoggerMgr::GetInstance()->resetLoggerWithDefines("logs", std::move(new_loggers));
+}
 
 //定义log日志配置
 // m_sylar::ConfigData::ptr s_log_defines = m_sylar::ConfigManager::getConfigData(0);
-m_sylar::ConfigVar<std::set<LogDefine>>::ptr s_loggers = 
+static m_sylar::ConfigVar<std::set<LogDefine>>::ptr s_loggers = 
     m_sylar::ConfigManager::LookUp("logs", 
         FormatConversion<nlohmann::json, std::set<LogDefine>>()(nlohmann::json({
-            "logs", {
+            {
                 {
                     {"name", "root"},
                     {"level", "INFO"},
@@ -671,8 +691,10 @@ m_sylar::ConfigVar<std::set<LogDefine>>::ptr s_loggers =
                     }}
                 }
             }
-        }))
-        , "logs config", 0);
+        }
+        ))
+        , "logs config", 0, updataLogger);
+
 
 void LoggerManager::init () {
 

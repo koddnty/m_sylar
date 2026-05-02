@@ -108,6 +108,11 @@ target_include_directories(sylar PUBLIC
 #     ${CMAKE_CURRENT_SOURCE_DIR}/sylar
 # )
 
+# config 测试
+add_executable(test_config tests/test_config2.cc)
+add_dependencies(test_config sylar)
+target_link_libraries(test_config sylar ${LIB_LIB})
+
 
 # redis 测试
 add_executable(redis_test tests/sql/redis_test.cc)
@@ -147,9 +152,7 @@ target_link_libraries(poolredis_test sylar ${LIB_LIB})
 # add_dependencies(test_conf sylar)
 # target_link_libraries(test_conf sylar ${LIB_LIB})
 
-# add_executable(test_conf2 tests/test_config2.cc)
-# add_dependencies(test_conf2 sylar)
-# target_link_libraries(test_conf2 sylar ${LIB_LIB})
+
 
 # add_executable(test_yaml tests/test_yaml.cc)
 # add_dependencies(test_yaml sylar)
@@ -183,7 +186,6 @@ target_link_libraries(poolredis_test sylar ${LIB_LIB})
 
 
 add_executable(test_self_timer tests/test_self_timer.cc)
-# force_redefine_macro_for_sources(test_yaml)
 add_dependencies(test_self_timer sylar )
 target_link_libraries(test_self_timer sylar ${LIB_LIB})
 
