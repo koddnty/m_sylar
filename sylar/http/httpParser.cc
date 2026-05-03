@@ -17,16 +17,16 @@ namespace http
 
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 static ConfigVar<uint64_t>::ptr g_http_request_buffer_size = 
-    m_sylar::ConfigManager::LookUp("http.request.buffer_size", (uint64_t)1024 * 5, "size of a buffer");
+    m_sylar::ConfigManager::LookUp("http.request.buffer_size", (uint64_t)1024 * 5, M_SYALR_LOG_KEY, "size of a buffer");
 
 static ConfigVar<uint64_t>::ptr g_http_request_max_size = 
-    m_sylar::ConfigManager::LookUp("http.request.max_message_size", (uint64_t)1024 * 1024 * 5, "max size of a request");
+    m_sylar::ConfigManager::LookUp("http.request.max_message_size", (uint64_t)1024 * 1024 * 5, M_SYALR_LOG_KEY, "max size of a request");
 
 static ConfigVar<uint64_t>::ptr g_http_request_recv_timeout = 
-    m_sylar::ConfigManager::LookUp("http.server.recv_timeout", (uint64_t)25 * 1000 * 1000, "time out to recv message");
+    m_sylar::ConfigManager::LookUp("http.server.recv_timeout", (uint64_t)25 * 1000 * 1000, M_SYALR_LOG_KEY, "time out to recv message");
 
 static ConfigVar<uint64_t>::ptr g_http_request_send_timeout = 
-    m_sylar::ConfigManager::LookUp("http.server.send_timeout", (uint64_t)10 * 1000 * 1000, "time out to send message");
+    m_sylar::ConfigManager::LookUp("http.server.send_timeout", (uint64_t)10 * 1000 * 1000, M_SYALR_LOG_KEY, "time out to send message");
 
 
 
@@ -63,7 +63,32 @@ void HttpRequestParser::on_http_field(void *data, const char *field,
         M_SYLAR_LOG_WARN(g_logger) << "invalid header, field length is 0";
         parser->setError(Error::INVALID_HEADER); 
     }
-    parser->getData()->setHeader(std::string(field, flen), std::string(value, vlen));
+    std::string key = std::string(field, flen);
+    std::string val = std::string(value, vlen);
+    std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+    std::transform(val.begin(), val.end(), val.begin(), ::tolower);
+    parser->getData()->setHeader(key, val);
+    if(key == "cookie") {
+        parser->parserCookie(val);
+    }
+}
+
+void HttpRequestParser::parserCookie(const std::string& cookie_str)
+{
+    std::istringstream ss(cookie_str);
+    std::string item;
+    while(std::getline(ss, item, ';'))
+    {
+        size_t pos = item.find('=');
+        if(pos != std::string::npos)
+        {
+            std::string key = item.substr(0, pos);
+            std::string val = item.substr(pos + 1);
+            key.erase(0, key.find_first_not_of(" \t"));
+            val.erase(0, val.find_first_not_of(" \t"));
+            getData()->setCookie(key, val);
+        }
+    }
 }
 
 void HttpRequestParser::on_request_method(void *data, const char *at, size_t length)
@@ -236,8 +261,14 @@ void HttpResponseParser::on_field_cb(void *data, const char *field, size_t flen,
         M_SYLAR_LOG_WARN(g_logger) << "invalid header, field length is 0";
         parser->setError(Error::INVALID_HEADER); 
     }
-    parser->getData()->setHeader(std::string(field, flen), std::string(value, vlen));
+    std::string key = std::string(field, flen);
+    std::string val = std::string(value, vlen);
+    std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+    std::transform(val.begin(), val.end(), val.begin(), ::tolower);
+    parser->getData()->setHeader(key, val);
 }
+
+
 
 void HttpResponseParser::on_reason_phrase(void *data, const char *at, size_t length)
 {

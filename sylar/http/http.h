@@ -283,7 +283,7 @@ public:
     bool hasParam(const std::string& key, std::string* val = nullptr);
     bool hasCookie(const std::string& key, std::string* val = nullptr);
 
-    bool updateHeader() override;
+    bool updateHeader() override;       // 变更header后更新参数，如长度等
     std::ostream& dump(std::ostream& os) const override;
 
     template<class T>               // check and return by value if data exists

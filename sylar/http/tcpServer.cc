@@ -19,7 +19,7 @@ namespace m_sylar
 {
 
 m_sylar::ConfigVar<uint64_t>::ptr g_tcpServer_read_timeout = 
-    m_sylar::ConfigManager::LookUp("http.tcpserver.timeout.read", (uint64_t)(2 * 60 * 1000000), "tcp server read timeOut to hold a connect");
+    m_sylar::ConfigManager::LookUp("http.tcpserver.timeout.read", (uint64_t)(2 * 60 * 1000000), M_SYALR_LOG_KEY, "tcp server read timeOut to hold a connect");
 
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");    
 

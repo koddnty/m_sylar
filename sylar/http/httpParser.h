@@ -37,6 +37,8 @@ public:
     static void on_http_version(void *data, const char *at, size_t length);
     static void on_header_done(void *data, const char *at, size_t length);
 
+    void parserCookie(const std::string& cookie_str);
+
     size_t execute(char *data, size_t len);
     int isError();
     int isFinished();
@@ -87,6 +89,7 @@ public:
     static void on_http_version(void *data, const char *at, size_t length);
     static void on_header_done(void *data, const char *at, size_t length);
     static void on_last_chunk(void *data, const char *at, size_t length);
+
 
     size_t execute(char *data, size_t len);
     int isError();

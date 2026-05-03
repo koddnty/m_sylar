@@ -1,7 +1,7 @@
 #pragma once
+#include "basic/log.h"
 #include <hiredis/hiredis.h>
 #include <memory>
-#include "basic/log.h"
 #include "database.h"
 
 

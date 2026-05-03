@@ -566,7 +566,7 @@ std::set<LogDefine> LoggerManager::toDefines()  {
 
 
 
-
+// 日志 - 配置监听模块json转换器
 template<>
 class FormatConversion<nlohmann::json, std::set<LogDefine>>{
 public:
@@ -715,7 +715,7 @@ static m_sylar::ConfigVar<std::set<LogDefine>>::ptr s_loggers =
             }
         }
         ))
-        , "logs config", 0, updataLogger);
+        , 0, "logs config", updataLogger);
 
 
 void LoggerManager::init () {
