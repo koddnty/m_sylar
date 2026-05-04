@@ -1,4 +1,4 @@
-╭─1777816409	[INFO]	[system]	[thread:327217:UNKNOWN fiber:4294967295]	test_config2.cc:20	
+╭─1777821072	[[32mINFO[0m]	[system]	[thread:390531:UNKNOWN fiber:4294967295]	test_config2.cc:20	
 ╰─after loaded test.student.name = modify name
-╭─1777816409	[INFO]	[system]	[thread:327217:UNKNOWN fiber:4294967295]	test_config2.cc:28	
+╭─1777821072	[[32mINFO[0m]	[system]	[thread:390531:UNKNOWN fiber:4294967295]	test_config2.cc:28	
 ╰─user.0.info :root

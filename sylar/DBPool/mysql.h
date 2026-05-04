@@ -73,6 +73,9 @@ public:
     IOState::State getState() const {return m_IOstate;}
     MySQLResp& setState(IOState::State state) {m_IOstate = state; return *this;}
 
+    int getColCount() const {return m_colCount;}
+    int getRowCount() const {return m_rowCount;}
+
 
 public: 
     class ColProxy {

@@ -190,7 +190,7 @@ public:
                 nlohmann::json json_data;
                 int rt = getJsonValueByPath(new_val, path, json_data);
                 if(rt == -1) {
-                    std::cout << "[config error] config path " << path << " not found in json data -> ConfigVar::ConfigVar()" << std::endl;
+                    std::cout << "[config error] config path " << path << " not found in json data -> ConfigVar::ConfigVar(), use default value" << std::endl;
                     return;
                 }
                 // std::cout << "getConfigData : " <<  json_data.dump(4) << std::endl;

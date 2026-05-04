@@ -241,6 +241,7 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         is_keep_alive = session->isKeep();
 
         co_await execHandler(session->getRequest()->getPath(), session);         // 处理回调
+        session->getResponse()->updateHeader();
         co_await session->sendResp();                // 发送响应报文
     } while (is_keep_alive);
     // client->close();

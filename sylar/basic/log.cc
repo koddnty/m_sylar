@@ -245,12 +245,34 @@ public:
         os << event->getContent();
     }
 };
-class LevelFormatItem : public LogFormatter::formatterItem{
+class LevelFormatItem : public LogFormatter::formatterItem {
 public:
-    LevelFormatItem(const std::string& str = ""){}
-
-    void format(std::ostream& os, Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override{
+    LevelFormatItem(const std::string& str = "") {}
+    
+    void format(std::ostream& os, Logger::ptr logger, 
+                LogLevel::Level level, LogEvent::ptr event) override {
+        // 判断输出目标是否是终端
+        static bool is_tty = isatty(STDOUT_FILENO);
+        
+        if (is_tty) {
+            os << getLevelColor(level);
+        }
         os << LogLevel::to_string(level);
+        if (is_tty) {
+            os << "\033[0m";  // 重置颜色
+        }
+    }
+    
+private:
+    const char* getLevelColor(LogLevel::Level level) {
+        switch (level) {
+            case LogLevel::DEBUG: return "\033[36m";  // 青色
+            case LogLevel::INFO:  return "\033[32m";  // 绿色
+            case LogLevel::WARN:  return "\033[33m";  // 黄色
+            case LogLevel::ERROR: return "\033[31m";  // 红色
+            case LogLevel::FATAL: return "\033[35m";  // 紫色
+            default:              return "\033[0m";   // 重置
+        }
     }
 };
 class ElapseFormatItem : public LogFormatter::formatterItem{

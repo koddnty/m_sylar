@@ -66,7 +66,7 @@ void HttpRequestParser::on_http_field(void *data, const char *field,
     std::string key = std::string(field, flen);
     std::string val = std::string(value, vlen);
     std::transform(key.begin(), key.end(), key.begin(), ::tolower);
-    std::transform(val.begin(), val.end(), val.begin(), ::tolower);
+    // std::transform(val.begin(), val.end(), val.begin(), ::tolower);
     parser->getData()->setHeader(key, val);
     if(key == "cookie") {
         parser->parserCookie(val);
@@ -264,7 +264,7 @@ void HttpResponseParser::on_field_cb(void *data, const char *field, size_t flen,
     std::string key = std::string(field, flen);
     std::string val = std::string(value, vlen);
     std::transform(key.begin(), key.end(), key.begin(), ::tolower);
-    std::transform(val.begin(), val.end(), val.begin(), ::tolower);
+    // std::transform(val.begin(), val.end(), val.begin(), ::tolower);
     parser->getData()->setHeader(key, val);
 }
 
