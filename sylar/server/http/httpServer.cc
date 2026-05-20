@@ -55,6 +55,7 @@ Task<int> HttpSession::recvRequest()
 {
     uint64_t buffer_size = g_http_buffer_size->getValue();
     uint64_t max_request_size = g_http_max_request_size->getValue();
+    M_SYLAR_LOG_DEBUG(g_logger) << "http parser buffer size=" << buffer_size << " max request size=" << max_request_size;
     int total_length = 0;       // 累计长度
     while(true)
     {
@@ -97,7 +98,7 @@ Task<int> HttpSession::recvRequest()
         }
         total_length += recv_len;
 
-
+        M_SYLAR_LOG_DEBUG(g_logger) << "buffer content : \n" << std::string(m_buffer + m_buffer_begin_pos, m_buffer_end_pos - m_buffer_begin_pos) << std::endl;
         // 接收信息处理
         int sloved = 0;
         try{

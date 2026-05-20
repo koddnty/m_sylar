@@ -38,7 +38,7 @@
                 "connect" : 60,
                 "recv" : 60,
                 "send" : 60,
-                "keep_alive" : 120
+                "keep_alive" : 1200
             },
             "limit" : {
                 "max_request_size" : 10485760,
