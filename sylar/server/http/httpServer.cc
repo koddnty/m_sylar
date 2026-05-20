@@ -61,13 +61,6 @@ Task<int> HttpSession::recvRequest()
         // 接受缓冲区信息
         // message_len = m_socket->recv(m_buffer + buffer_size - offset, offset, 0);
         int recv_len = co_await m_socket->recv(m_buffer + m_buffer_end_pos, buffer_size - m_buffer_end_pos, 0);
-        m_buffer_end_pos += recv_len;
-        if(m_buffer_end_pos > buffer_size) {
-            M_SYLAR_LOG_FATAL(g_logger) << "buffer overflow, buffer size=" << buffer_size << " begin pos:" << m_buffer_begin_pos << " end pos=" << m_buffer_end_pos;
-            M_SYLAR_ASSERT(m_buffer_end_pos <= buffer_size);
-        }
-        total_length += recv_len;
-
         // 接收错误处理
         if(recv_len == 0)
         {   // 连接关闭
@@ -95,6 +88,15 @@ Task<int> HttpSession::recvRequest()
             M_SYLAR_LOG_WARN(g_logger) << "[httpSession] message is too long, total length=" << total_length;
             co_return -1;
         }
+
+        // 缓冲区状态更新
+        m_buffer_end_pos += recv_len;
+        if(m_buffer_end_pos > buffer_size) {
+            M_SYLAR_LOG_FATAL(g_logger) << "buffer overflow, buffer size=" << buffer_size << " begin pos:" << m_buffer_begin_pos << " end pos=" << m_buffer_end_pos;
+            M_SYLAR_ASSERT(m_buffer_end_pos <= buffer_size);
+        }
+        total_length += recv_len;
+
 
         // 接收信息处理
         int sloved = 0;
@@ -239,7 +241,8 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
 {
     bool is_keep_alive = false;
     // M_SYLAR_LOG_INFO(g_logger) << "newClient, socket :" << *client;   
-    int response_count = 0;      
+    int response_count = 0;    
+    int stack_deep = 1000;  
     do
     {
         HttpSession::ptr session(new HttpSession(client));
@@ -275,17 +278,11 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         co_await execHandler(session->getRequest()->get_uri(), session);         // 处理回调
         // session->getResponse()->updateHeader();
 
-        if(session->isKeep()) {
-            session->getResponse()->append_header("Connection", "keep-alive");
-        }
-        else {
-            session->getResponse()->append_header("Connection", "close");
-        }
         co_await session->sendResp();                // 发送响应报文
         M_SYLAR_LOG_INFO(g_logger) << "is keep alive : " << is_keep_alive;
         response_count++;
-    } while (is_keep_alive && response_count < 10000);     // 限制最大请求数，防止死循环
-    if(is_keep_alive && response_count >= 10000)
+    } while (is_keep_alive && response_count < stack_deep);     // 限制最大请求数，防止死循环
+    if(is_keep_alive && response_count >= stack_deep)
     {
         M_SYLAR_LOG_WARN(g_logger) << "response count has reached the limit, close connection. client:" << client->toString();
         auto t = std::bind(&HttpServer::handleClient, std::dynamic_pointer_cast<HttpServer>(shared_from_this()), client);
