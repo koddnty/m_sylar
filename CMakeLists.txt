@@ -36,18 +36,10 @@ set(BASIC_SOURCES
     sylar/basic/socket.cc
 )
 
-# HTTP 模块
+# 网络服务 模块
 set(HTTP_SOURCES
-    sylar/http/http.cc
-    sylar/http/http11_parser.rl.cc
-    sylar/http/httpclient_parser.rl.cc
-    sylar/http/bstr/bsafe.c
-    sylar/http/bstr/bstraux.c
-    sylar/http/bstr/bstrlib.c
-    sylar/http/dbg.cc
-    sylar/http/httpParser.cc
-    sylar/http/tcpServer.cc
-    sylar/http/httpServer.cc
+    sylar/server/tcp/tcpServer.cc
+    sylar/server/http/httpServer.cc
 )
 
 
@@ -205,9 +197,9 @@ target_link_libraries(test_self_timer sylar ${LIB_LIB})
 # add_dependencies(http_test sylar)
 # target_link_libraries(http_test sylar ${LIB_LIB})
 
-add_executable(httpParser_test tests/httpParser_test.cc)
-add_dependencies(httpParser_test sylar)
-target_link_libraries(httpParser_test sylar ${LIB_LIB})
+# add_executable(httpParser_test tests/httpParser_test.cc)
+# add_dependencies(httpParser_test sylar)
+# target_link_libraries(httpParser_test sylar ${LIB_LIB})
 
 add_executable(tcpServer_test tests/tcpServer_test.cc)
 add_dependencies(tcpServer_test sylar)

@@ -741,7 +741,10 @@ static m_sylar::ConfigVar<std::set<LogDefine>>::ptr s_loggers =
 
 
 void LoggerManager::init () {
-
+    // std::string config_path = getExecutableDir() + "/conf/basic.json";
+    // std::cout << "[LoggerManager init] config path: " << config_path << std::endl;
+    // ConfigManager::LoadJson(config_path, 0);
+    // return ;
 }
 
 }

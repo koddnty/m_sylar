@@ -2,11 +2,11 @@
     "logs" : [
         {
             "name" : "system",
-            "level" : "INFO",
+            "level" : "FATAL",
             "appenders" : [
                 {
                     "type" : "StdoutLogAppender",
-                    "level" : "INFO"
+                    "level" : "DEBUG"
                 },
                 {
                     "type" : "FileLogAppender",
@@ -30,5 +30,30 @@
                 }
             ]
         }
-    ]
+    ],
+    "servers" : {
+        "http" : {
+            "type" : "http",
+            "timeout" : {
+                "connect" : 60,
+                "recv" : 60,
+                "send" : 60,
+                "keep_alive" : 120
+            },
+            "limit" : {
+                "max_request_size" : 10485760,
+                "max_response_size" : 10485760,
+                "buffer_size" : 4096
+            },
+            "websocket" : {
+                "enable" : false,
+                "ping_interval" : 30,
+                "ping_timeout" : 60
+            }
+        },
+        "websocket" : {
+
+        }
+        
+    }
 }

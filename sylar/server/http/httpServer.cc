@@ -9,26 +9,27 @@
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include "http/httpServer.h"
-#include "http/httpParser.h"
-#include "http/tcpServer.h"
 #include "basic/log.h"
-#include "http/http.h"
+#include "httpServer.h"
 
 namespace m_sylar
 {
 namespace http
 {
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+ConfigVar<uint32_t>::ptr g_http_recv_timeout = ConfigManager::LookUp("servers.http.timeout.recv", uint32_t(30), 0, "http server recv timeout");
+ConfigVar<uint32_t>::ptr g_http_send_timeout = ConfigManager::LookUp("servers.http.timeout.send", uint32_t(30), 0, "http server send timeout");
+ConfigVar<uint32_t>::ptr g_http_buffer_size = ConfigManager::LookUp("servers.http.limit.buffer_size", uint32_t(1024), 0, "http server parser buffer size");
+ConfigVar<uint32_t>::ptr g_http_max_request_size  = ConfigManager::LookUp("servers.http.limit.max_request_size", uint32_t(10485760), 0, "http server parser buffer size");
 
 HttpSession::HttpSession(Socket::ptr socket)
     : m_socket(socket)
 {
-    m_socket->setRecvTimeOut(m_request_parser->getRecvTimeOut());
-    m_socket->setSendTimeOut(m_request_parser->getSendTimeOut());
-    uint64_t buffer_size = m_request_parser->getBufferSize();
-    m_response.reset(new HttpResponse());
-    m_request_parser.reset(new HttpRequestParser());
+    m_socket->setRecvTimeOut(g_http_recv_timeout->getValue());
+    m_socket->setSendTimeOut(g_http_send_timeout->getValue());
+    uint64_t buffer_size = g_http_buffer_size->getValue();
+    m_response.reset(new Response());
+    m_request.reset(new Request());
     m_buffer = new char[buffer_size];
 }
 
@@ -44,30 +45,35 @@ bool HttpSession::setResponse()
 
 
 /**
+    @brief http request 请求处理函数
+        维护buffer缓冲区
     @return -1 表示较为重要的服务端错误
     @return -2 表示不重要的客户端或其他错误
 */
 
 Task<int> HttpSession::recvRequest()
 {
-    uint64_t buffer_size = m_request_parser->getBufferSize();
-    // buffer_size = 20;
-    size_t offset = buffer_size;
-    ssize_t message_len = 0;
-    int total_length = 0;
+    uint64_t buffer_size = g_http_buffer_size->getValue();
+    uint64_t max_request_size = g_http_max_request_size->getValue();
+    int total_length = 0;       // 累计长度
     while(true)
     {
         // 接受缓冲区信息
         // message_len = m_socket->recv(m_buffer + buffer_size - offset, offset, 0);
-        message_len = co_await m_socket->recv(m_buffer, buffer_size, 0);
-        total_length += message_len;
-        // std::cout << "---=---=---total length = " << total_length << std::endl;
-        // M_SYLAR_LOG_DEBUG(g_logger) << "message:\n" << std::string(m_buffer, message_len);
-        if(message_len == 0)
+        int recv_len = co_await m_socket->recv(m_buffer + m_buffer_end_pos, buffer_size - m_buffer_end_pos, 0);
+        m_buffer_end_pos += recv_len;
+        if(m_buffer_end_pos > buffer_size) {
+            M_SYLAR_LOG_FATAL(g_logger) << "buffer overflow, buffer size=" << buffer_size << " begin pos:" << m_buffer_begin_pos << " end pos=" << m_buffer_end_pos;
+            M_SYLAR_ASSERT(m_buffer_end_pos <= buffer_size);
+        }
+        total_length += recv_len;
+
+        // 接收错误处理
+        if(recv_len == 0)
         {   // 连接关闭
             co_return 0;
         }
-        else if(message_len == -1)
+        else if(recv_len == -1)
         {   // 错误
             // 只处理几个真正重要的错误
             switch(errno) {
@@ -84,29 +90,39 @@ Task<int> HttpSession::recvRequest()
                     co_return -2;
             }
         }
-        if(total_length > m_request_parser->getMaxReqSize())
+        if(total_length > max_request_size)
         {
             M_SYLAR_LOG_WARN(g_logger) << "[httpSession] message is too long, total length=" << total_length;
             co_return -1;
         }
 
-        // 处理接收到的信息
-        offset = m_request_parser->execute(m_buffer, total_length);
-        if(m_request_parser->isError())
-        { // 错误检测
-            M_SYLAR_LOG_WARN(g_logger) << "[httpSession] Invalid http request, socket:" << m_socket->toString();
+        // 接收信息处理
+        int sloved = 0;
+        try{
+            sloved = m_request->consume(m_buffer + m_buffer_begin_pos, m_buffer_end_pos - m_buffer_begin_pos);
+        } catch (std::exception &e) {
+            std::cout << e.what() << std::endl;
             co_return -1;
         }
 
-        if(m_request_parser->isFinished())
-        {   // 完成处理
-            // M_SYLAR_LOG_DEBUG(g_logger) << "[httpSession] recv success, total length = " << total_length;
-            co_return total_length;
+        // 信息处理异常处理
+        
+
+        // 缓冲区状态处理
+        if(sloved + m_buffer_begin_pos >= m_buffer_end_pos)
+        {   // 已经处理完所有数据，重置缓冲区
+            m_buffer_begin_pos = 0;
+            m_buffer_end_pos = 0;
         }
-        else if(offset == total_length - buffer_size)
-        {   // buffer太小且超限制
-            M_SYLAR_LOG_WARN(g_logger) << "[httpSession] HTTP parsing stalled - possible malicious request";
-            co_return -1;
+        else if(sloved > 0)
+        {   // 处理了部分数据，移动开始指针，recv后重置位置。
+            m_buffer_begin_pos += sloved;
+        }
+
+        // 解析状态处理
+        if(m_request->ready()) {
+            // 解析完成
+            break;
         }
     }
     M_SYLAR_LOG_DEBUG(g_logger) << "[httpSession] recv success, total length = " << total_length;
@@ -115,10 +131,22 @@ Task<int> HttpSession::recvRequest()
 
 Task<int> HttpSession::sendResp()
 {
-    std::stringstream ss;
-    m_response->updateAndDump(ss);
-    // M_SYLAR_LOG_DEBUG(g_logger) << "contentLength:" << m_response->getHeader("Content-Length");
-    std::string content = ss.str();
+    // 默认设置码
+    if(m_response->get_status_code() == protocol::http::status_code::uninitialized)
+    {
+        m_response->set_status(protocol::http::status_code::ok);
+    }
+    m_response->set_version("HTTP/1.1");
+    // header配置
+    if(isKeep()) {
+        m_response->append_header("Connection", "keep-alive");
+    }
+    else {
+        m_response->append_header("Connection", "close");
+    }
+
+    std::string content = m_response->raw();
+    M_SYLAR_LOG_INFO(g_logger) << "response content : \n" << content << std::endl;
     const char* buffer = content.c_str();
     ssize_t total_size = content.size();
     ssize_t offset = 0;
@@ -141,19 +169,19 @@ Task<int> HttpSession::sendResp()
 
 bool HttpSession::updateSession()
 {   // recv 后更新session状态， 如keep-alive
-    std::string connect_header = getRequest()->getHeader("connect", "keep-alive");
-    if(connect_header == "keep-alive")
-    {
-        m_is_keep_alive = true;
-    }
-    else
+    // connection 头
+    std::string connect_header = getRequest()->get_header("Connection");
+    M_SYLAR_LOG_INFO(g_logger) << "Connection header : " << connect_header;
+    if(connect_header == "close")
     {
         m_is_keep_alive = false;
     }
+
+
     return true;
 }
 
-void HttpServer::registerUrl(const std::string& url, HandlerFunc cb, http::HttpMethod method)
+void HttpServer::registerUrl(const std::string& url, HandlerFunc cb, protocol::http::HttpMethod method)
 {
     m_urls[url] = {method, cb};
 }
@@ -177,12 +205,12 @@ bool HttpServer::start()
 
 void HttpServer::GET(const std::string& url, HandlerFunc cb)
 {
-    registerUrl(url, cb, HttpMethod::GET);
+    registerUrl(url, cb, protocol::http::HttpMethod::GET);
 }
 
 void HttpServer::POST(const std::string& url, HandlerFunc cb)
 {
-    registerUrl(url, cb, HttpMethod::POST);
+    registerUrl(url, cb, protocol::http::HttpMethod::POST);
 }
 
 Task<void> HttpServer::execHandler(const std::string& url, HttpSession::ptr session)
@@ -198,7 +226,7 @@ Task<void> HttpServer::execHandler(const std::string& url, HttpSession::ptr sess
 
     auto request_pair = m_urls.find(path);
     if(request_pair == m_urls.end() ||
-       session->getRequest()->getMethod() != request_pair->second.first)
+       session->getRequest()->get_method() != HttpMethodToString(request_pair->second.first))
     {   // 方法不匹配
         co_return;
     }
@@ -210,7 +238,8 @@ Task<void> HttpServer::execHandler(const std::string& url, HttpSession::ptr sess
 Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
 {
     bool is_keep_alive = false;
-    // M_SYLAR_LOG_INFO(g_logger) << "newClient, socket :" << *client;         
+    // M_SYLAR_LOG_INFO(g_logger) << "newClient, socket :" << *client;   
+    int response_count = 0;      
     do
     {
         HttpSession::ptr session(new HttpSession(client));
@@ -218,10 +247,12 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         int rt = co_await session->recvRequest();
         // std::cout << "already resume handleClient" << std::endl;
         if(rt == 0) {break; /* 连接关闭 */}
-        else if(rt == -1)
+        else if(rt == -1 && errno != EAGAIN)
         {
             M_SYLAR_LOG_WARN(g_logger) << "recv http request failed"
-                                       << "\nclient:" << client->toString();
+                                        << ", errno:" << errno
+                                        << " error:" << strerror(errno)
+                                        << "\nclient:" << client->toString();
             break;
         }
         else if(rt == -2)
@@ -240,13 +271,29 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         }
         is_keep_alive = session->isKeep();
 
-        co_await execHandler(session->getRequest()->getPath(), session);         // 处理回调
-        session->getResponse()->updateHeader();
+        M_SYLAR_LOG_INFO(g_logger) << "uri : " << session->getRequest()->get_uri();
+        co_await execHandler(session->getRequest()->get_uri(), session);         // 处理回调
+        // session->getResponse()->updateHeader();
+
+        if(session->isKeep()) {
+            session->getResponse()->append_header("Connection", "keep-alive");
+        }
+        else {
+            session->getResponse()->append_header("Connection", "close");
+        }
         co_await session->sendResp();                // 发送响应报文
-    } while (is_keep_alive);
-    // client->close();
-    // IOManager::getInstance()->closeFd(client->getSocket());     // 通过ioamanger关闭fd,保证fd正常关闭
-    client->close();
+        M_SYLAR_LOG_INFO(g_logger) << "is keep alive : " << is_keep_alive;
+        response_count++;
+    } while (is_keep_alive && response_count < 10000);     // 限制最大请求数，防止死循环
+    if(is_keep_alive && response_count >= 10000)
+    {
+        M_SYLAR_LOG_WARN(g_logger) << "response count has reached the limit, close connection. client:" << client->toString();
+        auto t = std::bind(&HttpServer::handleClient, std::dynamic_pointer_cast<HttpServer>(shared_from_this()), client);
+        getIomanager()->schedule(TaskCoro20::create_coro(t));
+    }
+    else {
+        client->close();
+    }
     co_return;
 }
 
