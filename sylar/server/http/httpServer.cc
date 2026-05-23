@@ -23,20 +23,17 @@ ConfigVar<uint32_t>::ptr g_http_buffer_size = ConfigManager::LookUp("servers.htt
 ConfigVar<uint32_t>::ptr g_http_max_request_size  = ConfigManager::LookUp("servers.http.limit.max_request_size", uint32_t(10485760), 0, "http server parser buffer size");
 
 HttpSession::HttpSession(Socket::ptr socket)
-    : m_socket(socket)
+    : Session(socket)
 {
-    m_socket->setRecvTimeOut(g_http_recv_timeout->getValue());
-    m_socket->setSendTimeOut(g_http_send_timeout->getValue());
-    uint64_t buffer_size = g_http_buffer_size->getValue();
+    setRecvTimeOut(g_http_recv_timeout->getValue());
+    setSendTimeOut(g_http_send_timeout->getValue());
+    setBufferSize(g_http_buffer_size->getValue());
     m_response.reset(new Response());
     m_request.reset(new Request());
-    m_buffer = new char[buffer_size];
 }
 
 HttpSession::~HttpSession()
-{
-    delete[] m_buffer;
-}
+{}
 
 bool HttpSession::setResponse()
 {
@@ -56,12 +53,13 @@ Task<int> HttpSession::recvRequest()
     uint64_t buffer_size = g_http_buffer_size->getValue();
     uint64_t max_request_size = g_http_max_request_size->getValue();
     M_SYLAR_LOG_DEBUG(g_logger) << "http parser buffer size=" << buffer_size << " max request size=" << max_request_size;
-    int total_length = 0;       // 累计长度
+    char* buffer = nullptr;     // 输出参数，指向接收数据的起始位置，不要对buffer进行delete操作
+    size_t total_length = 0;      // 累计接收字节数
     while(true)
     {
         // 接受缓冲区信息
         // message_len = m_socket->recv(m_buffer + buffer_size - offset, offset, 0);
-        int recv_len = co_await m_socket->recv(m_buffer + m_buffer_end_pos, buffer_size - m_buffer_end_pos, 0);
+        int recv_len = co_await recvMessage(&buffer, -1);
         // 接收错误处理
         if(recv_len == 0)
         {   // 连接关闭
@@ -69,60 +67,31 @@ Task<int> HttpSession::recvRequest()
         }
         else if(recv_len == -1)
         {   // 错误
-            // 只处理几个真正重要的错误
-            switch(errno) {
-                case EBADF:        // 9 - 无效文件描述符
-                case EFAULT:       // 14 - 无效内存地址
-                case ENOMEM:       // 12 - 内存不足
-                case EMFILE:       // 24 - 打开文件过多
-                case ENFILE:       // 23 - 系统文件表满
-                    M_SYLAR_LOG_ERROR(g_logger) << "recv critical error: " << strerror(errno);
-                    co_return -1;
-                    
-                default:
-                    // 其他所有错误（包括 EAGAIN, ECONNRESET 等）都静默处理
-                    co_return -2;
-            }
-        }
-        if(total_length > max_request_size)
-        {
-            M_SYLAR_LOG_WARN(g_logger) << "[httpSession] message is too long, total length=" << total_length;
+            M_SYLAR_LOG_ERROR(g_logger) << "recv http request failed"
+                                        << ", errno:" << errno
+                                        << " error:" << strerror(errno)
+                                        << "\nclient:" << getRequest();
             co_return -1;
         }
 
-        // 缓冲区状态更新
-        m_buffer_end_pos += recv_len;
-        if(m_buffer_end_pos > buffer_size) {
-            M_SYLAR_LOG_FATAL(g_logger) << "buffer overflow, buffer size=" << buffer_size << " begin pos:" << m_buffer_begin_pos << " end pos=" << m_buffer_end_pos;
-            M_SYLAR_ASSERT(m_buffer_end_pos <= buffer_size);
-        }
-        total_length += recv_len;
-
-        M_SYLAR_LOG_DEBUG(g_logger) << "buffer content : \n" << std::string(m_buffer + m_buffer_begin_pos, m_buffer_end_pos - m_buffer_begin_pos) << std::endl;
         // 接收信息处理
         int sloved = 0;
         try{
-            sloved = m_request->consume(m_buffer + m_buffer_begin_pos, m_buffer_end_pos - m_buffer_begin_pos);
+            sloved = m_request->consume(buffer, recv_len);
         } catch (std::exception &e) {
             std::cout << e.what() << std::endl;
             co_return -1;
         }
-
-        // 信息处理异常处理
-        
-
-        // 缓冲区状态处理
-        if(sloved + m_buffer_begin_pos >= m_buffer_end_pos)
-        {   // 已经处理完所有数据，重置缓冲区
-            m_buffer_begin_pos = 0;
-            m_buffer_end_pos = 0;
-        }
-        else if(sloved > 0)
-        {   // 处理了部分数据，移动开始指针，recv后重置位置。
-            m_buffer_begin_pos += sloved;
-        }
+        consume(sloved);
+        total_length += sloved;
 
         // 解析状态处理
+        if(total_length > max_request_size)
+        {
+            M_SYLAR_LOG_WARN(g_logger) << "[httpSession] message is too long, total length=" << total_length << " max length=" << max_request_size;
+            co_return -1;
+        }
+
         if(m_request->ready()) {
             // 解析完成
             break;
@@ -155,7 +124,7 @@ Task<int> HttpSession::sendResp()
     ssize_t offset = 0;
     while(offset < total_size)
     {
-        int send_size = co_await m_socket->send(buffer + offset, total_size - offset);
+        int send_size = co_await sendMessage(buffer + offset, total_size - offset);
         if(send_size == -1 && errno == EPIPE)
         {
             break;

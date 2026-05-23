@@ -307,7 +307,7 @@ void IOManager::tickle()
     // }
 
         int64_t buffer = 1;
-        if(1 == write(m_eventFd, &buffer, sizeof(buffer)))
+        if(-1 == write(m_eventFd, &buffer, sizeof(buffer)))
         {
             M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]failed to tickle othres while write eventFd"
                                         << "\nerrno=" << errno << " error:" << strerror(errno);

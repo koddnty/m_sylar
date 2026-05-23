@@ -38,6 +38,7 @@ set(BASIC_SOURCES
 
 # 网络服务 模块
 set(HTTP_SOURCES
+    sylar/server/common/session.cc
     sylar/server/tcp/tcpServer.cc
     sylar/server/http/httpServer.cc
 )

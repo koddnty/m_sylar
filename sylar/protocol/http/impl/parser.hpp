@@ -31,7 +31,6 @@
 
 #include <algorithm>
 #include <cstdlib>
-#include <istream>
 #include <sstream>
 #include <string>
 #include <protocol/http/parser.hpp>
