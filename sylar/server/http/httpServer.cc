@@ -12,6 +12,8 @@
 #include "basic/log.h"
 #include "httpServer.h"
 
+#include "server/websocket/wsserver.hpp"
+
 namespace m_sylar
 {
 namespace http
@@ -174,6 +176,17 @@ bool HttpServer::start()
     return true;
 }
 
+bool HttpServer::initWsSupport(websocket::WsServer::ptr ws_server) {
+    if(ws_server) {
+        m_ws_server = ws_server;
+    }
+    else {
+        m_ws_server = std::make_shared<websocket::WsServer>();
+    }
+    m_enable_websocket = true; 
+    return true; 
+}  
+
 
 void HttpServer::GET(const std::string& url, HandlerFunc cb)
 {
@@ -220,18 +233,17 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         int rt = co_await session->recvRequest();
         // std::cout << "already resume handleClient" << std::endl;
         if(rt == 0) {break; /* 连接关闭 */}
-        else if(rt == -1 && errno != EAGAIN)
-        {
+        else if(rt == -1 && errno != EAGAIN){
             M_SYLAR_LOG_WARN(g_logger) << "recv http request failed"
                                         << ", errno:" << errno
                                         << " error:" << strerror(errno)
                                         << "\nclient:" << client->toString();
             break;
         }
-        else if(rt == -2)
-        {
+        else if(rt == -2){
             break;
         }
+
 
         // M_SYLAR_LOG_INFO(g_logger) << "request:\n" << *(session->getRequest());       
 
@@ -245,7 +257,7 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         is_keep_alive = session->isKeep();
 
         M_SYLAR_LOG_INFO(g_logger) << "uri : " << session->getRequest()->get_uri();
-        co_await execHandler(session->getRequest()->get_uri(), session);         // 处理回调
+        co_await execHandler(session->getRequest()->get_uri(), session);         // 处理任务回调
         // session->getResponse()->updateHeader();
 
         co_await session->sendResp();                // 发送响应报文

@@ -28,8 +28,8 @@ public:
 
     virtual bool bind(Address::ptr addr, int num = 1);
     virtual bool bind(std::vector<std::pair<Address::ptr, int>>& addrs_num, std::vector<Address::ptr>& failed);
-    virtual bool start();           // 不同上层协议必须实现
-    virtual bool stop();
+    virtual bool start();           // 不同上层协议必须实现， server启动函数
+    virtual bool stop();            // 停止server
 
     uint64_t getRTimeout() const { return m_readtimeout;}
     std::string getName() const { return m_name;}
@@ -39,7 +39,9 @@ public:
     bool isStop() const { return m_stop;}
 
 protected:
+    // 新连接的处理函数，如http中循环接受，处理报文
     virtual Task<void, TaskBeginExecuter> handleClient(Socket::ptr client);             // 不同上层协议必须实现
+    // 握手函数，如websocket中握手升级协议
     virtual Task<void, TaskBeginExecuter> startAccept(Socket::ptr sock);                // 不同上层协议必须实现
 
     IOManager* getIomanager() const {return m_iomanager; }

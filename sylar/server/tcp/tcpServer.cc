@@ -132,7 +132,6 @@ void TcpServer::setName(std::string name)
 Task<void, TaskBeginExecuter> TcpServer::handleClient(Socket::ptr client)
 {
     M_SYLAR_LOG_DEBUG(g_logger) << "new client";
-    sleep(2);
     co_return;
 }
 

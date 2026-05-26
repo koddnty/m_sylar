@@ -24,7 +24,13 @@ public:
     void setRecvTimeOut(uint64_t time) { return m_socket->setRecvTimeOut(time); }
     void setSendTimeOut(uint64_t time) { return m_socket->setSendTimeOut(time); }
     void setBufferSize(size_t size) { m_buffer_size = size; }
-    inline size_t getReceived() const { return m_buffer_size; }
+
+    int64_t getRecvTimeOut() const { return m_socket->getRecvTimeOut(); }
+    int64_t getSendTimeOut() const { return m_socket->getSendTimeOut(); }
+    inline int64_t getBufferSize() const { return m_buffer_size; }
+
+    const Socket::ptr getSocket() const { return m_socket; }
+
 
 private:
     char* m_buffer;               // 流式buffer

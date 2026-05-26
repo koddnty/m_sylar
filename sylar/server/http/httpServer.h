@@ -12,9 +12,15 @@
 #include "protocol/http/request.hpp"
 #include "protocol/http/response.hpp"
 #include "server/common/session.hpp"
+// #include "server/websocket/wsserver.hpp"
 
 namespace m_sylar
 {
+namespace websocket
+{
+    class WsServer;
+}
+
 namespace http
 {
 
@@ -55,6 +61,7 @@ private:
 };
 
 
+
 class HttpServer : public TcpServer
 {
 public:
@@ -68,16 +75,27 @@ public:
     void registerUrl(const std::string& url, HandlerFunc cb, protocol::http::HttpMethod method);
 
     bool start() override;
+
+    bool initWsSupport(std::shared_ptr<websocket::WsServer> ws_server = nullptr);// 初始化websocket支持，传入websocket server实例
     
+    /**
+        * @brief 注册GET和POST方法的url处理函数
+    */
     void GET(const std::string& url, HandlerFunc cb);
     void POST(const std::string& url, HandlerFunc cb);
 
 
+    // 业务处理函数， 由用户注册的url处理函数调用
     Task<void> execHandler(const std::string& url, HttpSession::ptr session);
 private:
     Task<void, TaskBeginExecuter> handleClient(Socket::ptr client) override;
     Task<void, TaskBeginExecuter> startAccept(Socket::ptr sock) override;
     std::map<std::string, std::pair<protocol::http::HttpMethod, HandlerFunc>> m_urls;
+
+    // websocket支持
+    bool m_enable_websocket = false;     // 是否支持websocket协议
+    std::shared_ptr<websocket::WsServer> m_ws_server{nullptr};     // websocket server实例
+
 };
 
 // using HttpMgr = Singleton<HttpServer>;

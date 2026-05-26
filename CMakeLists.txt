@@ -36,11 +36,21 @@ set(BASIC_SOURCES
     sylar/basic/socket.cc
 )
 
+# 协议模块
+file(GLOB_RECURSE WebSocketSources 
+    "sylar/server/protocol/*.cc"
+    "sylar/server/protocol/*.cpp"
+)
+set(PROTOCOL_SOURCES
+    ${WebSocketSources}
+)
+
 # 网络服务 模块
 set(HTTP_SOURCES
     sylar/server/common/session.cc
     sylar/server/tcp/tcpServer.cc
     sylar/server/http/httpServer.cc
+    sylar/server/websocket/wsserver.cc
 )
 
 
