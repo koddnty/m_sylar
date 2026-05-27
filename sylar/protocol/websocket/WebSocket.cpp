@@ -5,6 +5,7 @@
 // Author: katzarsky@gmail.com
 
 #include "WebSocket.h"
+#include <memory.h>
 
 //#include "md5/md5.h"
 #include "base64/base64.h"

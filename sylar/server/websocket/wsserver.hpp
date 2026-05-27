@@ -18,27 +18,8 @@ namespace m_sylar
 {
 namespace websocket
 {
-
-class WsSession : Session{
-public:
-    using ptr = std::shared_ptr<WsSession>;
-    WsSession(Socket::ptr session);
-
-
-    Task<int> recvMessage();
-
-    Task<int> sendMessage(const std::string& msg);
-    Task<int> sendMessage(const std::vector<uint8_t>& data);
-
-    Task<int> close(int code, const std::string& reason);
-
-private:
-    uint64_t m_total_received = 0;                  // 累计接收字节数
-    std::shared_ptr<WebSocket> m_ws {nullptr};        // websocket连接状态
-    uint64_t m_close_timeout = 5000;                // 关闭连接的超时时间，单位ms
-    websocket_parser m_parser;                        // websocket协议解析器
-};
-
+class WsSession;
+;
 
 /** 
     用户API
@@ -48,14 +29,43 @@ public:
     using ptr = std::shared_ptr<WsHandler>;
     virtual ~WsHandler() = default;
 
-    virtual Task<void> onOpen(WsSession::ptr session) = 0;                                      // 连接建立
-    virtual Task<void> onMessage(WsSession::ptr session, const std::string& msg);               // 文本消息
-    virtual Task<void> onBinary(WsSession::ptr session, const std::vector<uint8_t>& data);      // 二进制消息
-    virtual Task<void> onClose(WsSession::ptr session, int code, const std::string& reason);    // 连接关闭
-    virtual Task<void> onError(WsSession::ptr session, const std::string& error);               // 连接错误
+    virtual Task<void> onOpen(std::shared_ptr<WsSession> session) = 0;                                      // 连接建立
+    virtual Task<void> onMessage(std::shared_ptr<WsSession> session, const std::string& msg);               // 文本消息
+    virtual Task<void> onBinary(std::shared_ptr<WsSession> session, const std::vector<uint8_t>& data);      // 二进制消息
+    virtual Task<void> onClose(std::shared_ptr<WsSession> session, int code, const std::string& reason);    // 连接关闭
+    virtual Task<void> onError(std::shared_ptr<WsSession> session, const std::string& error);               // 连接错误
 
-    virtual Task<void> onPing(const std::string& msg, const std::vector<WsSession::ptr>& sessions);      // 消息广播
+    // virtual Task<void> onPing(const std::string& msg, const std::vector<std::shared_ptr<WsSession>>& sessions);      // 消息广播
 };
+
+
+
+class WsSession : Session{
+public:
+    using ptr = std::shared_ptr<WsSession>;
+    WsSession(Socket::ptr session);
+
+
+    Task<int> co_recvMessage();         // 消息接受，报文解析
+
+    Task<int> co_sendMessage(const std::string& msg);
+    Task<int> co_sendMessage(const std::vector<uint8_t>& data);
+
+    Task<int> co_close(int code, const std::string& reason);
+
+    WsHandler::ptr getHandler() { return m_handler; }
+
+private:
+    uint64_t m_total_received = 0;                  // 累计接收字节数
+    std::shared_ptr<WebSocket> m_ws {nullptr};        // websocket连接状态
+    uint64_t m_close_timeout = 5000;                // 关闭连接的超时时间，单位ms
+    websocket_parser m_parser;                        // websocket协议解析器
+
+    WsHandler::ptr m_handler {nullptr};              // 用户回调处理器
+};
+
+
+
 
 
 
@@ -88,6 +98,7 @@ public:
 
 
 private:
+    std::shared_mutex m_mutex;
     std::map<std::string, std::pair<std::string, WsHandler::ptr>> m_sessionIdMap;     // sessionId与userId的映射sessionId->userId
     std::map<std::string, std::pair<std::string, WsHandler::ptr>> m_userIdMap;        // userId与sessionId的映射userId->sessionId
 };

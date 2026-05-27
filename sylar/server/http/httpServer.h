@@ -46,8 +46,9 @@ public:
 
     bool setResponse();                 // 设置响应报文， 成功返回true;
 
-    Task<int> recvRequest();                 // 接收一个http请求
-    Task<int> sendResp();                     // 针对当前请求返回响应
+    Task<int> co_recvRequest();                 // 接收一个http请求
+    Task<int> co_sendResp();                     // 针对当前请求返回响应
+    Task<int> co_sendResp(const std::string& resp);   // 直接发送响应字符串，成功返回发送字节数
 
     bool updateSession();               // recv后更新session信息，如connect和cookie
 
@@ -76,7 +77,7 @@ public:
 
     bool start() override;
 
-    bool initWsSupport(std::shared_ptr<websocket::WsServer> ws_server = nullptr);// 初始化websocket支持，传入websocket server实例
+    // bool initWsSupport(std::shared_ptr<websocket::WsServer> ws_server = nullptr);// 初始化websocket支持，传入websocket server实例
     
     /**
         * @brief 注册GET和POST方法的url处理函数

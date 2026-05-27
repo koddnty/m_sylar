@@ -38,8 +38,9 @@ set(BASIC_SOURCES
 
 # 协议模块
 file(GLOB_RECURSE WebSocketSources 
-    "sylar/server/protocol/*.cc"
-    "sylar/server/protocol/*.cpp"
+    "sylar/protocol/websocket/*.cc"
+    "sylar/protocol/websocket/*.c"
+    "sylar/protocol/websocket/*.cpp"
 )
 set(PROTOCOL_SOURCES
     ${WebSocketSources}
@@ -50,7 +51,9 @@ set(HTTP_SOURCES
     sylar/server/common/session.cc
     sylar/server/tcp/tcpServer.cc
     sylar/server/http/httpServer.cc
-    sylar/server/websocket/wsserver.cc
+    # sylar/protocol/websocket/parser.cc
+    ${PROTOCOL_SOURCES}
+    # sylar/server/websocket/wsserver.cc
 )
 
 
@@ -110,6 +113,11 @@ target_include_directories(sylar PUBLIC
 #     ${CMAKE_CURRENT_SOURCE_DIR}
 #     ${CMAKE_CURRENT_SOURCE_DIR}/sylar
 # )
+
+# websocket parser测试
+add_executable(test_parser tests/server/test_websocket_parser.cc)
+add_dependencies(test_parser sylar)
+target_link_libraries(test_parser sylar ${LIB_LIB})
 
 # config 测试
 add_executable(test_config tests/test_config2.cc)

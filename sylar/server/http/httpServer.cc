@@ -12,7 +12,7 @@
 #include "basic/log.h"
 #include "httpServer.h"
 
-#include "server/websocket/wsserver.hpp"
+// #include "server/websocket/wsserver.hpp"
 
 namespace m_sylar
 {
@@ -50,7 +50,7 @@ bool HttpSession::setResponse()
     @return -2 表示不重要的客户端或其他错误
 */
 
-Task<int> HttpSession::recvRequest()
+Task<int> HttpSession::co_recvRequest()
 {
     uint64_t buffer_size = g_http_buffer_size->getValue();
     uint64_t max_request_size = g_http_max_request_size->getValue();
@@ -103,7 +103,7 @@ Task<int> HttpSession::recvRequest()
     co_return total_length;
 }
 
-Task<int> HttpSession::sendResp()
+Task<int> HttpSession::co_sendResp()
 {
     // 默认设置码
     if(m_response->get_status_code() == protocol::http::status_code::uninitialized)
@@ -120,9 +120,31 @@ Task<int> HttpSession::sendResp()
     }
 
     std::string content = m_response->raw();
-    M_SYLAR_LOG_INFO(g_logger) << "response content : \n" << content << std::endl;
-    const char* buffer = content.c_str();
-    ssize_t total_size = content.size();
+    co_return co_await co_sendResp(content);
+    // M_SYLAR_LOG_INFO(g_logger) << "response content : \n" << content << std::endl;
+    // const char* buffer = content.c_str();
+    // ssize_t total_size = content.size();
+    // ssize_t offset = 0;
+    // while(offset < total_size)
+    // {
+    //     int send_size = co_await sendMessage(buffer + offset, total_size - offset);
+    //     if(send_size == -1 && errno == EPIPE)
+    //     {
+    //         break;
+    //     }
+    //     if(send_size == -1)
+    //     {
+    //         // M_SYLAR_LOG_WARN(g_logger) << "send failed, errno:" << errno << " error:" << strerror(errno);
+    //         co_return -1;
+    //     }
+    //     offset += send_size;
+    // }
+}
+
+Task<int> HttpSession::co_sendResp(const std::string& resp) {
+    // M_SYLAR_LOG_INFO(g_logger) << "response content : \n" << resp << std::endl;
+    const char* buffer = resp.c_str();
+    ssize_t total_size = resp.size();
     ssize_t offset = 0;
     while(offset < total_size)
     {
@@ -176,16 +198,16 @@ bool HttpServer::start()
     return true;
 }
 
-bool HttpServer::initWsSupport(websocket::WsServer::ptr ws_server) {
-    if(ws_server) {
-        m_ws_server = ws_server;
-    }
-    else {
-        m_ws_server = std::make_shared<websocket::WsServer>();
-    }
-    m_enable_websocket = true; 
-    return true; 
-}  
+// bool HttpServer::initWsSupport(websocket::WsServer::ptr ws_server) {
+//     if(ws_server) {
+//         m_ws_server = ws_server;
+//     }
+//     else {
+//         m_ws_server = std::make_shared<websocket::WsServer>();
+//     }
+//     m_enable_websocket = true; 
+//     return true; 
+// }  
 
 
 void HttpServer::GET(const std::string& url, HandlerFunc cb)
@@ -226,11 +248,12 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
     // M_SYLAR_LOG_INFO(g_logger) << "newClient, socket :" << *client;   
     int response_count = 0;    
     int stack_deep = 1000;  
+    HttpSession::ptr session(new HttpSession(client));
+
     do
     {
-        HttpSession::ptr session(new HttpSession(client));
         // 获取并处理请求报文
-        int rt = co_await session->recvRequest();
+        int rt = co_await session->co_recvRequest();
         // std::cout << "already resume handleClient" << std::endl;
         if(rt == 0) {break; /* 连接关闭 */}
         else if(rt == -1 && errno != EAGAIN){
@@ -245,25 +268,40 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         }
 
 
-        // M_SYLAR_LOG_INFO(g_logger) << "request:\n" << *(session->getRequest());       
-
         // 更新session信息
         if(!session->updateSession())       
         {
-            // session->getResponse()->setStatus(HttpStatus::INTERNAL_SERVER_ERROR);
             M_SYLAR_LOG_DEBUG(g_logger) << "failed to update session message";
             co_return;
         }
         is_keep_alive = session->isKeep();
 
+
+        // websocket握手处理，成功则进入websocket流程，失败则关闭连接
+        // if(m_enable_websocket && response_count == 0) {
+        //     // 握手
+        //     int ws_rt = co_await m_ws_server->handShake(session);
+        //     if(ws_rt == 0) {
+
+        //         co_return;
+        //     }
+        //     else { // 握手失败
+        //         M_SYLAR_LOG_WARN(g_logger) << "websocket handshake failed, close connection. client:" << client->toString();
+        //         co_return;
+        //     } 
+        // }
+
+
         M_SYLAR_LOG_INFO(g_logger) << "uri : " << session->getRequest()->get_uri();
         co_await execHandler(session->getRequest()->get_uri(), session);         // 处理任务回调
         // session->getResponse()->updateHeader();
 
-        co_await session->sendResp();                // 发送响应报文
+        co_await session->co_sendResp();                // 发送响应报文
         M_SYLAR_LOG_INFO(g_logger) << "is keep alive : " << is_keep_alive;
         response_count++;
     } while (is_keep_alive && response_count < stack_deep);     // 限制最大请求数，防止死循环
+
+    // 协程重调度
     if(is_keep_alive && response_count >= stack_deep)
     {
         M_SYLAR_LOG_WARN(g_logger) << "response count has reached the limit, close connection. client:" << client->toString();
