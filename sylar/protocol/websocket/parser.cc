@@ -6,30 +6,38 @@ namespace websocket {
     
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");    
 
-Frame::Frame() {
+FrameBuffer::FrameBuffer() {
     m_context.parser = &m_parser;
     m_parser.data = &m_context;
+    m_context.buffered_frames = &m_buffered_frames;
     websocket_parser_init(&m_parser);
     websocket_parser_settings_init(&m_settings);
 
-    m_settings.on_frame_header = Frame::on_frame_header;
-    m_settings.on_frame_body = Frame::on_frame_body;
-    m_settings.on_frame_end = Frame::on_frame_end;
+    m_settings.on_frame_header = FrameBuffer::on_frame_header;
+    m_settings.on_frame_body = FrameBuffer::on_frame_body;
+    m_settings.on_frame_end = FrameBuffer::on_frame_end;
 }
 
-Frame::~Frame() {
+FrameBuffer::~FrameBuffer() {
     
 }
 
-size_t Frame::consume(unsigned char* in_buffer, int in_length) {
-    websocket_parser_execute(&m_parser, &m_settings, (const char*)in_buffer, in_length);
-    return in_length; // 这里可以根据实际情况返回已消费的字节数
+size_t FrameBuffer::consume(unsigned char* in_buffer, int in_length) {
+    return websocket_parser_execute(&m_parser, &m_settings, (const char*)in_buffer, in_length);
 }
 
 
+std::shared_ptr<Frame> FrameBuffer::getFrame() {
+    if(m_buffered_frames.empty()) {
+        return nullptr; // 没有可用帧
+    }
+    auto frame = m_buffered_frames.front();
+    m_buffered_frames.pop_front(); // 从缓冲区移除已取出的帧
+    return frame;
+}
 
-int Frame::on_frame_header(websocket_parser* parser) {
-    M_SYLAR_LOG_DEBUG(g_logger) << "Received frame header chunk";
+
+int FrameBuffer::on_frame_header(websocket_parser* parser) {
     Context* context = (Context*) parser->data;
     context->opcode = (websocket_flags)websocket_parser_get_opcode(parser);
     context->payload_length = parser->length;
@@ -39,30 +47,31 @@ int Frame::on_frame_header(websocket_parser* parser) {
     context->payload_text.clear();
     context->payload_received = 0;
 
-    if(context->opcode == websocket_flags::WS_OP_TEXT) {
-        // 文本帧，准备接收文本数据
-        context->payload_text.resize(context->payload_length + 1);
-    } else if(context->opcode == websocket_flags::WS_OP_BINARY) {
+    if(context->opcode == websocket_flags::WS_OP_BINARY) {
         // 二进制帧，准备接收二进制数据
         context->payload_binary.resize(context->payload_length);
     }
-    else {
-        // 其他类型帧，可能需要特殊处理
-    }
+    else if(context->opcode == websocket_flags::WS_OP_TEXT) {
+        // 文本帧，准备接收文本数据
+        context->payload_text.resize(context->payload_length);
+    }  
+
     return 0; // 返回0表示继续解析
 }
 
-int Frame::on_frame_body(websocket_parser* parser, const char* at, size_t length) {
-    M_SYLAR_LOG_DEBUG(g_logger) << "Received frame body chunk: length=" << length;
+int FrameBuffer::on_frame_body(websocket_parser* parser, const char* at, size_t length) {
     Context* context = (Context*) parser->data;
-    if(context->opcode == websocket_flags::WS_OP_TEXT) {
-        websocket_parser_decode(context->payload_text.data() + context->payload_received, at, length, parser);
-    } else if(context->opcode == websocket_flags::WS_OP_BINARY) {
+    if(context->payload_received + length > context->payload_length) {
+        M_SYLAR_LOG_ERROR(g_logger) << "Received more data than expected: received=" << (context->payload_received + length) << ", expected=" << context->payload_length;
+        return -1; // 错误，接收数据超过预期长度
+    }
+
+    if(context->opcode == websocket_flags::WS_OP_BINARY) {
         websocket_parser_decode((char*) context->payload_binary.data() + context->payload_received, at, length, parser);
     }
     else {
-        M_SYLAR_LOG_DEBUG(g_logger) << "Unsupported opcode: " << (int)context->opcode;
-    }
+        websocket_parser_decode(context->payload_text.data() + context->payload_received, at, length, parser);
+    } 
 
     context->payload_received += length;
     // if(websocket_parser_has_mask(parser)) {
@@ -93,10 +102,48 @@ int Frame::on_frame_body(websocket_parser* parser, const char* at, size_t length
     return 0;
 }
 
-int Frame::on_frame_end(websocket_parser* parser) {
-    M_SYLAR_LOG_DEBUG(g_logger) << "Frame parsing completed";
-    return 0;
+int FrameBuffer::on_frame_end(websocket_parser* parser) {
+    Context* context = (Context*) parser->data;
+    if(context->payload_received != context->payload_length) {
+        M_SYLAR_LOG_ERROR(g_logger) << "Frame end received but payload length mismatch: received=" << context->payload_received << ", expected=" << context->payload_length;
+        return -1; // 错误，接收数据长度不匹配
+    }
+
+    context->buffered_frames->push_back(std::make_shared<Frame>(std::move(context))); // 将解析完成的帧存储到缓冲区
+    return 0; 
 }
+
+
+
+// 帧
+Frame::Frame(FrameBuffer::Context* context) {
+    if(!context) {return;}
+    m_opcode = context->opcode;
+    m_payload_length = context->payload_length;
+    m_payload_text = (context->payload_text);
+    m_payload_binary = (context->payload_binary);
+}
+
+Frame::Frame(FrameBuffer::Context& context) {
+    m_opcode = context.opcode;
+    m_payload_length = context.payload_length;
+    m_payload_text = context.payload_text;
+    m_payload_binary = context.payload_binary;
+}
+
+Frame::Frame(FrameBuffer::Context&& context) {
+    m_opcode = context.opcode;
+    m_payload_length = context.payload_length;
+    m_payload_text = std::move(context.payload_text);
+    m_payload_binary = std::move(context.payload_binary);
+
+    context.reset(); // 重置Context状态，清空数据
+}
+
+Frame::~Frame() {
+
+}
+
 
     
 }

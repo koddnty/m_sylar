@@ -1,6 +1,6 @@
 #ifndef WEBSOCKET_PARSER_H
 #define WEBSOCKET_PARSER_H
-
+#pragma once
 #ifdef __cplusplus
 extern "C" {
 #endif
