@@ -12,6 +12,7 @@
 #include "protocol/http/response.hpp"
 #include "protocol/websocket/WebSocket.h"
 #include "protocol/websocket/websocket_parser.h"
+#include "protocol/websocket/parser.hpp"
 
 
 namespace m_sylar
@@ -43,25 +44,21 @@ public:
 class WsSession : Session{
 public:
     using ptr = std::shared_ptr<WsSession>;
-    WsSession(Socket::ptr session);
+    WsSession(Socket::ptr socket);
 
 
-    Task<int> co_recvMessage();         // 消息接受，报文解析
+    Task<int> co_recvFrame();         // 消息接受，报文解析
 
-    Task<int> co_sendMessage(const std::string& msg);
-    Task<int> co_sendMessage(const std::vector<uint8_t>& data);
+    Task<int> co_sendFrame(const std::string& msg);
+    Task<int> co_sendFrame(const std::vector<uint8_t>& data);
 
     Task<int> co_close(int code, const std::string& reason);
 
-    WsHandler::ptr getHandler() { return m_handler; }
-
 private:
-    uint64_t m_total_received = 0;                  // 累计接收字节数
-    std::shared_ptr<WebSocket> m_ws {nullptr};        // websocket连接状态
-    uint64_t m_close_timeout = 5000;                // 关闭连接的超时时间，单位ms
-    websocket_parser m_parser;                        // websocket协议解析器
-
-    WsHandler::ptr m_handler {nullptr};              // 用户回调处理器
+    uint64_t m_total_received = 0;                      // 累计接收字节数
+    std::shared_ptr<WebSocket> m_ws {nullptr};          // websocket连接状态
+    uint64_t m_close_timeout = 5000;                    // 关闭连接的超时时间，单位ms
+    FrameBuffer m_frame_buffer;                         // 消息帧缓冲区
 };
 
 

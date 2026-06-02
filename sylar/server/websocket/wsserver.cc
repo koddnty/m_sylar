@@ -7,6 +7,73 @@ namespace websocket {
 
 m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
+ConfigVar<uint32_t>::ptr g_ws_recv_timeout = ConfigManager::LookUp("servers.websocket.timeout.recv", uint32_t(30), 0, "websocket server recv timeout");
+ConfigVar<uint32_t>::ptr g_ws_send_timeout = ConfigManager::LookUp("servers.websocket.timeout.send", uint32_t(30), 0, "websocket server send timeout");
+ConfigVar<uint32_t>::ptr g_ws_ping_timeout = ConfigManager::LookUp("servers.websocket.timeout.ping", uint32_t(30), 0, "websocket server send timeout");
+ConfigVar<uint32_t>::ptr g_ws_buffer_size = ConfigManager::LookUp("servers.websocket.limit.buffer_size", uint32_t(1024), 0, "websocket server parser buffer size");
+ConfigVar<uint32_t>::ptr g_ws_max_request_size  = ConfigManager::LookUp("servers.websocket.limit.max_request_size", uint32_t(10485760), 0, "websocket server parser buffer size");
+
+
+WsSession::WsSession(Socket::ptr socket) : Session(socket) {
+    setRecvTimeOut(g_ws_recv_timeout->getValue());
+    setSendTimeOut(g_ws_send_timeout->getValue());
+    setBufferSize(g_ws_buffer_size->getValue());
+}
+
+
+Task<int> WsSession::co_recvFrame() {
+    uint32_t max_request_size = g_ws_max_request_size->getValue();
+    char* buffer = nullptr;     // 输出参数，指向接收数据的起始位置，不要对buffer进行delete操作
+    size_t total_length = 0;      // 累计接收字节数
+
+    while(true) {
+        int rt = co_await recvMessage(&buffer, -1);
+        if(rt == 0) {   // 连接关闭
+            M_SYLAR_LOG_WARN(g_logger) << "recv websocket frame failed, buffer is null, close connection. client:" << getSocket()->toString();
+            co_return 0;
+        }
+        else if(rt < 0) {  // 错误
+            M_SYLAR_LOG_ERROR(g_logger) << "recv websocket frame failed, errno:" << errno << " error:" << strerror(errno) << "\nclient:" << getSocket()->toString();
+            co_return -1;
+        }
+
+
+        // 帧解析
+        total_length += rt;
+        if(total_length > max_request_size) {
+            M_SYLAR_LOG_WARN(g_logger) << "recv websocket frame failed, total_length=" << total_length << " exceeds max_request_size=" << max_request_size << ", close connection. client:" << getSocket()->toString();
+            co_return -1;
+        }
+        int consumed = m_frame_buffer.consume((unsigned char*)buffer, rt);
+        if(consumed < 0) {
+            M_SYLAR_LOG_ERROR(g_logger) << "websocket frame parse error, close connection. client:" << getSocket()->toString();
+            co_return -1;
+        }
+
+        consume(consumed);   // 更新缓冲区状态
+        if(m_frame_buffer.getFrameCount() > 0) {
+            break;  // 已经解析出完整帧，退出循环
+        }
+    }
+
+    co_return 0;
+}
+
+Task<int> WsSession::co_sendFrame(const std::string& msg) {
+
+}
+
+Task<int> WsSession::co_sendFrame(const std::vector<uint8_t>& data) {
+
+}
+
+Task<int> WsSession::co_close(int code, const std::string& reason) {
+
+}
+
+
+
+
 Task<int> WsServer::handShake(http::HttpSession::ptr http_session) {
     // 完成握手，建立websocket连接
     // 请求判断
@@ -29,7 +96,7 @@ Task<int> WsServer::handShake(http::HttpSession::ptr http_session) {
         co_return -1;
     }
 
-    
+
 
 
     // 3. 将http_session升级为websocket session，维护连接状态
@@ -46,15 +113,19 @@ Task<void, TaskBeginExecuter> WsServer::handleClient(Socket::ptr client) {
     // session 构建
     WsSession::ptr session = std::make_shared<WsSession>(client);
     int code = 1000;
+    bool isClosed = false;
     std::string reason {"Normal Closure"};
 
+
     // 通信
-    do
-    {
+    do {
         // 获取并处理请求报文
-        int rt = co_await session->co_recvMessage();
+        int rt = co_await session->co_recvFrame();
         // std::cout << "already resume handleClient" << std::endl;
-        if(rt == 0) {break; /* 连接关闭 */}
+        if(rt == 0) {
+            isClosed = true;
+            break; /* 连接关闭 */
+        }
         else if(rt == -1 && errno != EAGAIN){
             M_SYLAR_LOG_WARN(g_logger) << "recv http request failed"
                                         << ", errno:" << errno
@@ -67,42 +138,10 @@ Task<void, TaskBeginExecuter> WsServer::handleClient(Socket::ptr client) {
         }
 
 
-        // 更新session信息
-        if(!session->updateSession())       
-        {
-            M_SYLAR_LOG_DEBUG(g_logger) << "failed to update session message";
-            co_return;
-        }
-        is_keep_alive = session->isKeep();
-
-
-        // websocket握手处理，成功则进入websocket流程，失败则关闭连接
-        if(m_enable_websocket && response_count == 0) {
-            // 握手
-            int ws_rt = co_await m_ws_server->handShake(session);
-            if(ws_rt == 0) {
-                
-                co_return;
-            }
-            else { // 握手失败
-                M_SYLAR_LOG_WARN(g_logger) << "websocket handshake failed, close connection. client:" << client->toString();
-                co_return;
-            } 
-        }
-
-
-        M_SYLAR_LOG_INFO(g_logger) << "uri : " << session->getRequest()->get_uri();
-        co_await execHandler(session->getRequest()->get_uri(), session);         // 处理任务回调
-        // session->getResponse()->updateHeader();
-
-        co_await session->co_sendResp();                // 发送响应报文
-        M_SYLAR_LOG_INFO(g_logger) << "is keep alive : " << is_keep_alive;
-        response_count++;
-    } while (is_keep_alive && response_count < stack_deep);     // 限制最大请求数，防止死循环
+    } while (isClosed);     // 限制最大请求数，防止死循环
 
 
     // 断开
-    co_await session->getHandler()->onClose(session, code, reason);
     co_return;
 }
 

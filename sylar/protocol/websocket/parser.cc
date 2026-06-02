@@ -1,5 +1,7 @@
 #include <protocol/websocket/parser.hpp>
 #include <basic/log.h>
+#include <basic/until.h>
+#include <basic/endian.h>
 
 namespace m_sylar {
 namespace websocket {
@@ -142,6 +144,82 @@ Frame::Frame(FrameBuffer::Context&& context) {
 
 Frame::~Frame() {
 
+}
+
+// 与opcode不一致的payload将被忽略
+void Frame::setTextPayload(const std::string& text) {
+    m_payload_text = text;
+    if(m_opcode == websocket_flags::WS_OP_TEXT) {
+        m_payload_length = text.size();
+    }
+    return;
+}
+
+void Frame::setBinaryPayload(const std::vector<uint8_t>& data) {
+    m_payload_binary = data;
+    if(m_opcode == websocket_flags::WS_OP_BINARY) {
+        m_payload_length = data.size();
+    }
+    return;
+}
+
+std::vector<uint8_t> Frame::make(bool mask) const {
+    std::vector<uint8_t> data;
+    make(data, mask);
+    return data;
+}
+
+int Frame::make(std::vector<uint8_t>& data, bool mask) const {
+    data.clear();
+    // 第一字节：FIN + RSV1-3 + Opcode
+    uint8_t first_byte = 0;
+    first_byte |= (m_opcode & WS_OP_MASK); // 设置Opcode
+    first_byte |= websocket_flags::WS_FINAL_FRAME; // 设置FIN位
+    data.push_back(first_byte);
+
+    // 第二字节及长度扩展：MASK + Payload Length
+    uint64_t len = m_payload_length;
+    uint8_t byte1 = 0x00;  // 服务端不掩码，MASK = 0
+    if(mask) {
+        byte1 |= 0x80; // 设置MASK位
+    }
+    
+    if (len < 126) {
+        byte1 |= len;
+        data.push_back(byte1);
+    } else if (len <= 0xFFFF) {
+        byte1 |= 126;
+        data.push_back(byte1);
+        uint16_t len16 = byteSwapToBigEndian((uint16_t)len);
+        data.push_back((len16 >> 8) & 0xFF);
+        data.push_back(len16 & 0xFF);
+    } else {
+        byte1 |= 127;
+        data.push_back(byte1);
+        uint64_t len64 = byteSwapToBigEndian((uint64_t)len);
+        for (int i = 56; i >= 0; i -= 8) {
+            data.push_back((len64 >> i) & 0xFF);
+        }
+    }
+
+    // 掩码
+    if(mask) {
+        uint32_t mask_key = Random<uint32_t>::get(); 
+        data.push_back((mask_key >> 24) & 0xFF);
+        data.push_back((mask_key >> 16) & 0xFF);
+        data.push_back((mask_key >> 8) & 0xFF);
+        data.push_back(mask_key & 0xFF);
+    }
+
+
+    // 载荷
+    if(m_opcode == websocket_flags::WS_OP_TEXT) {
+        data.insert(data.end(), m_payload_text.begin(), m_payload_text.end());
+    } else if(m_opcode == websocket_flags::WS_OP_BINARY) {
+        data.insert(data.end(), m_payload_binary.begin(), m_payload_binary.end());
+    }
+
+    return data.size();
 }
 
 

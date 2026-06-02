@@ -89,67 +89,41 @@ void testMultipleFrames() {
 }
 
 
+using namespace m_sylar::websocket;
+void testMake(bool mask) {
+    Frame f{};
+    f.setOpcode(websocket_flags::WS_OP_TEXT);
+    f.setTextPayload("Hello WebSocket");
+    std::vector<uint8_t> data = f.make(mask);
 
-void testBadFrames() {
-    M_SYLAR_LOG_DEBUG(g_logger) << "Starting bad frames test";
-    // 这里可以构造一些格式错误的帧，测试解析器的错误处理能力
-
-    std::vector<uint8_t> bad_frame;
-    std::string message = "This is a bad frame";
-    bad_frame.insert(bad_frame.end(), message.begin(), message.end());
-
-    m_sylar::websocket::FrameBuffer fb;
+    std::cout << "Generated frame size: " << data.size() << std::endl;
+    std::cout << "Generated frame data: \n================\n" ;
+    for (auto b : data) printf("%02x ", b);
+    std::cout << "\n================\n" ;
+    
+    // parser
+    FrameBuffer parser;
     int consumed = 0;
-    while(consumed < bad_frame.size()) {
-        consumed += fb.consume(bad_frame.data() + consumed, (8 <  bad_frame.size() - consumed) ? 24 : bad_frame.size() - consumed   );
+    while(consumed < data.size()) {
+        consumed += parser.consume(data.data() + consumed, 8);
     }
 
-    auto frame = fb.getFrame();
-    if(!frame) {
-        std::cout << "no data";
-    } else {
-        std::cout << "Frame type=" << (int)frame->getType() << ", payload_length=" << frame->getPayloadLength() << ", text=" << frame->getTextPayload() << std::endl;
-        std::cout << "No frame parsed from bad data, as expected." << std::endl;
-    }
+    auto frame = parser.getFrame();
+    std::cout << "Parsed frame: type=" << (int)frame->getType() 
+                << "\n payload_length=" << frame->getPayloadLength() 
+                << ", payload=" << frame->getTextPayload() << std::endl;
 
-    return;
+    return ;
 }
 
-
-void testBinaryFrames() {
-    M_SYLAR_LOG_DEBUG(g_logger) << "Starting binary frames test";
-    // 这里可以构造一些二进制帧，测试解析器对二进制数据的处理能力
-
-    std::vector<uint8_t> binary_payload = {0x01, 0x02, 0x03, 0x04, 0x05};
-    auto frame_data = makeFrame(std::string(binary_payload.begin(), binary_payload.end()));
-
-    m_sylar::websocket::FrameBuffer fb;
-    int consumed = 0;
-    while(consumed < frame_data.size()) {
-        consumed += fb.consume(frame_data.data() + consumed, (8 <  frame_data.size() - consumed) ? 24 : frame_data.size() - consumed   );
-    }
-
-    auto frame = fb.getFrame();
-    if(frame) {
-        std::cout << "Frame type=" << (int)frame->getType() << ", payload_length=" << frame->getPayloadLength() << ", binary data: ";
-        for(auto b : frame->getBinaryPayload()) {
-            std::cout << std::hex << static_cast<int>(b) << " ";
-        }
-        std::cout << std::dec << std::endl;
-    } else {
-        std::cout << "Failed to parse binary frame." << std::endl;
-    }
-}
 
 int main(void){
     loadConfig();
     // testSingleParser();
 
-    //testMultipleFrames();
+    // testMultipleFrames();
 
+    testMake(false);
 
-    // testBadFrames();
-
-    testBinaryFrames();
     return 0;
 }

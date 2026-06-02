@@ -3,10 +3,31 @@
 #include <protocol/websocket/websocket_parser.h>
 #include <memory>
 #include <list>
-
+#include <basic/singleton.h>
+#include <random>
 
 namespace m_sylar{
 namespace websocket {
+
+template<typename T>
+class Random {
+public:
+    static T get() {
+        return getGenerator()();
+    }
+
+    static T get(T min, T max) {
+        std::uniform_int_distribution<T> dist(min, max);
+        return getGenerator()(dist);
+    }
+
+private: 
+    static std::mt19937& getGenerator() {
+        thread_local std::random_device rd;
+        thread_local std::mt19937 gen(rd());
+        return gen;
+    }
+};
 
 class Frame;
 
@@ -63,12 +84,22 @@ public:
     Frame(FrameBuffer::Context* context);
     Frame(FrameBuffer::Context& context);
     Frame(FrameBuffer::Context&& context);
+    Frame() = default;
     ~Frame();
 
     websocket_flags getType() const { return m_opcode; }
     const std::vector<uint8_t>& getBinaryPayload() { return m_payload_binary; }
     const std::string& getTextPayload() { return m_payload_text; }
     size_t getPayloadLength() const { return m_payload_length; }
+
+
+    void setOpcode(websocket_flags opcode) { m_opcode = opcode; }
+    // 与opcode不一致的payload将被忽略
+    void setTextPayload(const std::string& text);
+    void setBinaryPayload(const std::vector<uint8_t>& data);
+
+    std::vector<uint8_t> make(bool mask = false) const;   // 将帧内容编码为二进制数据，准备发送
+    int make(std::vector<uint8_t>& data, bool mask = false) const;   // 清空容器数据，将帧内容编码为二进制数据，准备发送
 
 private:
     websocket_flags m_opcode = websocket_flags::WS_OP_CONTINUE;

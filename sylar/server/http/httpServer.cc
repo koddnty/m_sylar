@@ -52,13 +52,11 @@ bool HttpSession::setResponse()
 
 Task<int> HttpSession::co_recvRequest()
 {
-    uint64_t buffer_size = g_http_buffer_size->getValue();
     uint64_t max_request_size = g_http_max_request_size->getValue();
-    M_SYLAR_LOG_DEBUG(g_logger) << "http parser buffer size=" << buffer_size << " max request size=" << max_request_size;
+    M_SYLAR_LOG_DEBUG(g_logger) << " max request size=" << max_request_size;
     char* buffer = nullptr;     // 输出参数，指向接收数据的起始位置，不要对buffer进行delete操作
     size_t total_length = 0;      // 累计接收字节数
-    while(true)
-    {
+    while(true){
         // 接受缓冲区信息
         // message_len = m_socket->recv(m_buffer + buffer_size - offset, offset, 0);
         int recv_len = co_await recvMessage(&buffer, -1);
@@ -67,7 +65,7 @@ Task<int> HttpSession::co_recvRequest()
         {   // 连接关闭
             co_return 0;
         }
-        else if(recv_len == -1)
+        else if(recv_len < 0)
         {   // 错误
             M_SYLAR_LOG_ERROR(g_logger) << "recv http request failed"
                                         << ", errno:" << errno
