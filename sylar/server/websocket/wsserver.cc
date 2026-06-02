@@ -59,16 +59,25 @@ Task<int> WsSession::co_recvFrame() {
     co_return 0;
 }
 
-Task<int> WsSession::co_sendFrame(const std::string& msg) {
-
+Task<int> WsSession::co_sendFrame(const Frame& frame) {
+    auto data = frame.make();
+    co_await sendMessage((const char*)data.data(), data.size());
+    co_return 0;
 }
 
-Task<int> WsSession::co_sendFrame(const std::vector<uint8_t>& data) {
-
+Task<int> WsSession::co_sendFrame(Frame::ptr frame) {
+    auto data = frame->make();
+    co_await sendMessage((const char*)data.data(), data.size());
+    co_return 0;
 }
 
 Task<int> WsSession::co_close(int code, const std::string& reason) {
-
+    Frame f{};
+    f.setOpcode(websocket_flags::WS_OP_CLOSE);
+    f.setClosePayload(code, reason);
+    auto data = f.make();
+    co_await sendMessage((const char*)data.data(), data.size());   // 发送空消息，触发底层连接关闭
+    co_return 0;
 }
 
 
@@ -116,10 +125,9 @@ Task<void, TaskBeginExecuter> WsServer::handleClient(Socket::ptr client) {
     bool isClosed = false;
     std::string reason {"Normal Closure"};
 
-
     // 通信
     do {
-        // 获取并处理请求报文
+        // 获取报文
         int rt = co_await session->co_recvFrame();
         // std::cout << "already resume handleClient" << std::endl;
         if(rt == 0) {
@@ -136,6 +144,31 @@ Task<void, TaskBeginExecuter> WsServer::handleClient(Socket::ptr client) {
         else if(rt == -2){
             break;
         }
+
+        // 处理报文
+        auto frame = session->getFrame();
+        if(!frame) {
+            continue;   // 没有可用帧，继续接收
+        }
+
+        // 处理不同类型的帧
+        switch(frame->getType()) {
+            case websocket_flags::WS_OP_TEXT:
+                break;
+            case websocket_flags::WS_OP_BINARY:
+                break;
+            case websocket_flags::WS_OP_CLOSE:
+                break;
+            case websocket_flags::WS_OP_PING:
+                break;
+            case websocket_flags::WS_OP_PONG:
+                break;
+            default:
+                M_SYLAR_LOG_WARN(g_logger) << "Received frame with opcode: " << (int)frame->getType() << ", payload length: " << frame->getPayloadLength();
+                break;
+        }
+
+        // TODO: 连续connectionID生成存储。
 
 
     } while (isClosed);     // 限制最大请求数，防止死循环

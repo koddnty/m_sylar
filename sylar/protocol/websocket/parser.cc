@@ -149,9 +149,13 @@ Frame::~Frame() {
 // 与opcode不一致的payload将被忽略
 void Frame::setTextPayload(const std::string& text) {
     m_payload_text = text;
-    if(m_opcode == websocket_flags::WS_OP_TEXT) {
-        m_payload_length = text.size();
-    }
+    m_payload_length = text.size();
+    return;
+}
+
+void Frame::setTextPayload(std::string&& text) {
+    m_payload_text = std::move(text);
+    m_payload_length = m_payload_text.size();
     return;
 }
 
@@ -162,6 +166,56 @@ void Frame::setBinaryPayload(const std::vector<uint8_t>& data) {
     }
     return;
 }
+
+void Frame::setBinaryPayload(std::vector<uint8_t>&& data) {
+    m_payload_binary = std::move(data);
+    if(m_opcode == websocket_flags::WS_OP_BINARY) {
+        m_payload_length = m_payload_binary.size();
+    }
+    return;
+}
+
+void Frame::setClosePayload(uint16_t code, const std::string& reason) {
+    std::string payload;
+    uint16_t bcode = byteSwapToBigEndian(code);
+    payload.push_back((bcode >> 8) & 0xFF);
+    payload.push_back(bcode & 0xFF);
+    payload += reason;
+    setTextPayload(std::move(payload));
+    return;
+}
+
+void Frame::setClosePayload(uint16_t code, std::string&& reason) {
+    std::string payload;
+    uint16_t bcode = byteSwapToBigEndian(code);
+    payload.push_back((bcode >> 8) & 0xFF);
+    payload.push_back(bcode & 0xFF);
+    payload += std::move(reason);
+    setTextPayload(std::move(payload));
+    return;
+}
+
+void Frame::setPingPayload(const std::string& msg) {
+    setTextPayload(msg);
+    return;
+}
+
+void Frame::setPingPayload(std::string&& msg) {
+    setTextPayload(std::move(msg));
+    return;
+}
+
+void Frame::setPongPayload(const std::string& msg) {
+    setTextPayload(msg);
+    return;
+}
+
+void Frame::setPongPayload(std::string&& msg) {
+    setTextPayload(std::move(msg));
+    return;
+}
+
+
 
 std::vector<uint8_t> Frame::make(bool mask) const {
     std::vector<uint8_t> data;

@@ -45,20 +45,28 @@ class WsSession : Session{
 public:
     using ptr = std::shared_ptr<WsSession>;
     WsSession(Socket::ptr socket);
+    enum class State {
+        INIT,
+        OPEN,
+        CLOSING,
+        CLOSED
+    };
 
 
     Task<int> co_recvFrame();         // 消息接受，报文解析
 
-    Task<int> co_sendFrame(const std::string& msg);
-    Task<int> co_sendFrame(const std::vector<uint8_t>& data);
+    Task<int> co_sendFrame(const Frame& frame);
+    Task<int> co_sendFrame(Frame::ptr frame);
 
     Task<int> co_close(int code, const std::string& reason);
 
+    Frame::ptr getFrame() { return m_frame_buffer.getFrame(); }
+
 private:
     uint64_t m_total_received = 0;                      // 累计接收字节数
-    std::shared_ptr<WebSocket> m_ws {nullptr};          // websocket连接状态
     uint64_t m_close_timeout = 5000;                    // 关闭连接的超时时间，单位ms
     FrameBuffer m_frame_buffer;                         // 消息帧缓冲区
+    State m_state = State::INIT;                 // 连接状态
 };
 
 

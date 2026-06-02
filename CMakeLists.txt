@@ -34,6 +34,7 @@ set(BASIC_SOURCES
     sylar/basic/fdManager.cc
     sylar/basic/address.cc
     sylar/basic/socket.cc
+    sylar/basic/tool.cc
 )
 
 # 协议模块
@@ -113,6 +114,11 @@ target_include_directories(sylar PUBLIC
 #     ${CMAKE_CURRENT_SOURCE_DIR}
 #     ${CMAKE_CURRENT_SOURCE_DIR}/sylar
 # )
+
+# tools测试
+add_executable(test_tools tests/test_tool.cc)
+add_dependencies(test_tools sylar)
+target_link_libraries(test_tools sylar ${LIB_LIB})
 
 # websocket parser测试
 add_executable(test_parser tests/server/test_websocket_parser.cc)

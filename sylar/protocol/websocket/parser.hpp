@@ -92,11 +92,24 @@ public:
     const std::string& getTextPayload() { return m_payload_text; }
     size_t getPayloadLength() const { return m_payload_length; }
 
+    void clear();
 
     void setOpcode(websocket_flags opcode) { m_opcode = opcode; }
-    // 与opcode不一致的payload将被忽略
+    /**
+        @brief 与opcode不一致的payload将被忽略
+            除了二进制帧，其他帧共享buffer,因此设置closePayload时会覆盖其他类型payload
+    */ 
     void setTextPayload(const std::string& text);
+    void setTextPayload(std::string&& text);
     void setBinaryPayload(const std::vector<uint8_t>& data);
+    void setBinaryPayload(std::vector<uint8_t>&& data);
+    void setClosePayload(uint16_t code, const std::string& reason);
+    void setClosePayload(uint16_t code, std::string&& reason);
+    void setPingPayload(const std::string& msg);
+    void setPingPayload(std::string&& msg);
+    void setPongPayload(const std::string& msg);
+    void setPongPayload(std::string&& msg);
+
 
     std::vector<uint8_t> make(bool mask = false) const;   // 将帧内容编码为二进制数据，准备发送
     int make(std::vector<uint8_t>& data, bool mask = false) const;   // 清空容器数据，将帧内容编码为二进制数据，准备发送
