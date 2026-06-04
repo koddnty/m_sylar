@@ -43,6 +43,8 @@ bool HttpSession::setResponse()
 }
 
 
+
+
 /**
     @brief http request 请求处理函数
         维护buffer缓冲区
@@ -96,6 +98,12 @@ Task<int> HttpSession::co_recvRequest()
             // 解析完成
             break;
         }
+    }
+    // 更新session信息
+    if(updateSession())       
+    {
+        M_SYLAR_LOG_DEBUG(g_logger) << "failed to update session message";
+        co_return -1;
     }
     M_SYLAR_LOG_DEBUG(g_logger) << "[httpSession] recv success, total length = " << total_length;
     co_return total_length;
@@ -165,7 +173,6 @@ bool HttpSession::updateSession()
 {   // recv 后更新session状态， 如keep-alive
     // connection 头
     std::string connect_header = getRequest()->get_header("Connection");
-    M_SYLAR_LOG_INFO(g_logger) << "Connection header : " << connect_header;
     if(connect_header == "close")
     {
         m_is_keep_alive = false;
@@ -266,12 +273,7 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         }
 
 
-        // 更新session信息
-        if(!session->updateSession())       
-        {
-            M_SYLAR_LOG_DEBUG(g_logger) << "failed to update session message";
-            co_return;
-        }
+
         is_keep_alive = session->isKeep();
 
 
@@ -294,8 +296,7 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         co_await execHandler(session->getRequest()->get_uri(), session);         // 处理任务回调
         // session->getResponse()->updateHeader();
 
-        co_await session->co_sendResp();                // 发送响应报文
-        M_SYLAR_LOG_INFO(g_logger) << "is keep alive : " << is_keep_alive;
+        // co_await session->co_sendResp();                // 发送响应报文      // ！！！需要所有程序改动
         response_count++;
     } while (is_keep_alive && response_count < stack_deep);     // 限制最大请求数，防止死循环
 

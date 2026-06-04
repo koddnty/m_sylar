@@ -2,6 +2,7 @@
 #include <basic/log.h>
 #include <basic/until.h>
 #include <basic/endian.h>
+#include <memory.h>
 
 namespace m_sylar {
 namespace websocket {
@@ -76,30 +77,6 @@ int FrameBuffer::on_frame_body(websocket_parser* parser, const char* at, size_t 
     } 
 
     context->payload_received += length;
-    // if(websocket_parser_has_mask(parser)) {
-    //     // 处理掩码
-    //     for(size_t i = 0; i < length; ++i) {
-    //         uint8_t masked_byte = at[i] ^ parser->mask[(context->payload_received + i) % 4];
-    //         if(context->opcode == websocket_flags::WS_OP_TEXT) {
-    //             context->payload_text.append(at, length);
-    //         } else if(context->opcode == websocket_flags::WS_OP_BINARY) {
-    //             context->payload_binary.push_back(masked_byte);
-    //         }
-    //         else {
-    //             M_SYLAR_LOG_DEBUG(g_logger) << "Unsupported opcode: " << (int)context->opcode;
-    //         }
-    //     }
-    // } else {
-    //     // 无掩码，直接添加
-    //     if(context->opcode == websocket_flags::WS_OP_TEXT) {
-    //         context->payload_text.append(at, length);
-    //     } else if(context->opcode == websocket_flags::WS_OP_BINARY) {
-    //         context->payload_binary.insert(context->payload_binary.end(), at, at + length);
-    //     }
-    //     else {
-    //         M_SYLAR_LOG_DEBUG(g_logger) << "Unsupported opcode: " << (int)context->opcode;
-    //     }
-    // }
 
     return 0;
 }
@@ -124,6 +101,13 @@ Frame::Frame(FrameBuffer::Context* context) {
     m_payload_length = context->payload_length;
     m_payload_text = (context->payload_text);
     m_payload_binary = (context->payload_binary);
+    // 处理close帧的特殊情况，提取状态码和原因
+    if(m_opcode == websocket_flags::WS_OP_CLOSE && m_payload_length >= 2) {
+        uint16_t code = 1000; 
+        memcpy(&code, context->payload_text.data(), 2);         // 从payload前两字节提取状态码
+        m_close_code = NetByteSwapToHostEndian<uint16_t>(code); // 转换为主机字节序，确保正确解析状态码
+        m_close_reason = context->payload_text.substr(2);
+    }
 }
 
 Frame::Frame(FrameBuffer::Context& context) {
@@ -131,10 +115,24 @@ Frame::Frame(FrameBuffer::Context& context) {
     m_payload_length = context.payload_length;
     m_payload_text = context.payload_text;
     m_payload_binary = context.payload_binary;
+    // 处理close帧的特殊情况，提取状态码和原因
+    if(m_opcode == websocket_flags::WS_OP_CLOSE && m_payload_length >= 2) {
+        uint16_t code = 1000; 
+        memcpy(&code, context.payload_text.data(), 2);         // 从payload前两字节提取状态码
+        m_close_code = NetByteSwapToHostEndian<uint16_t>(code); // 转换为主机字节序，确保正确解析状态码
+        m_close_reason = context.payload_text.substr(2);
+    }
 }
 
 Frame::Frame(FrameBuffer::Context&& context) {
     m_opcode = context.opcode;
+    // 处理close帧的特殊情况，提取状态码和原因
+    if(m_opcode == websocket_flags::WS_OP_CLOSE && m_payload_length >= 2) {
+        uint16_t code = 1000; 
+        memcpy(&code, context.payload_text.data(), 2);                  // 从payload前两字节提取状态码
+        m_close_code = NetByteSwapToHostEndian<uint16_t>(code);         // 转换为主机字节序，确保正确解析状态码
+        m_close_reason = context.payload_text.substr(2);
+    }
     m_payload_length = context.payload_length;
     m_payload_text = std::move(context.payload_text);
     m_payload_binary = std::move(context.payload_binary);
@@ -176,20 +174,30 @@ void Frame::setBinaryPayload(std::vector<uint8_t>&& data) {
 }
 
 void Frame::setClosePayload(uint16_t code, const std::string& reason) {
+    if(m_opcode != websocket_flags::WS_OP_CLOSE) {
+        return;
+    }
+    m_close_code = code;
+    m_close_reason = reason;
     std::string payload;
+    payload.resize(2); // 预留状态码位置
     uint16_t bcode = byteSwapToBigEndian(code);
-    payload.push_back((bcode >> 8) & 0xFF);
-    payload.push_back(bcode & 0xFF);
+    memcpy(payload.data(), &bcode, 2);
     payload += reason;
     setTextPayload(std::move(payload));
     return;
 }
 
 void Frame::setClosePayload(uint16_t code, std::string&& reason) {
+    if(m_opcode != websocket_flags::WS_OP_CLOSE) {
+        return;
+    }
+    m_close_code = code;
+    m_close_reason = reason;
     std::string payload;
+    payload.resize(2); // 预留状态码位置
     uint16_t bcode = byteSwapToBigEndian(code);
-    payload.push_back((bcode >> 8) & 0xFF);
-    payload.push_back(bcode & 0xFF);
+    memcpy(payload.data(), &bcode, 2);
     payload += std::move(reason);
     setTextPayload(std::move(payload));
     return;
@@ -267,10 +275,14 @@ int Frame::make(std::vector<uint8_t>& data, bool mask) const {
 
 
     // 载荷
-    if(m_opcode == websocket_flags::WS_OP_TEXT) {
-        data.insert(data.end(), m_payload_text.begin(), m_payload_text.end());
-    } else if(m_opcode == websocket_flags::WS_OP_BINARY) {
+    if(m_opcode == websocket_flags::WS_OP_BINARY) {
         data.insert(data.end(), m_payload_binary.begin(), m_payload_binary.end());
+    }
+    else if(m_opcode == websocket_flags::WS_OP_CLOSE) {
+        data.insert(data.end(), m_payload_text.begin(), m_payload_text.end());
+    }
+    else {
+        data.insert(data.end(), m_payload_text.begin(), m_payload_text.end());
     }
 
     return data.size();

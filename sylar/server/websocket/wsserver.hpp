@@ -13,14 +13,27 @@
 #include "protocol/websocket/WebSocket.h"
 #include "protocol/websocket/websocket_parser.h"
 #include "protocol/websocket/parser.hpp"
-
+#include "basic/tool.hpp"
 
 namespace m_sylar
 {
 namespace websocket
 {
 class WsSession;
-;
+
+// handler类型
+template<typename T>
+concept WsHandlerType = requires(std::shared_ptr<WsSession> session, Frame::ptr frame, 
+                                  std::string msg, std::vector<uint8_t> data,
+                                  int code) {
+    { T::co_Route(session, frame) }   -> std::same_as<Task<bool>>;
+    { T::onOpen(session) }            -> std::same_as<Task<void>>;
+    { T::onMessage(session, msg) }    -> std::same_as<Task<void>>;
+    { T::onBinary(session, data) }    -> std::same_as<Task<void>>;
+    { T::onClose(session, code, msg)} -> std::same_as<Task<void>>;
+    { T::onError(session, msg) }      -> std::same_as<Task<void>>;
+};
+
 
 /** 
     用户API
@@ -30,13 +43,16 @@ public:
     using ptr = std::shared_ptr<WsHandler>;
     virtual ~WsHandler() = default;
 
-    virtual Task<void> onOpen(std::shared_ptr<WsSession> session) = 0;                                      // 连接建立
-    virtual Task<void> onMessage(std::shared_ptr<WsSession> session, const std::string& msg);               // 文本消息
-    virtual Task<void> onBinary(std::shared_ptr<WsSession> session, const std::vector<uint8_t>& data);      // 二进制消息
-    virtual Task<void> onClose(std::shared_ptr<WsSession> session, int code, const std::string& reason);    // 连接关闭
-    virtual Task<void> onError(std::shared_ptr<WsSession> session, const std::string& error);               // 连接错误
+    static Task<int> co_Route(std::shared_ptr<WsSession> session, Frame::ptr frame);
 
-    // virtual Task<void> onPing(const std::string& msg, const std::vector<std::shared_ptr<WsSession>>& sessions);      // 消息广播
+    static Task<void> co_onOpen(std::shared_ptr<WsSession> session);                                           // 连接建立
+    static Task<void> co_onMessage(std::shared_ptr<WsSession> session, const std::string& msg);               // 文本消息
+    static Task<void> co_onBinary(std::shared_ptr<WsSession> session, const std::vector<uint8_t>& data);      // 二进制消息
+    static Task<void> co_onClose(std::shared_ptr<WsSession> session, int code, const std::string& reason);    // 连接关闭
+    static Task<void> co_onPing(std::shared_ptr<WsSession> session, const std::string& reason);    // ping消息
+    static Task<void> co_onPong(std::shared_ptr<WsSession> session, const std::string& reason);    // pong消息
+    static Task<void> co_onError(std::shared_ptr<WsSession> session, const std::string& error);               // 连接错误
+
 };
 
 
@@ -44,7 +60,7 @@ public:
 class WsSession : Session{
 public:
     using ptr = std::shared_ptr<WsSession>;
-    WsSession(Socket::ptr socket);
+    WsSession(Socket::ptr socket, size_t sessionId);
     enum class State {
         INIT,
         OPEN,
@@ -60,13 +76,22 @@ public:
 
     Task<int> co_close(int code, const std::string& reason);
 
+    size_t getSessionId() const { return m_sessionId; }
+    void setSessionId(size_t sessionId) { m_sessionId = sessionId; }
+
+    inline void setData(void* data) { m_data = data; }
+    inline void* getData() const { return m_data; }
+
     Frame::ptr getFrame() { return m_frame_buffer.getFrame(); }
 
 private:
+    size_t m_sessionId;                             // 会话ID
     uint64_t m_total_received = 0;                      // 累计接收字节数
     uint64_t m_close_timeout = 5000;                    // 关闭连接的超时时间，单位ms
     FrameBuffer m_frame_buffer;                         // 消息帧缓冲区
     State m_state = State::INIT;                 // 连接状态
+
+    void* m_data = nullptr;
 };
 
 
@@ -74,16 +99,29 @@ private:
 
 
 
-class WsServer : std::enable_shared_from_this<WsServer>{
+class WsServer : public std::enable_shared_from_this<WsServer>{
 public:
     using ptr = std::shared_ptr<WsServer>;
-    WsServer();
+    /**
+        @param maxSession*64 服务器最大连接数
+     */
+    WsServer(http::HttpServer::ptr httpServer, int maxSession = 64);
     ~WsServer();
 
     Task<int> handShake(http::HttpSession::ptr http_session);
-    Task<void, TaskBeginExecuter> handleClient(Socket::ptr client);        // websocket流程处理
+
+    template<WsHandlerType T>
+    Task<bool, TaskBeginExecuter> handleClient(Socket::ptr client);        // websocket流程处理
 
     Task<int> close(http::HttpSession::ptr http_session, int code, const std::string& reason);
+
+    /**
+        @brief 注册url处理函数，url必须以"/"开头，且不能包含查询参数
+            例如："/chat"是合法的url，"/chat?room=1"是非法的url
+            模板类型需要继承自WsHandler，且必须实现onOpen、onMessage、onClose等函数
+    */
+    template<WsHandlerType T>
+    void registerUrl(const std::string& url);
 
 
     // 消息广播函数
@@ -104,8 +142,11 @@ public:
 
 private:
     std::shared_mutex m_mutex;
+    http::HttpServer::ptr m_httpServer;             // 外部http服务器，完成握手升级协议后传入websocket server
+    PackedIDAllocator m_sessionIdAllocator{64};     // sessionId分配器
     std::map<std::string, std::pair<std::string, WsHandler::ptr>> m_sessionIdMap;     // sessionId与userId的映射sessionId->userId
     std::map<std::string, std::pair<std::string, WsHandler::ptr>> m_userIdMap;        // userId与sessionId的映射userId->sessionId
 };
 }
 }
+

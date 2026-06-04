@@ -14,14 +14,96 @@ ConfigVar<uint32_t>::ptr g_ws_buffer_size = ConfigManager::LookUp("servers.webso
 ConfigVar<uint32_t>::ptr g_ws_max_request_size  = ConfigManager::LookUp("servers.websocket.limit.max_request_size", uint32_t(10485760), 0, "websocket server parser buffer size");
 
 
-WsSession::WsSession(Socket::ptr socket) : Session(socket) {
+Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr frame) {
+    // 处理不同类型的帧
+    int rt = 0;
+    switch(frame->getType()) {
+        case websocket_flags::WS_OP_TEXT:
+            co_await co_onMessage(session, frame->getTextPayload());
+            break;
+        case websocket_flags::WS_OP_BINARY:
+            co_await co_onBinary(session, frame->getBinaryPayload());
+            break;
+        case websocket_flags::WS_OP_CLOSE:
+            co_await co_onClose(session, frame->getCloseCode(), frame->getCloseReason());   // 1000是正常关闭的状态码
+            break;
+        case websocket_flags::WS_OP_PING:
+            co_await co_onPing(session, frame->getTextPayload());
+            break;
+        case websocket_flags::WS_OP_PONG:
+            co_await co_onPong(session, frame->getTextPayload());
+            break;
+        default:
+            co_await co_onError(session, "Unsupported frame type: " + std::to_string((int)frame->getType()));
+            M_SYLAR_LOG_WARN(g_logger) << "Received frame with opcode: " << (int)frame->getType() << ", payload length: " << frame->getPayloadLength();
+            rt = -1;
+            break;
+    }
+    co_return rt;
+}
+
+Task<void> WsHandler::co_onOpen(std::shared_ptr<WsSession> session) {
+    M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onOpen event, sessionId=" << session->getSessionId();
+}
+
+Task<void> WsHandler::co_onMessage(std::shared_ptr<WsSession> session, const std::string& msg) {
+    M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onMessage event, sessionId=" << session->getSessionId();
+
+}
+
+Task<void> WsHandler::co_onBinary(std::shared_ptr<WsSession> session, const std::vector<uint8_t>& data) {
+    M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onBinary event, sessionId=" << session->getSessionId();
+
+}
+
+Task<void> WsHandler::co_onClose(std::shared_ptr<WsSession> session, int code, const std::string& reason) {
+    M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onClose event, sessionId=" << session->getSessionId();
+
+}
+
+Task<void> co_onPing(std::shared_ptr<WsSession> session, const std::string& reason) {
+    // 收到ping消息，回复pong消息
+    M_SYLAR_LOG_INFO(g_logger) << "Received ping message, sessionId=" << session->getSessionId() << ", reason=" << reason;
+    Frame pongFrame{};
+    pongFrame.setOpcode(websocket_flags::WS_OP_PONG);
+    pongFrame.setPongPayload(reason);
+    co_await session->co_sendFrame(pongFrame);
+}
+<void> co_onPing(std::shared_ptr<WsSession> session, const std::string& reason) {
+    // 收到ping消息，回复pong消息
+    M_SYLAR_LOG_INFO(g_logger) << "Received ping message, sessionId=" << session->getSessionId() << ", reason=" << reason;
+    Frame pongFrame{};
+    pongFrame.setOpcode(websocket_flags::WS_OP_PONG);
+    pongFrame.setPongPayload(reason);
+    co_await session->co_sendFrame(pongFrame);
+}
+
+Task<void> co_o
+Task<void> co_onPong(std::shared_ptr<WsSession> session, const std::string& reason) {
+}
+
+Task<void> WsHandler::co_onError(std::shared_ptr<WsSession> session, const std::string& error) {
+    M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onError event, sessionId=" << session->getSessionId();
+}
+
+
+
+
+
+
+
+WsSession::WsSession(Socket::ptr socket, size_t sessionId) : Session(socket) {
     setRecvTimeOut(g_ws_recv_timeout->getValue());
     setSendTimeOut(g_ws_send_timeout->getValue());
     setBufferSize(g_ws_buffer_size->getValue());
+    m_sessionId = sessionId;
 }
 
 
 Task<int> WsSession::co_recvFrame() {
+    if(m_frame_buffer.getFrameCount() > 0) {
+        co_return 0;   // 已经有可用帧，无需继续接收
+    }
     uint32_t max_request_size = g_ws_max_request_size->getValue();
     char* buffer = nullptr;     // 输出参数，指向接收数据的起始位置，不要对buffer进行delete操作
     size_t total_length = 0;      // 累计接收字节数
@@ -82,6 +164,13 @@ Task<int> WsSession::co_close(int code, const std::string& reason) {
 
 
 
+WsServer::WsServer(http::HttpServer::ptr httpServer, int maxSession) {
+    
+}
+
+WsServer::~WsServer() {
+    
+}
 
 Task<int> WsServer::handShake(http::HttpSession::ptr http_session) {
     // 完成握手，建立websocket连接
@@ -104,12 +193,6 @@ Task<int> WsServer::handShake(http::HttpSession::ptr http_session) {
         M_SYLAR_LOG_WARN(g_logger) << "handshake failed, send response failed, errno:" << errno << " error:" << strerror(errno);
         co_return -1;
     }
-
-
-
-
-    // 3. 将http_session升级为websocket session，维护连接状态
-    IOManager::getInstance()->schedule(std::bind(&WsServer::handleClient, shared_from_this(), http_session->getSocket()));
     co_return 0;
 }
 
@@ -117,68 +200,6 @@ Task<int> WsServer::handShake(http::HttpSession::ptr http_session) {
 
 
 
-Task<void, TaskBeginExecuter> WsServer::handleClient(Socket::ptr client) {
-    // 外部http服务器已经完成握手升级协议，传入的client是一个websocket连接
-    // session 构建
-    WsSession::ptr session = std::make_shared<WsSession>(client);
-    int code = 1000;
-    bool isClosed = false;
-    std::string reason {"Normal Closure"};
-
-    // 通信
-    do {
-        // 获取报文
-        int rt = co_await session->co_recvFrame();
-        // std::cout << "already resume handleClient" << std::endl;
-        if(rt == 0) {
-            isClosed = true;
-            break; /* 连接关闭 */
-        }
-        else if(rt == -1 && errno != EAGAIN){
-            M_SYLAR_LOG_WARN(g_logger) << "recv http request failed"
-                                        << ", errno:" << errno
-                                        << " error:" << strerror(errno)
-                                        << "\nclient:" << client->toString();
-            break;
-        }
-        else if(rt == -2){
-            break;
-        }
-
-        // 处理报文
-        auto frame = session->getFrame();
-        if(!frame) {
-            continue;   // 没有可用帧，继续接收
-        }
-
-        // 处理不同类型的帧
-        switch(frame->getType()) {
-            case websocket_flags::WS_OP_TEXT:
-                break;
-            case websocket_flags::WS_OP_BINARY:
-                break;
-            case websocket_flags::WS_OP_CLOSE:
-                break;
-            case websocket_flags::WS_OP_PING:
-                break;
-            case websocket_flags::WS_OP_PONG:
-                break;
-            default:
-                M_SYLAR_LOG_WARN(g_logger) << "Received frame with opcode: " << (int)frame->getType() << ", payload length: " << frame->getPayloadLength();
-                break;
-        }
-
-        // TODO: 连续connectionID生成存储。
-
-
-    } while (isClosed);     // 限制最大请求数，防止死循环
-
-
-    // 断开
-    co_return;
-}
-
-
-
 }
 }
+

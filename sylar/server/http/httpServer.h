@@ -42,7 +42,8 @@ public:
 
     inline Request::ptr getRequest() { return m_request;}      // 用户获取当前http请求
     inline Response::ptr getResponse() {return m_response;};    // 获得响应报文以修改
-    inline bool isKeep() {return m_is_keep_alive; }
+    inline bool isKeep() const {return m_is_keep_alive; }
+    inline void setKeepAlive(bool v) { m_is_keep_alive = v; }  // 强制置长短连接，用户一般不需要调用这个函数，除非想强制设置长短连接
 
     bool setResponse();                 // 设置响应报文， 成功返回true;
 
@@ -51,6 +52,7 @@ public:
     Task<int> co_sendResp(const std::string& resp);   // 直接发送响应字符串，成功返回发送字节数
 
     bool updateSession();               // recv后更新session信息，如connect和cookie
+
 
 
 private:

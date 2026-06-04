@@ -45,6 +45,9 @@ public:
     std::shared_ptr<Frame> getFrame();      // 取出一个完整帧，buffer将删除该帧数据
 
 
+    /**
+        @brief websocket_parser回调函数，解析过程中会被调用,生成的frame全部无掩码
+    */
     static int on_frame_header(websocket_parser* parser);
     static int on_frame_body(websocket_parser* parser, const char* at, size_t length);
     static int on_frame_end(websocket_parser* parser);
@@ -110,6 +113,13 @@ public:
     void setPongPayload(const std::string& msg);
     void setPongPayload(std::string&& msg);
 
+    inline const std::string& getPayload() const { return m_close_reason; }
+    inline const std::vector<uint8_t>& getBinaryPayload() const { return m_payload_binary; }
+
+    // 若frame不是close帧，则返回-1，reason为空字符串.
+    inline int getCloseCode() const { return m_close_code; }
+    inline const std::string& getCloseReason() const { return m_close_reason; }
+
 
     std::vector<uint8_t> make(bool mask = false) const;   // 将帧内容编码为二进制数据，准备发送
     int make(std::vector<uint8_t>& data, bool mask = false) const;   // 清空容器数据，将帧内容编码为二进制数据，准备发送
@@ -119,6 +129,9 @@ private:
     size_t m_payload_length {0};
     std::string m_payload_text {};
     std::vector<uint8_t> m_payload_binary {};
+
+    uint16_t m_close_code {1000};
+    std::string m_close_reason {};
 };
 
 }
