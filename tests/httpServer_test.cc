@@ -3,7 +3,7 @@
 #include "basic/log.h"
 #include "basic/config.h"
 #include "basic/address.h"
-#include "server/http/httpServer.h"
+#include "server/http/httpServer.hpp"
 
 static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 

@@ -16,8 +16,51 @@ Session::Session(Socket::ptr socket) : m_socket(socket) {
 }
 
 Session::~Session() {
-    delete[] m_buffer;
+    if(m_buffer) {
+        delete[] m_buffer;
+    }
 }
+
+
+Session::Session(Session&& other) noexcept {
+    m_buffer = other.m_buffer;
+    m_total_received = other.m_total_received;
+    m_buffer_size = other.m_buffer_size;
+    m_buffer_begin_pos = other.m_buffer_begin_pos;
+    m_buffer_end_pos = other.m_buffer_end_pos;
+    m_socket = std::move(other.m_socket);
+
+    other.m_buffer = nullptr;
+    other.m_total_received = 0;
+    other.m_buffer_size = 0;
+    other.m_buffer_begin_pos = 0;
+    other.m_buffer_end_pos = 0;
+    return ;
+}
+
+Session& Session::operator=(Session&& other) {
+    if(this == &other) {
+        return *this;
+    }
+    if(m_buffer) {
+        delete[] m_buffer;
+    }
+    m_buffer = other.m_buffer;
+    m_total_received = other.m_total_received;
+    m_buffer_size = other.m_buffer_size;
+    m_buffer_begin_pos = other.m_buffer_begin_pos;
+    m_buffer_end_pos = other.m_buffer_end_pos;
+    m_socket = std::move(other.m_socket);
+
+    other.m_buffer = nullptr;
+    other.m_total_received = 0;
+    other.m_buffer_size = 0;
+    other.m_buffer_begin_pos = 0;
+    other.m_buffer_end_pos = 0;
+    return *this;
+}
+
+
 
 
 /**

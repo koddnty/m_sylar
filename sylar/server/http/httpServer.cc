@@ -10,14 +10,18 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include "basic/log.h"
-#include "httpServer.h"
+#include "httpServer.hpp"
 
 // #include "server/websocket/wsserver.hpp"
+
 
 namespace m_sylar
 {
 namespace http
 {
+
+static HttpServer* t_http_server = nullptr;  
+
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 ConfigVar<uint32_t>::ptr g_http_recv_timeout = ConfigManager::LookUp("servers.http.timeout.recv", uint32_t(30), 0, "http server recv timeout");
 ConfigVar<uint32_t>::ptr g_http_send_timeout = ConfigManager::LookUp("servers.http.timeout.send", uint32_t(30), 0, "http server send timeout");
@@ -246,6 +250,29 @@ Task<void> HttpServer::execHandler(const std::string& url, HttpSession::ptr sess
     co_await request_pair->second.second(session);
     co_return;
 }
+
+
+HttpServer* HttpServer::getInstance() {
+    if(t_http_server)
+    {
+        return t_http_server;
+    }
+    m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
+    if(!iom)
+    {
+        M_SYLAR_LOG_ERROR(g_logger) << "getInstance failed, iom is nullptr";
+        return nullptr;
+    }
+    
+    static HttpServer httpserver(iom);
+    t_http_server = &httpserver;
+    if(t_http_server)
+    {
+        return t_http_server;
+    }
+    M_SYLAR_ASSERT2(false, "can not get http server without a iomanager");
+}
+
 
 Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
 {

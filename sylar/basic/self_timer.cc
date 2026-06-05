@@ -9,7 +9,6 @@
 #include <ostream>
 #include <shared_mutex>
 #include <unistd.h>
-#include <sys/timerfd.h>
 #include <functional>
 
 static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
@@ -74,6 +73,26 @@ Timer::Timer(uint64_t intervalTime, bool is_cycle,
 Timer::~Timer()
 {
     // co_close(m_timeFd);  
+}
+
+
+void Timer::reset() {
+    // 设置定时器
+    struct itimerspec new_value;
+    new_value.it_value.tv_sec =  m_interval / 1000000;
+    new_value.it_value.tv_nsec = (m_interval * 1000) % 1000000000;
+    if(m_is_cycle)
+    {
+        new_value.it_interval.tv_sec = m_interval / 1000000;
+        new_value.it_interval.tv_nsec = (m_interval * 1000) % 1000000000;
+    }
+    else
+    {
+        // 非循环任务
+        new_value.it_interval.tv_sec = 0;
+        new_value.it_interval.tv_nsec = 0;
+    }
+    timerfd_settime(m_timeFd, 0, &new_value, NULL);
 }
 
 
@@ -212,7 +231,7 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, Task
         [taskwrapper, rtState, iom_fd, iom_event, closeFlag]() mutable {
             *rtState = TimeLimitInfo::State::TIMEOUT;
             if(closeFlag) {
-                IOManager::getInstance()->closeWithNoClose(iom_fd); // 完全删除事件
+                IOManager::getInstance()->closeWithNoClose(iom_fd); // 完全删除事件，但保留fd
             }
             else {
                 IOManager::getInstance()->delEvent(iom_fd, iom_event); // 删除事件
@@ -300,6 +319,15 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, std:
 }
 
 
+uint64_t TimeManager::GetCurrentMS() {
+    struct timespec ts;
+    int rt = clock_gettime(CLOCK_REALTIME_COARSE, &ts);
+    if(rt) {
+        M_SYLAR_LOG_ERROR(g_logger) << "failed to get current time";
+    }
+    return ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+}
+
 void TimeManager::cancelTimer(Timer::ptr timer)
 {
 
@@ -344,7 +372,12 @@ TimeManager* TimeManager::getInstance()
         return t_tim;
     }
     m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
-
+    if(!iom)
+    {
+        M_SYLAR_LOG_ERROR(g_logger) << "getInstance failed, iom is nullptr";
+        return nullptr;
+    }
+    
     static TimeManager tim(iom);
     t_tim = &tim;
     if(iom)

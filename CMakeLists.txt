@@ -38,13 +38,17 @@ set(BASIC_SOURCES
 )
 
 # 协议模块
-file(GLOB_RECURSE WebSocketSources 
+file(GLOB_RECURSE PROTOCOL_SOURCES_FIND 
     "sylar/protocol/websocket/*.cc"
     "sylar/protocol/websocket/*.c"
     "sylar/protocol/websocket/*.cpp"
 )
 set(PROTOCOL_SOURCES
-    ${WebSocketSources}
+    ${PROTOCOL_SOURCES_FIND}
+)
+
+set(WEBSCOKET_SOURCES
+    sylar/server/websocket/wsserver.cc
 )
 
 # 网络服务 模块
@@ -52,9 +56,7 @@ set(HTTP_SOURCES
     sylar/server/common/session.cc
     sylar/server/tcp/tcpServer.cc
     sylar/server/http/httpServer.cc
-    # sylar/protocol/websocket/parser.cc
-    ${PROTOCOL_SOURCES}
-    # sylar/server/websocket/wsserver.cc
+    sylar/protocol/websocket/parser.cc
 )
 
 
@@ -90,6 +92,8 @@ add_library(sylar STATIC
     ${HTTP_SOURCES}
     ${COROUTINE_SOURCES}
     ${DBPOOL_SOURCES}
+    ${PROTOCOL_SOURCES}
+    ${WEBSCOKET_SOURCES}
 )
 
 
@@ -101,7 +105,7 @@ install(TARGETS sylar
 # 2. 安装头文件（整个目录）
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/sylar/
     DESTINATION include/sylar
-    FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp" PATTERN "*.tpp" 
     PATTERN ".DS_Store" EXCLUDE
 )
 
@@ -114,6 +118,11 @@ target_include_directories(sylar PUBLIC
 #     ${CMAKE_CURRENT_SOURCE_DIR}
 #     ${CMAKE_CURRENT_SOURCE_DIR}/sylar
 # )
+#websocket测试
+
+add_executable(test_websocket tests/server/test_websocket.cc)
+add_dependencies(test_websocket sylar)
+target_link_libraries(test_websocket sylar ${LIB_LIB})
 
 # tools测试
 add_executable(test_tools tests/test_tool.cc)

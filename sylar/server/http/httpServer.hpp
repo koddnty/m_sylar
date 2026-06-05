@@ -90,6 +90,9 @@ public:
 
     // 业务处理函数， 由用户注册的url处理函数调用
     Task<void> execHandler(const std::string& url, HttpSession::ptr session);
+
+
+    static HttpServer* getInstance();
 private:
     Task<void, TaskBeginExecuter> handleClient(Socket::ptr client) override;
     Task<void, TaskBeginExecuter> startAccept(Socket::ptr sock) override;

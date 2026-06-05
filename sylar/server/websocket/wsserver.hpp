@@ -5,7 +5,7 @@
 #include "basic/config.h"
 #include "server/tcp/tcpServer.h"
 #include "server/common/session.hpp"
-#include "server/http/httpServer.h"
+#include "server/http/httpServer.hpp"
 
 #include "protocol/http/parser.hpp"
 #include "protocol/http/request.hpp"
@@ -26,12 +26,14 @@ template<typename T>
 concept WsHandlerType = requires(std::shared_ptr<WsSession> session, Frame::ptr frame, 
                                   std::string msg, std::vector<uint8_t> data,
                                   int code) {
-    { T::co_Route(session, frame) }   -> std::same_as<Task<bool>>;
-    { T::onOpen(session) }            -> std::same_as<Task<void>>;
-    { T::onMessage(session, msg) }    -> std::same_as<Task<void>>;
-    { T::onBinary(session, data) }    -> std::same_as<Task<void>>;
-    { T::onClose(session, code, msg)} -> std::same_as<Task<void>>;
-    { T::onError(session, msg) }      -> std::same_as<Task<void>>;
+    { T::co_Route(session, frame) }   -> std::same_as<Task<int>>;
+    { T::co_onOpen(session) }            -> std::same_as<Task<void>>;
+    { T::co_onMessage(session, msg) }    -> std::same_as<Task<void>>;
+    { T::co_onBinary(session, data) }    -> std::same_as<Task<void>>;
+    { T::co_onClose(session, code, msg)} -> std::same_as<Task<void>>;
+    { T::co_onPing(session, msg) }      -> std::same_as<Task<void>>;
+    { T::co_onPong(session, msg) }      -> std::same_as<Task<void>>;
+    { T::co_onError(session, msg) }      -> std::same_as<Task<void>>;
 };
 
 
@@ -57,63 +59,89 @@ public:
 
 
 
-class WsSession : Session{
+class WsSession : public Session, public std::enable_shared_from_this<WsSession>{
 public:
     using ptr = std::shared_ptr<WsSession>;
     WsSession(Socket::ptr socket, size_t sessionId);
     enum class State {
-        INIT,
-        OPEN,
-        CLOSING,
-        CLOSED
+        INIT,           // 连接已建立但未进行定时器配置，不可用状态。等待完成定时器等配置后进入OPEN状态
+        OPEN,           // 连接已建立，正常通信中
+        CLOSING,        // session关闭中，等待close帧发送完成，底层连接未关闭
+        CLOSED          // session关闭，底层连接未关闭，析构后底层连接关闭     
     };
 
+    int init();
 
+    // 所有数据连接，需状态更新
     Task<int> co_recvFrame();         // 消息接受，报文解析
-
     Task<int> co_sendFrame(const Frame& frame);
     Task<int> co_sendFrame(Frame::ptr frame);
+    Task<int> co_close(int code, const std::string& reason);        // 发送close报文
 
-    Task<int> co_close(int code, const std::string& reason);
+    /** 
+        @brief 每次数据通信后更新：更新 最近活跃时间 等等（待扩展
+    */
+    int upDateSessionOnRecv();          // Frame到来更新函数
 
-    size_t getSessionId() const { return m_sessionId; }
-    void setSessionId(size_t sessionId) { m_sessionId = sessionId; }
-
+    inline void setSessionId(size_t sessionId) { m_sessionId = sessionId; }
     inline void setData(void* data) { m_data = data; }
-    inline void* getData() const { return m_data; }
 
-    Frame::ptr getFrame() { return m_frame_buffer.getFrame(); }
+    inline size_t getSessionId() const { return m_sessionId; }
+    inline void* getData() const { return m_data; }
+    inline Frame::ptr getFrame() { return m_frame_buffer.getFrame(); }
+    inline State getState() const { return m_state; }
+    inline uint64_t getRecentActivate() const {return m_recent_activate;}
 
 private:
-    size_t m_sessionId;                             // 会话ID
-    uint64_t m_total_received = 0;                      // 累计接收字节数
+    size_t m_sessionId;                                      // 会话ID
+    uint64_t m_total_received = 0;                              // 累计接收字节数
     uint64_t m_close_timeout = 5000;                    // 关闭连接的超时时间，单位ms
     FrameBuffer m_frame_buffer;                         // 消息帧缓冲区
-    State m_state = State::INIT;                 // 连接状态
-
+    std::atomic<State> m_state = State::INIT;                 // 连接状态
+    int m_timer_fd = -1;                                    // 定时器fd
     void* m_data = nullptr;
+    std::atomic<uint64_t> m_recent_activate{0};
 };
 
 
 
 
 
+/**
+    @brief 弱状态websocket服务器，依赖外部http服务器完成握手升级协议，完成后接管连接进行websocket通信流程处理。
+        连接管理：sessionId分配器分配sessionId，session维护连接状态和通信流程，wsServer负责调度session进行通信流程处理。
+        业务处理：用户继承WsHandler并实现相关函数，wsServer在通信流程处理函数中调用用户函数进行业务处理。
+        连接关闭：用户可以在业务处理函数中调用session的co_close函数主动关闭连接，或者在通信流程处理函数中根据用户函数的返回值决定是否关闭连接
 
+        不提供广播等功能，用户需要在业务处理函数中自行维护连接列表实现相关功能
+*/
 class WsServer : public std::enable_shared_from_this<WsServer>{
 public:
     using ptr = std::shared_ptr<WsServer>;
     /**
         @param maxSession*64 服务器最大连接数
      */
-    WsServer(http::HttpServer::ptr httpServer, int maxSession = 64);
+    WsServer(http::HttpServer::ptr httpServer, int maxSession = 1024);
+    WsServer(http::HttpServer* httpServer, int maxSession = 1024);
     ~WsServer();
 
     Task<int> handShake(http::HttpSession::ptr http_session);
 
+
+    /**
+        @brief websocket流程处理函数，完成握手后进入该函数进行websocket通信流程处理。
+                函数内会持续接收和处理消息，直到连接关闭或发生协议错误等异常情况。
+                负责session的打开 处理 关闭全流程。
+                不负责底层socket的关闭，底层关闭由session析构时完成。
+
+        @tparam T 处理器类型，必须满足WsHandlerType概念
+
+        @return 是否需要关闭连接，true表示连接已经正常/异常关闭，false表示未关闭连接，需要重新调度后通信。
+    */
     template<WsHandlerType T>
     Task<bool, TaskBeginExecuter> handleClient(Socket::ptr client);        // websocket流程处理
 
-    Task<int> close(http::HttpSession::ptr http_session, int code, const std::string& reason);
+    int close(int sessionId);     // 关闭控制，成功返回0，失败返回-1
 
     /**
         @brief 注册url处理函数，url必须以"/"开头，且不能包含查询参数
@@ -124,29 +152,25 @@ public:
     void registerUrl(const std::string& url);
 
 
-    // 消息广播函数
-    /**
-        @brief 消息广播函数
-            1. 广播文本消息
-            2. 广播二进制消息
-            3. 广播消息时可以指定sessionId或者userId，或者直接指定session对象
-        
-        @param failes 可选参数，广播失败的session会在failes中标记为true
-        
-        @return 失败广播的消息数量
-    */
-    Task<int> broadcast(const std::string& msg, std::vector<WsSession::ptr> sessions, std::shared_ptr<std::vector<bool>> failes = nullptr);      // 广播文本消息
-    Task<int> broadcastBySessionId(const std::string& msg, std::vector<std::string> sessions, std::shared_ptr<std::vector<bool>> failes = nullptr);      // 广播文本消息
-    Task<int> broadcastByUserId(const std::string& msg, std::vector<std::string> sessions, std::shared_ptr<std::vector<bool>> failes = nullptr);      // 广播文本消息
+    static WsServer* getInstance();
 
+
+    WsSession::ptr getSession(int sessionId);             // 获取session，成功返回session指针，失败返回nullptr
+
+private:
+    WsSession::ptr createSession(Socket::ptr client);     // 创建session，成功返回session指针，失败返回nullptr
+    int removeSession(int sessionId);                   // 从session列表移除session，成功返回0，失败返回-1
 
 private:
     std::shared_mutex m_mutex;
-    http::HttpServer::ptr m_httpServer;             // 外部http服务器，完成握手升级协议后传入websocket server
-    PackedIDAllocator m_sessionIdAllocator{64};     // sessionId分配器
-    std::map<std::string, std::pair<std::string, WsHandler::ptr>> m_sessionIdMap;     // sessionId与userId的映射sessionId->userId
-    std::map<std::string, std::pair<std::string, WsHandler::ptr>> m_userIdMap;        // userId与sessionId的映射userId->sessionId
+    http::HttpServer::ptr m_httpServer;                         // 外部http服务器，完成握手升级协议后传入websocket server
+    PackedIDAllocator::ptr m_sessionIdAllocator {nullptr};                 // sessionId分配器
+    std::vector<WsSession::ptr> m_sessions;                                  // session列表，存储所有连接的session，索引为sessionId
+    std::vector<std::unique_ptr<std::shared_mutex>> m_session_mutexs;                             // session列表锁，保护session列表的读写
+    std::atomic<uint32_t> m_sessionCount{0};                             // 当前session数量
 };
 }
 }
+
+#include "wsserver.tpp"
 

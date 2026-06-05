@@ -41,6 +41,45 @@ Socket::~Socket()
     }
 }
 
+Socket::Socket(Socket&& other) noexcept {
+
+    m_sock_fd = other.m_sock_fd;
+    m_family = other.m_family;
+    m_type = other.m_type;
+    m_protocol = other.m_protocol;
+    m_isConnected = other.m_isConnected;    
+    m_is_set_reuseport = other.m_is_set_reuseport;
+    m_local_address = other.m_local_address;
+    m_remote_address = other.m_remote_address;
+
+    other.m_sock_fd = -1;
+    other.m_isConnected = false;
+    return;
+}
+
+Socket& Socket::operator=(Socket&& other) {
+    if(this == &other) {
+        return *this;
+    }
+    if(m_sock_fd != -1)
+    {
+        IOManager::getInstance()->closeFd(m_sock_fd);
+    }
+
+    m_sock_fd = other.m_sock_fd;
+    m_family = other.m_family;
+    m_type = other.m_type;
+    m_protocol = other.m_protocol;
+    m_isConnected = other.m_isConnected;    
+    m_is_set_reuseport = other.m_is_set_reuseport;
+    m_local_address = other.m_local_address;
+    m_remote_address = other.m_remote_address;
+
+    other.m_sock_fd = -1;
+    other.m_isConnected = false;
+    return *this;
+}
+
 // easy create a socket 
 Socket::ptr Socket::CreateTCP(m_sylar::Address::ptr address){
     Socket::ptr new_socket(new Socket(address->getFamily(), SOCK_STREAM, 0));

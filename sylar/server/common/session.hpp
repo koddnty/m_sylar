@@ -17,6 +17,12 @@ public:
     Session(Socket::ptr socket);
     ~Session();
 
+    Session(const Session& other) = delete;
+    Session& operator=(const Session& other) = delete;
+
+    Session(Session&& other) noexcept;
+    Session& operator=(Session&& other);
+
     Task<int> recvMessage(char** buffer, size_t length = -1);               // 接受一些数据，返回接收字节数,参数buffer在第二次同调用时失效
     Task<int> sendMessage(const char* buffer, size_t length);              // 发送数据，返回发送字节数
     size_t consume(size_t length);
@@ -33,7 +39,7 @@ public:
 
 
 private:
-    char* m_buffer;               // 流式buffer
+    char* m_buffer {nullptr};               // 流式buffer
     uint64_t m_total_received = 0;           // 累计接收字节数
     size_t m_buffer_size;          // buffer大小
     size_t m_buffer_begin_pos = 0;       // buffer中未处理数据的起始位置

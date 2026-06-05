@@ -12,6 +12,7 @@
 #include "log.h"
 #include "singleton.h"
 #include "coroutine/corobase.h"
+#include <sys/timerfd.h>
 
 
 #include "coroutine/coro20/ioManager.h"
@@ -44,6 +45,7 @@ public:
         bool operator()(const Timer::ptr& lhs, const Timer::ptr& rhs) const;
     };
 
+    void reset();
 protected:
 
     void enrollToManager();        // 添加到iomanager
@@ -114,9 +116,20 @@ public:
     TimeManager(IOManager* iom);
     ~TimeManager();
 
+    /**
+        @brief 普通定时器，到期执行main_cb函数
+    */
     int addTimer(uint64_t intervalTime, bool is_cycle, 
         std::function<void()> main_cb);                                // 添加普通定时器
     
+    /**
+        @brief 条件定时器，满足condition时持续执行main_cb函数，否则执行condition_cb函数
+
+        @param main_cb          true计时器到时间后将优先进行condition的判断，
+        @param main_cb          继续执行main_cb, 如果返回false，则执行condition_cb。
+        @param condition_cb     计时器到时间后condition返回值为false执行的函数
+
+    */
     int addConditionTimer(uint64_t intervalTime, bool is_cycle, 
         std::function<void()> main_cb,
         std::function<bool()> condition,
@@ -124,8 +137,9 @@ public:
 
     /** 
         @brief _WithTimeout系列函数，在原有addEvent基础上为事件添加i时间限制功能，方便诸如超时系统开发。
+                此函数不拥有fd所有权，不会打开或关闭fd，但会在事件超时后删除ioManager中对应事件的注册，且可选地删除fd管理（详见closeFlag参数）。
 
-        @param closeFlag 此参数正常情况下不要修改，如果改为非0值，将会在一个事件超时后直接关闭fd管理（以及所有事件）， 详见closeWithNoClose.  
+        @param closeFlag 此参数正常情况下不要修改，默认值：删除事件。非0值，将会在一个事件超时后关闭fd管理，保留fd， 详见closeWithNoClose.  
     */
 
     IOManager& addEventWithTimeout(int fd, FdContext::Event event, TaskCoro20&& task, 
@@ -133,9 +147,11 @@ public:
     IOManager& addEventWithTimeout(int fd, FdContext::Event event, std::function<void()> cb_func, 
                                             uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag = 0);
 
+    static uint64_t GetCurrentMS();      // 获取当前时间，单位ms
 
     void cancelTimer(Timer::ptr timer);                             // 取消定时器
     void cancelTimer(int timerFd);
+
 
     static TimeManager* getInstance();         // 获取timeManager
 
