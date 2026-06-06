@@ -63,6 +63,7 @@ class WsSession : public Session, public std::enable_shared_from_this<WsSession>
 public:
     using ptr = std::shared_ptr<WsSession>;
     WsSession(Socket::ptr socket, size_t sessionId);
+    ~WsSession();
     enum class State {
         INIT,           // 连接已建立但未进行定时器配置，不可用状态。等待完成定时器等配置后进入OPEN状态
         OPEN,           // 连接已建立，正常通信中

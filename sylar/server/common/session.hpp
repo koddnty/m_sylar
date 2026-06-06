@@ -38,6 +38,10 @@ public:
     const Socket::ptr getSocket() const { return m_socket; }
 
 
+    int close() {
+        return m_socket->close();
+    }
+
 private:
     char* m_buffer {nullptr};               // 流式buffer
     uint64_t m_total_received = 0;           // 累计接收字节数

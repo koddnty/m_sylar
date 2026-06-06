@@ -98,6 +98,9 @@ WsSession::WsSession(Socket::ptr socket, size_t sessionId) : Session(socket) {
     m_state = State::INIT;
 }
 
+WsSession::~WsSession() {
+}
+
 int WsSession::init() {
     auto self = shared_from_this();
     m_timer_fd = TimeManager::getInstance()->addConditionTimer(g_ws_ping_timeout->getValue() * 1000000, true, 
@@ -106,14 +109,21 @@ int WsSession::init() {
         [self](){       // 条件判断
             uint64_t recent = self->getRecentActivate();
             uint64_t now = m_sylar::TimeManager::GetCurrentMS();
-            if(now - recent >= g_ws_ping_timeout->getValue()) {
-                M_SYLAR_LOG_INFO(g_logger) << "ping timeout, close session, sessionId=" << self->getSessionId();
+            if(now - recent >= g_ws_ping_timeout->getValue() * 1000) {
+                M_SYLAR_LOG_INFO(g_logger) << "ping timeout, close session, sessionId=" << self->getSessionId()
+                                            << ", recent activate time=" << recent << ", now=" << now;
+
                 return false;    // 超时，执行回调
             }
             return true;
         }, 
         [self]() {
             IOManager::getInstance()->schedule([self]() {
+                if(self->getState() != State::OPEN) {
+                    M_SYLAR_LOG_DEBUG(g_logger) << "timer" << self->getSessionId();
+                    return;     // 连接未处于OPEN状态，无需处理
+                }
+                // TODO: 实现真正的主动关闭定时器操作
                 M_SYLAR_LOG_DEBUG(g_logger) << "ping timeout callback, close session, sessionId=" << self->getSessionId();
                 self->m_state = State::CLOSED;
                 WsServer::getInstance()->close(self->getSessionId());           // 关闭连接
@@ -142,7 +152,6 @@ Task<int> WsSession::co_recvFrame() {
     while(true) {
         int rt = co_await recvMessage(&buffer, -1);
         if(rt == 0) {   // 连接关闭
-            M_SYLAR_LOG_WARN(g_logger) << "recv websocket frame failed, buffer is null, close connection. client:" << getSocket()->toString();
             co_return 0;
         }
         else if(rt < 0) {  // 错误
@@ -191,6 +200,10 @@ Task<int> WsSession::co_close(int code, const std::string& reason) {
     if(m_state == State::CLOSED || m_state == State::CLOSING) {
         co_return 0;   // 已经在关闭中或已关闭，无需重复发送close帧
     }
+    if(!getSocket()->isValid()) {// 连接已无效，无需发送close帧,仅更新状态并清理资源
+        m_state = State::CLOSED;
+        co_return 0;   
+    }
     m_state = State::CLOSING;
     Frame f{};
     f.setOpcode(websocket_flags::WS_OP_CLOSE);
@@ -203,6 +216,7 @@ Task<int> WsSession::co_close(int code, const std::string& reason) {
         m_timer_fd = -1;
     }
     m_state = State::CLOSED;
+
     co_return 0;
 }
 
@@ -272,6 +286,7 @@ int WsServer::close(int sessionId) {
         M_SYLAR_LOG_ERROR(g_logger) << "close failed, session not found, sessionId=" << sessionId;
         return -1;
     }
+    session->close();
     std::string reason {"Normal Closure"};
     return 0;
 }

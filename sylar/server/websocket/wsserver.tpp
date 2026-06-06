@@ -39,7 +39,6 @@ Task<bool> WsServer::handleClient(Socket::ptr client) {
         M_SYLAR_LOG_DEBUG(ghws_logger) << "recv frame, sessionId=" << sessionId << ", rt=" << rt;
         if(rt == 0) {
             isClosed = true;
-            M_SYLAR_LOG_WARN(ghws_logger) << "socket closed" << client->toString();
             break; /* 连接关闭 */
         }
         else if(rt == -1 && errno != EAGAIN){
@@ -68,7 +67,10 @@ Task<bool> WsServer::handleClient(Socket::ptr client) {
             break;
         }
     } while (loopCount < 10000 && session->getState() != WsSession::State::CLOSED);     // 限制最大请求数，防止死循环
-
+    if(isClosed) {
+        co_await session->co_close(code, reason);    // 确保连接关闭
+        removeSession(sessionId);
+    }
     // 断开/重新调度
     M_SYLAR_LOG_DEBUG(ghws_logger) << "websocket client one loop finished, isClosed " << isClosed <<  "sessionId=" << sessionId << ", socket:" << *client << ", code=" << code << ", reason=" << reason;
     co_return isClosed;
