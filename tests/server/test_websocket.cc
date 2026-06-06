@@ -10,6 +10,7 @@ class TestHandler : public websocket::WsHandler {
 public:
     static Task<void> co_onOpen(std::shared_ptr<websocket::WsSession> session){
         M_SYLAR_LOG_INFO(g_logger) << "successfully open websocket connection, sessionId:" << session->getSessionId();
+        std::cout << "-----------------oh yeah-----------------" << std::endl;
         co_return;
     }                                       // 连接建立
 

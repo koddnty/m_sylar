@@ -140,7 +140,10 @@ public:
         @return 是否需要关闭连接，true表示连接已经正常/异常关闭，false表示未关闭连接，需要重新调度后通信。
     */
     template<WsHandlerType T>
-    Task<bool> handleClient(Socket::ptr client);        // websocket流程处理
+    Task<int> handleClient(Socket::ptr client, int sessionId = -1);        // websocket流程处理
+
+
+
 
     int close(int sessionId);     // 关闭控制，成功返回0，失败返回-1
 

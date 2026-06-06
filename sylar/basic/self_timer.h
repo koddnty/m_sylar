@@ -61,8 +61,8 @@ private:
     void re_enroll();
 
 private:
-    int m_timeFd;                               // timefd
-    bool m_is_cycle;                            // 是否循环
+    int m_timeFd {-1};                               // timefd
+    bool m_is_cycle {false};                            // 是否循环
     uint64_t m_interval;                        // 循环间隔时间
     uint64_t m_nextTime;                        // 到期时间
     TimeManager* m_manager;                     // timer管理者

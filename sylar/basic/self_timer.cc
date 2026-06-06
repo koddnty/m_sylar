@@ -198,16 +198,16 @@ int TimeManager::addConditionTimer(uint64_t intervalTime, bool is_cycle,
     std::function<bool()> condition,
     std::function<void()> condition_cb)
 {
-    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
-    Timer::ptr new_timer (new Timer(intervalTime, is_cycle, this
-                                        , main_cb, condition, condition_cb));
+    Timer::ptr new_timer = std::make_shared<Timer>(intervalTime, is_cycle, this
+                                        , main_cb, condition, condition_cb);
 
     // std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
     // M_SYLAR_LOG_DEBUG(g_logger) << "add in timerFd map : timerFd=" <<  new_timer->m_timeFd;
-    new_timer->enrollToManager();
 
-    //M_SYLAR_LOG_DEBUG(g_logger) << "new timer, fd = {" << new_timer->m_timeFd << "}" << std::endl;
+    new_timer->enrollToManager();
+    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     m_timersMap[new_timer->m_timeFd] = new_timer;
+    //M_SYLAR_LOG_DEBUG(g_logger) << "new timer, fd = {" << new_timer->m_timeFd << "}" << std::endl;
     //std::cerr << new_timer->m_timeFd << "---- " << m_timersMap[new_timer->m_timeFd]->m_timeFd << std::endl;
     return new_timer->m_timeFd;
 }

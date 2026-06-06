@@ -18,6 +18,10 @@ ConfigVar<uint32_t>::ptr g_ws_max_request_size  = ConfigManager::LookUp("servers
 
 Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr frame) {
     // 处理不同类型的帧
+    if(frame == nullptr) {
+        M_SYLAR_LOG_ERROR(g_logger) << "frame is nullptr, sessionId=" << session->getSessionId();
+        co_return -1;
+    }
     int rt = 0;
     switch(frame->getType()) {
         case websocket_flags::WS_OP_TEXT:
@@ -121,6 +125,7 @@ int WsSession::init() {
             IOManager::getInstance()->schedule([self]() {
                 if(self->getState() != State::OPEN) {
                     M_SYLAR_LOG_DEBUG(g_logger) << "timer" << self->getSessionId();
+                    TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
                     return;     // 连接未处于OPEN状态，无需处理
                 }
                 // TODO: 实现真正的主动关闭定时器操作
@@ -211,10 +216,7 @@ Task<int> WsSession::co_close(int code, const std::string& reason) {
     auto data = f.make();
     co_await sendMessage((const char*)data.data(), data.size());   // 发送空消息
     // 关闭定时器
-    if(m_timer_fd != -1) {
-        TimeManager::getInstance()->cancelTimer(m_timer_fd);
-        m_timer_fd = -1;
-    }
+
     m_state = State::CLOSED;
 
     co_return 0;
@@ -268,7 +270,7 @@ Task<int> WsServer::handShake(http::HttpSession::ptr http_session) {
     // 2. 构造并发送websocket响应
     if(state != WebSocketFrameType::OPENING_FRAME) {
         M_SYLAR_LOG_WARN(g_logger) << "handshake failed, invalid websocket request, state=" << state;
-        co_return state;
+        co_return -1;
     }
     std::string resp = ws->answerHandshake();
     M_SYLAR_LOG_INFO(g_logger) << "handshake success, send response:\n" << resp;
