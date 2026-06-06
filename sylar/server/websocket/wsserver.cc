@@ -100,7 +100,7 @@ WsSession::WsSession(Socket::ptr socket, size_t sessionId) : Session(socket) {
 
 int WsSession::init() {
     auto self = shared_from_this();
-    m_timer_fd = TimeManager::getInstance()->addConditionTimer(g_ws_ping_timeout->getValue(), true, 
+    m_timer_fd = TimeManager::getInstance()->addConditionTimer(g_ws_ping_timeout->getValue() * 1000000, true, 
         []() {      // 主循环，无需做任何事
         },
         [self](){       // 条件判断
@@ -114,6 +114,7 @@ int WsSession::init() {
         }, 
         [self]() {
             IOManager::getInstance()->schedule([self]() {
+                M_SYLAR_LOG_DEBUG(g_logger) << "ping timeout callback, close session, sessionId=" << self->getSessionId();
                 self->m_state = State::CLOSED;
                 WsServer::getInstance()->close(self->getSessionId());           // 关闭连接
                 TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
@@ -132,7 +133,7 @@ int WsSession::init() {
 Task<int> WsSession::co_recvFrame() {
     if(m_state != State::OPEN) {co_return -1;}
     if(m_frame_buffer.getFrameCount() > 0) {
-        co_return 0;   // 已经有可用帧，无需继续接收
+        co_return 1;   // 已经有可用帧，无需继续接收
     }
     uint32_t max_request_size = g_ws_max_request_size->getValue();
     char* buffer = nullptr;     // 输出参数，指向接收数据的起始位置，不要对buffer进行delete操作
@@ -167,8 +168,9 @@ Task<int> WsSession::co_recvFrame() {
             break;  // 已经解析出完整帧，退出循环
         }
     }
+    upDateSessionOnRecv();
 
-    co_return upDateSessionOnRecv();
+    co_return 1;   // 成功接收并解析出至少一帧
 }
 
 Task<int> WsSession::co_sendFrame(const Frame& frame) {
@@ -245,7 +247,7 @@ Task<int> WsServer::handShake(http::HttpSession::ptr http_session) {
     std::shared_ptr<protocol::http::parser::request> request = http_session->getRequest();
 
     std::string request_str = request->raw();
-    std::shared_ptr<WebSocket> ws {};
+    std::shared_ptr<WebSocket> ws = std::make_shared<WebSocket>();
     WebSocketFrameType state = ws->parseHandshake((unsigned char*)request_str.c_str(), request_str.size());
 
 
@@ -255,6 +257,7 @@ Task<int> WsServer::handShake(http::HttpSession::ptr http_session) {
         co_return state;
     }
     std::string resp = ws->answerHandshake();
+    M_SYLAR_LOG_INFO(g_logger) << "handshake success, send response:\n" << resp;
     int rt = co_await http_session->co_sendResp(resp);
     if(rt == -1) {
         M_SYLAR_LOG_WARN(g_logger) << "handshake failed, send response failed, errno:" << errno << " error:" << strerror(errno);

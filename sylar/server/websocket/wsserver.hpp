@@ -73,7 +73,7 @@ public:
     int init();
 
     // 所有数据连接，需状态更新
-    Task<int> co_recvFrame();         // 消息接受，报文解析
+    Task<int> co_recvFrame();         // 消息接受，报文解析, 成功返回1，连接关闭返回0，发生错误返回-1，协议错误等异常情况返回-2
     Task<int> co_sendFrame(const Frame& frame);
     Task<int> co_sendFrame(Frame::ptr frame);
     Task<int> co_close(int code, const std::string& reason);        // 发送close报文
@@ -139,7 +139,7 @@ public:
         @return 是否需要关闭连接，true表示连接已经正常/异常关闭，false表示未关闭连接，需要重新调度后通信。
     */
     template<WsHandlerType T>
-    Task<bool, TaskBeginExecuter> handleClient(Socket::ptr client);        // websocket流程处理
+    Task<bool> handleClient(Socket::ptr client);        // websocket流程处理
 
     int close(int sessionId);     // 关闭控制，成功返回0，失败返回-1
 
@@ -153,7 +153,6 @@ public:
 
 
     static WsServer* getInstance();
-
 
     WsSession::ptr getSession(int sessionId);             // 获取session，成功返回session指针，失败返回nullptr
 

@@ -104,9 +104,9 @@ Task<int> HttpSession::co_recvRequest()
         }
     }
     // 更新session信息
-    if(updateSession())       
+    if(!updateSession())       
     {
-        M_SYLAR_LOG_DEBUG(g_logger) << "failed to update session message";
+        M_SYLAR_LOG_WARN(g_logger) << "failed to update session message";
         co_return -1;
     }
     M_SYLAR_LOG_DEBUG(g_logger) << "[httpSession] recv success, total length = " << total_length;
@@ -244,9 +244,10 @@ Task<void> HttpServer::execHandler(const std::string& url, HttpSession::ptr sess
     if(request_pair == m_urls.end() ||
        session->getRequest()->get_method() != HttpMethodToString(request_pair->second.first))
     {   // 方法不匹配
+        M_SYLAR_LOG_DEBUG(g_logger) << "no handler for url: " << path << " method: " << session->getRequest()->get_method();
         co_return;
     }
-    // request_pair->second.second(session);
+    // request_pair->second.secownd(session);
     co_await request_pair->second.second(session);
     co_return;
 }
@@ -322,6 +323,7 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
         M_SYLAR_LOG_INFO(g_logger) << "uri : " << session->getRequest()->get_uri();
         co_await execHandler(session->getRequest()->get_uri(), session);         // 处理任务回调
         // session->getResponse()->updateHeader();
+        M_SYLAR_LOG_DEBUG(g_logger) << "httpServer next loop";
 
         // co_await session->co_sendResp();                // 发送响应报文      // ！！！需要所有程序改动
         response_count++;
