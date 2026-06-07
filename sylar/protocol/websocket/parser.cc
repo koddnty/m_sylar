@@ -236,7 +236,7 @@ int Frame::make(std::vector<uint8_t>& data, bool mask) const {
     // 第一字节：FIN + RSV1-3 + Opcode
     uint8_t first_byte = 0;
     first_byte |= (m_opcode & WS_OP_MASK); // 设置Opcode
-    first_byte |= websocket_flags::WS_FINAL_FRAME; // 设置FIN位
+    first_byte |= 0x80; // 设置FIN位
     data.push_back(first_byte);
 
     // 第二字节及长度扩展：MASK + Payload Length

@@ -20,13 +20,14 @@ namespace m_sylar
 namespace websocket
 {
 class WsSession;
+static Logger::ptr ghws_logger = M_SYLAR_LOG_NAME("system");
 
 // handler类型
 template<typename T>
 concept WsHandlerType = requires(std::shared_ptr<WsSession> session, Frame::ptr frame, 
                                   std::string msg, std::vector<uint8_t> data,
                                   int code) {
-    { T::co_Route(session, frame) }   -> std::same_as<Task<int>>;
+    // { T::co_Route(session, frame) }   -> std::same_as<Task<int>>;
     { T::co_onOpen(session) }            -> std::same_as<Task<void>>;
     { T::co_onMessage(session, msg) }    -> std::same_as<Task<void>>;
     { T::co_onBinary(session, data) }    -> std::same_as<Task<void>>;
@@ -45,6 +46,7 @@ public:
     using ptr = std::shared_ptr<WsHandler>;
     virtual ~WsHandler() = default;
 
+    template<WsHandlerType T>
     static Task<int> co_Route(std::shared_ptr<WsSession> session, Frame::ptr frame);
 
     static Task<void> co_onOpen(std::shared_ptr<WsSession> session);                                           // 连接建立
@@ -102,6 +104,15 @@ private:
     int m_timer_fd = -1;                                    // 定时器fd
     void* m_data = nullptr;
     std::atomic<uint64_t> m_recent_activate{0};
+
+    enum class BF_State {
+        WAITING,        // 不可发送帧，需先入队
+        READY           // 可以发送帧
+    };
+
+    std::atomic<BF_State> m_bf_state{BF_State::READY};    // 发送缓冲区状态，READY表示可以发送帧，WAITING表示需要先入队帧
+    std::shared_mutex m_send_mutex;                       // 发送缓冲区锁，保护
+    std::list<std::vector<uint8_t>> m_send_buffer;                 // 待发送帧列表，发送过程中可能会有多个待发送帧
 };
 
 

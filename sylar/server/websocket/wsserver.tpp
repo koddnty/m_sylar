@@ -5,7 +5,44 @@ namespace m_sylar
 namespace websocket
 {
 
-static Logger::ptr ghws_logger = M_SYLAR_LOG_NAME("system");
+template<WsHandlerType T>
+Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr frame) {
+    // 处理不同类型的帧
+    if(frame == nullptr) {
+        M_SYLAR_LOG_ERROR(ghws_logger) << "frame is nullptr, sessionId=" << session->getSessionId();
+        co_return -1;
+    }
+    int rt = 0;
+    switch(frame->getType()) {
+        case websocket_flags::WS_OP_TEXT:
+            M_SYLAR_LOG_DEBUG(ghws_logger) << "WS_OP_TEXT";
+            co_await T::co_onMessage(session, frame->getTextPayload());
+            break;
+        case websocket_flags::WS_OP_BINARY:
+            M_SYLAR_LOG_DEBUG(ghws_logger) << "WS_OP_BINARY";
+            co_await T::co_onBinary(session, frame->getBinaryPayload());
+            break;
+        case websocket_flags::WS_OP_CLOSE:
+            M_SYLAR_LOG_DEBUG(ghws_logger) << "WS_OP_CLOSE";
+            co_await T::co_onClose(session, frame->getCloseCode(), frame->getCloseReason());   // 1000是正常关闭的状态码
+            break;
+        case websocket_flags::WS_OP_PING:
+            M_SYLAR_LOG_DEBUG(ghws_logger) << "WS_OP_PING";
+            co_await T::co_onPing(session, frame->getTextPayload());
+            break;
+        case websocket_flags::WS_OP_PONG:
+            M_SYLAR_LOG_DEBUG(ghws_logger) << "WS_OP_PONG";
+            co_await T::co_onPong(session, frame->getTextPayload());
+            break;
+        default:
+            M_SYLAR_LOG_DEBUG(ghws_logger) << "UNKNOWD OPCODE: " << (int)frame->getType();
+            co_await T::co_onError(session, "Unsupported frame type: " + std::to_string((int)frame->getType()));
+            M_SYLAR_LOG_WARN(ghws_logger) << "Received frame with opcode: " << (int)frame->getType() << ", payload length: " << frame->getPayloadLength();
+            rt = -1;
+            break;
+    }
+    co_return rt;
+}
 
 template<WsHandlerType T>
 Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
@@ -76,7 +113,9 @@ Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
             nextId = -1;
             break;
         }
-        int state = co_await T::co_Route(session, f);
+
+        M_SYLAR_LOG_DEBUG(ghws_logger) << "recv frame, sessionId=" << sessionId << ", opcode=" << (int)f->getType() << ", payload length=" << f->getPayloadLength();
+        int state = co_await T::template co_Route<T>(session, f);
 
         if(state) {
             M_SYLAR_LOG_DEBUG(ghws_logger) << "handler return false, close connection. client:" << client->toString();
@@ -87,6 +126,8 @@ Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
             break;
         }
     } while (loopCount < 10000 && session->getState() != WsSession::State::CLOSED);     // 限制最大请求数，防止死循环
+
+    // M_SYLAR_LOG_DEBUG(ghws_logger) << "websocket client loop end, nextId=" << nextId << ", socket:" << *client << ", code=" << code << ", reason=" << reason;
     if(nextId == -1) {
         co_await session->co_close(code, reason);    // 确保连接关闭
         removeSession(sessionId);

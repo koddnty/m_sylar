@@ -16,37 +16,7 @@ ConfigVar<uint32_t>::ptr g_ws_buffer_size = ConfigManager::LookUp("servers.webso
 ConfigVar<uint32_t>::ptr g_ws_max_request_size  = ConfigManager::LookUp("servers.websocket.limit.max_request_size", uint32_t(10485760), 0, "websocket server parser buffer size");
 
 
-Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr frame) {
-    // 处理不同类型的帧
-    if(frame == nullptr) {
-        M_SYLAR_LOG_ERROR(g_logger) << "frame is nullptr, sessionId=" << session->getSessionId();
-        co_return -1;
-    }
-    int rt = 0;
-    switch(frame->getType()) {
-        case websocket_flags::WS_OP_TEXT:
-            co_await co_onMessage(session, frame->getTextPayload());
-            break;
-        case websocket_flags::WS_OP_BINARY:
-            co_await co_onBinary(session, frame->getBinaryPayload());
-            break;
-        case websocket_flags::WS_OP_CLOSE:
-            co_await co_onClose(session, frame->getCloseCode(), frame->getCloseReason());   // 1000是正常关闭的状态码
-            break;
-        case websocket_flags::WS_OP_PING:
-            co_await co_onPing(session, frame->getTextPayload());
-            break;
-        case websocket_flags::WS_OP_PONG:
-            co_await co_onPong(session, frame->getTextPayload());
-            break;
-        default:
-            co_await co_onError(session, "Unsupported frame type: " + std::to_string((int)frame->getType()));
-            M_SYLAR_LOG_WARN(g_logger) << "Received frame with opcode: " << (int)frame->getType() << ", payload length: " << frame->getPayloadLength();
-            rt = -1;
-            break;
-    }
-    co_return rt;
-}
+// Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr frame) 
 
 Task<void> WsHandler::co_onOpen(std::shared_ptr<WsSession> session) {
     M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onOpen event, sessionId=" << session->getSessionId();
@@ -188,17 +158,49 @@ Task<int> WsSession::co_recvFrame() {
 }
 
 Task<int> WsSession::co_sendFrame(const Frame& frame) {
-    if(m_state != State::OPEN) {co_return -1;}
+    BF_State expected_state = BF_State::READY;
+    if(!m_bf_state.compare_exchange_strong(expected_state, BF_State::WAITING)) {
+        // 发送缓冲区当前不可用，入队等待
+        std::unique_lock<std::shared_mutex> wlock(m_send_mutex);
+        m_send_buffer.push_back(frame.make());
+        co_return 0;
+    } 
+
+
+    // 发送当前帧
     auto data = frame.make();
-    co_await sendMessage((const char*)data.data(), data.size());
+    int rt = co_await sendMessage((const char*)data.data(), data.size());
+    if(rt == -1) {
+        M_SYLAR_LOG_ERROR(g_logger) << "send websocket frame failed, errno:" << errno << " error:" << strerror(errno) << "\nclient:" << getSocket()->toString();
+        co_return -1;
+    }
+
+
+    // 当前处于READY状态，可以直接发送
+    while(true) {
+        std::list<std::vector<uint8_t>> to_send;
+        {
+            std::unique_lock<std::shared_mutex> wlock(m_send_mutex);
+            to_send.swap(m_send_buffer);
+            if(to_send.empty()) {
+                m_bf_state = BF_State::READY;   // 没有待发送帧，更新状态
+                break;
+            }   // 释放锁，发送帧
+        }
+        while(!to_send.empty()) {
+            auto& data = to_send.front();
+            int rt = co_await sendMessage((const char*)data.data(), data.size());
+            if(rt == -1) {
+                M_SYLAR_LOG_ERROR(g_logger) << "send websocket frame failed, errno:" << errno << " error:" << strerror(errno) << "\nclient:" << getSocket()->toString();
+            }
+            to_send.pop_front();
+        }
+    }
     co_return 0;
 }
 
 Task<int> WsSession::co_sendFrame(Frame::ptr frame) {
-    if(m_state != State::OPEN) {co_return -1;}
-    auto data = frame->make();
-    co_await sendMessage((const char*)data.data(), data.size());
-    co_return 0;
+    co_return co_await co_sendFrame(*frame);
 }
 
 Task<int> WsSession::co_close(int code, const std::string& reason) {
@@ -214,6 +216,7 @@ Task<int> WsSession::co_close(int code, const std::string& reason) {
     f.setOpcode(websocket_flags::WS_OP_CLOSE);
     f.setClosePayload(code, reason);
     auto data = f.make();
+    M_SYLAR_LOG_DEBUG(g_logger) << "close data: " << std::string(data.begin(), data.end());
     co_await sendMessage((const char*)data.data(), data.size());   // 发送空消息
     // 关闭定时器
 

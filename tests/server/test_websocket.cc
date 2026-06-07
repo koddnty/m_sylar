@@ -25,6 +25,32 @@ public:
         co_return;
     }                                       // 连接建立
 
+
+    static Task<void> co_onMessage(std::shared_ptr<websocket::WsSession> session, const std::string& msg) {
+        M_SYLAR_LOG_INFO(g_logger) << "received websocket message, sessionId:" << session->getSessionId() << ", msg:" << msg;
+        std::string reply = "Echo: " + msg;
+        websocket::Frame f;
+        f.setOpcode(websocket_flags::WS_OP_TEXT);
+        f.setTextPayload(reply);
+
+        auto data = f.make();   // 构造帧数据
+        auto first = data[0];
+        uint8_t first_byte = data[0];
+        bool FIN  = (first_byte >> 7) & 1;
+        bool RSV1 = (first_byte >> 6) & 1;
+        bool RSV2 = (first_byte >> 5) & 1;
+        bool RSV3 = (first_byte >> 4) & 1;
+        int  opcode = first_byte & 0x0F;
+
+        M_SYLAR_LOG_INFO(g_logger) << "FIN=" << FIN << " RSV1=" << RSV1 << " RSV2=" << RSV2 << " RSV3=" << RSV3 << " opcode=" << opcode;
+        M_SYLAR_LOG_INFO(g_logger) << "reply frame, sessionId=" << session->getSessionId() << ", opcode=" << opcode << ", payload length=" << f.getPayloadLength();
+        for(int i = 0; i < 1000; i++) {
+            co_await session->co_sendFrame(f);   // 回复消息
+        }
+        co_return;
+    }
+    
+
 };
 
 
