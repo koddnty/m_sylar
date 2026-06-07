@@ -79,7 +79,7 @@ Task<int> Session::recvMessage(char** buffer, size_t length) {
         {   // 连接关闭
             co_return 0;
         }
-        else if(recv_len == -1)
+        else if(recv_len == -1 || recv_len == -2)
         {   // 错误
             switch(errno) {
                 case EBADF:        // 9 - 无效文件描述符

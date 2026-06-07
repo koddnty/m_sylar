@@ -38,6 +38,7 @@ Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
         }
     }
 
+    M_SYLAR_LOG_DEBUG(ghws_logger) << "websocket client connected, sessionId=" << sessionId << ", socket:" << *client;
     int nextId = sessionId;
     M_SYLAR_LOG_DEBUG(ghws_logger) << "new websocket client, sessionId=" << sessionId << ", socket:" << *client;
     // 通信

@@ -4,6 +4,17 @@
 using namespace m_sylar;
 
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+#include <signal.h>
+
+void ignore_sigpipe() {
+    signal(SIGPIPE, SIG_IGN);
+    // 或者使用sigaction
+    struct sigaction sa;
+    sa.sa_handler = SIG_IGN;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask);
+    sigaction(SIGPIPE, &sa, nullptr);
+}
 
 
 class TestHandler : public websocket::WsHandler {
@@ -26,6 +37,7 @@ void testBase(IOManager* iom) {
 
     // auto ws_server = websocket::WsServer::getInstance();
     // ws_server->registerUrl<TestHandler>("/test");
+    ignore_sigpipe();  // 忽略SIGPIPE
     std::string config_path = "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/conf/basic.json";
     std::cout << "[LoggerManager init] config path: " << config_path << std::endl;
     m_sylar::ConfigManager::LoadJson(config_path, 0);
@@ -49,7 +61,7 @@ void testBase(IOManager* iom) {
 
 
 int main(void) {
-    m_sylar::IOManager iom {"test websocekt", 1};
+    m_sylar::IOManager iom {"test websocekt", 4};
     testBase(&iom);
 
     sleep(100);

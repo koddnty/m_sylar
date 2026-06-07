@@ -54,7 +54,7 @@ int FrameBuffer::on_frame_header(websocket_parser* parser) {
         // 二进制帧，准备接收二进制数据
         context->payload_binary.resize(context->payload_length);
     }
-    else if(context->opcode == websocket_flags::WS_OP_TEXT) {
+    else {
         // 文本帧，准备接收文本数据
         context->payload_text.resize(context->payload_length);
     }  
