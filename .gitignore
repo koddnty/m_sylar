@@ -35,3 +35,9 @@ stamp-h1
 depcomp
 *.xcodeproj
 out
+compile_commands.json
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vspscc
+*.vssscc
