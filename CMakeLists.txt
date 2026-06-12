@@ -12,14 +12,12 @@ set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -W
 
 option(SYLAR_USE_CORO20 "Use C++20 coroutine implementation, OFF if NOT" ON)       # 底层协程实现配置
 
-find_package(yaml-cpp REQUIRED)
 find_library(MARIADB_LIB mariadb /usr/local/lib/mariadb)
 find_library(HIREDIS_LIB hiredis /usr/local/lib)
 
 set ( LIB_LIB
     pthread
     dl
-    yaml-cpp::yaml-cpp
     ${MARIADB_LIB}
     ${HIREDIS_LIB}
 )
