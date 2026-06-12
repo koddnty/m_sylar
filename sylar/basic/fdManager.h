@@ -67,6 +67,7 @@ public:
 
     FdManager();
     ~FdManager();
+    void init() {}
 
     FdCtx::ptr get(int fd, bool auto_create = false);
     void del(int fd);

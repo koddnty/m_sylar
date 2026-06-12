@@ -1,6 +1,6 @@
 #include "basic/address.h"
-#include "http/tcpServer.h"
-#include "http/httpServer.h"
+#include "server/tcp/tcpServer.h"
+#include "server/http/httpServer.h"
 #include "basic/log.h"
 // #include "basic/ioManager.h"
 #include "coroutine/corobase.h"

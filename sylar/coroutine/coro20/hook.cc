@@ -54,7 +54,7 @@ namespace m_sylar
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 static m_sylar::ConfigVar<uint64_t>::ptr g_tcp_connect_timeout =
-    m_sylar::configManager::Lookup("http.tcpserver.timeout.connect", (uint64_t)5000, "tcp connect timeout");     // 
+    m_sylar::ConfigManager::LookUp("servers.http.tcpserver.timeout.connect", (uint64_t)5000, M_SYALR_LOG_KEY, "tcp connect timeout");     // 
 
 
 /**

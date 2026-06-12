@@ -68,11 +68,9 @@ have runed 192999456 in 120 sec
 
 代码详见[代码](./../../tests/httpServer_test.cc)
 
+**短连接**服务端4线程，3000并发情况，QPS约为3.7w/s。运行过程中没有发现明显内存泄漏与fd未回收情况
 
-服务端4线程，3000并发情况，QPS约为3.7w/s。运行过程中没有发现明显内存泄漏与fd未回收情况
-
-
-```she
+```shell
 (base) ╭─koddnty@koddnty-Legion-Y7000P-IRX9 ~/user/garbages 
 ╰─$ wrk -t4 -c3000 -d30s \
   -H "Content-Type: application/json" \
@@ -89,3 +87,33 @@ Requests/sec:  37379.36
 Transfer/sec:      3.24MB
 ```
 
+**长连接**服务端4线程，极端小buffer(16字节)256连接数:
+
+```shell
+(base) ╭─koddnty@koddnty-Legion-Y7000P-IRX9 ~/user/garbages 
+╰─$ wrk -t 4 -c 256 -d 900s --script=rename.lua http://127.0.0.1:8803/home/rename
+Running 15m test @ http://127.0.0.1:8803/home/rename
+  4 threads and 256 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     5.96ms   12.82ms 566.26ms   94.95%
+    Req/Sec    18.82k     6.05k   77.09k    84.72%
+  67421706 requests in 15.00m, 6.03GB read
+Requests/sec:  74908.31
+Transfer/sec:      6.86MB
+```
+
+**长连接**服务端4线程4Kbuffer,256连接数,约 ***15w** QPS*
+
+```shell
+(base) ╭─koddnty@koddnty-Legion-Y7000P-IRX9 ~/user/garbages 
+╰─$ wrk -t 4 -c 256 -d 900s --script=rename.lua http://127.0.0.1:8803/home/rename
+Running 15m test @ http://127.0.0.1:8803/home/rename
+  4 threads and 256 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     5.03ms   10.95ms 375.71ms   92.77%
+    Req/Sec    37.39k    10.86k  128.06k    78.48%
+  133685996 requests in 15.00m, 11.95GB read
+  Socket errors: connect 0, read 839, write 806362, timeout 0
+Requests/sec: 148532.57
+Transfer/sec:     13.60MB
+```

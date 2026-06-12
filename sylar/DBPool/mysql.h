@@ -4,9 +4,9 @@
 #include <mariadb/mysql.h>
 #include <map>
 #include <vector>
+#include "basic/log.h"
 #include "basic/self_timer.h"
 #include "coroutine/corobase.h"
-#include "basic/log.h"
 #include "database.h"
 
 
@@ -72,6 +72,9 @@ public:
 
     IOState::State getState() const {return m_IOstate;}
     MySQLResp& setState(IOState::State state) {m_IOstate = state; return *this;}
+
+    int getColCount() const {return m_colCount;}
+    int getRowCount() const {return m_rowCount;}
 
 
 public: 
