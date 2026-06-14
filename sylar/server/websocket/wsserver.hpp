@@ -95,6 +95,10 @@ public:
     inline State getState() const { return m_state; }
     inline uint64_t getRecentActivate() const {return m_recent_activate;}
 
+    // ms
+    inline uint64_t getRecentPong() const { return m_recent_pong; }    // 目前ping/pong共用一个时间戳，后续可以根据需要分开
+    inline void setRecentPong(uint64_t timestamp) { m_recent_pong = timestamp; }
+
 private:
     size_t m_sessionId;                                      // 会话ID
     uint64_t m_total_received = 0;                              // 累计接收字节数
@@ -104,6 +108,9 @@ private:
     int m_timer_fd = -1;                                    // 定时器fd
     void* m_data = nullptr;
     std::atomic<uint64_t> m_recent_activate{0};
+    std::atomic<uint64_t> m_recent_pong{0};             // 最近pong帧的时间戳，单位ms
+
+
 
     enum class BF_State {
         WAITING,        // 不可发送帧，需先入队

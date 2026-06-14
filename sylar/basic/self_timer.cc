@@ -45,9 +45,9 @@ bool Timer::Compare::operator()(const Timer::ptr& lhs, const Timer::ptr& rhs) co
 // us级intervalTime
 Timer::Timer(uint64_t intervalTime, bool is_cycle, 
         TimeManager* manager,
-        std::function<void()> main_cb,      // 主循环函数
-        std::function<bool()> condition,    // 条件函数
-        std::function<void()> condition_cb) // 条件满足函数
+        std::function<Task<void>()> main_cb,      // 主循环函数
+        std::function<Task<bool>()> condition,    // 条件函数
+        std::function<Task<void>()> condition_cb) // 条件满足函数
       : m_is_cycle(is_cycle), m_interval(intervalTime),
         m_manager(manager), m_main_cb(main_cb)
 {
@@ -123,20 +123,20 @@ void Timer::enrollToManager()
 }
 
 
-void Timer::runner()
+Task<void> Timer::runner()
 {
     // 取出数据
     uint64_t expirations = 0;
     read(m_timeFd, &expirations, sizeof(expirations));
     // M_SYLAR_LOG_DEBUG(g_logger) << "is triggled, expirations = {" << expirations << "}, m_timeFd = {" << this->m_timeFd << "}" <<  std::endl;
     // 执行回调
-    if(m_condition())
+    if(co_await m_condition())
     {
-        m_main_cb();
+        co_await m_main_cb();
     }
     else
     {
-        m_condition_cb();
+        co_await m_condition_cb();
     }
 
     // 非循环终止
@@ -180,7 +180,7 @@ TimeManager::~TimeManager()
 
 
 int TimeManager::addTimer(uint64_t intervalTime, bool is_cycle, 
-        std::function<void()> main_cb)
+        std::function<Task<void>()> main_cb)
 {
     std::unique_lock<std::shared_mutex> w_lock(m_mutex);
     Timer::ptr new_timer (new Timer(intervalTime, is_cycle, this, main_cb));
@@ -194,9 +194,9 @@ int TimeManager::addTimer(uint64_t intervalTime, bool is_cycle,
 
 
 int TimeManager::addConditionTimer(uint64_t intervalTime, bool is_cycle, 
-    std::function<void()> main_cb,
-    std::function<bool()> condition,
-    std::function<void()> condition_cb)
+    std::function<Task<void>()> main_cb,
+    std::function<Task<bool>()> condition,
+    std::function<Task<void>()> condition_cb)
 {
     Timer::ptr new_timer = std::make_shared<Timer>(intervalTime, is_cycle, this
                                         , main_cb, condition, condition_cb);
@@ -228,7 +228,7 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, Task
     int iom_fd = fd;
     FdContext::Event iom_event = event;
     *timerfd = TimeManager::getInstance()->addConditionTimer(timeout, false, 
-        [taskwrapper, rtState, iom_fd, iom_event, closeFlag]() mutable {
+        [taskwrapper, rtState, iom_fd, iom_event, closeFlag]() mutable -> Task<void> {
             *rtState = TimeLimitInfo::State::TIMEOUT;
             if(closeFlag) {
                 IOManager::getInstance()->closeWithNoClose(iom_fd); // 完全删除事件，但保留fd
@@ -238,17 +238,18 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, Task
             }
             // IOManager::getInstance()->schedule(std::move((*)));
             (*taskwrapper).start();
+            co_return;
         }, 
-        [exeInfo]() {  // 判断回调是否执行
+        [exeInfo]() -> Task<bool> {  // 判断回调是否执行
             if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::TIMEOUT)) {
                 // 执行成功，当前任务超时，进入超时逻辑, 取消注册的事件。
-                return true;        
+                co_return true;        
             }
             else {
-                return false;       // 无处理逻辑。
+                co_return false;       // 无处理逻辑。
             }
         }, 
-        [](){});
+        []()->Task<void>{ co_return;});
 
     // 回调事件注册
     iom->addEvent(fd, event, [timerfd, exeInfo, taskwrapper, rtState]() mutable {
@@ -281,7 +282,7 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, std:
     int iom_fd = fd;
     FdContext::Event iom_event = event;
     *timerfd = TimeManager::getInstance()->addConditionTimer(timeout, false, 
-        [taskwrapper, rtState, iom_fd, iom_event, closeFlag]() mutable {
+        [taskwrapper, rtState, iom_fd, iom_event, closeFlag]() mutable -> Task<void> {
             *rtState = TimeLimitInfo::State::TIMEOUT;
             if(closeFlag) {
                 IOManager::getInstance()->closeWithNoClose(iom_fd);         // 删除事件
@@ -290,17 +291,18 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, std:
                 IOManager::getInstance()->delEvent(iom_fd, iom_event);      // 完全删除事件
             }
             IOManager::getInstance()->schedule(std::move((*taskwrapper)));
+            co_return;
         }, 
-        [exeInfo]() {  // 判断回调是否执行
+        [exeInfo]() ->Task<bool> {  // 判断回调是否执行
             if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::TIMEOUT)) {
                 // 执行成功，当前任务超时，进入超时逻辑, 取消注册的事件。
-                return true;        
+                co_return true;        
             }
             else {
-                return false;       // 无处理逻辑。
+                co_return false;       // 无处理逻辑。
             }
         }, 
-        [](){});
+        []()->Task<void>{ co_return;});
 
     // 回调事件注册
     iom->addEvent(fd, event, [timerfd, exeInfo, taskwrapper, rtState]() mutable {

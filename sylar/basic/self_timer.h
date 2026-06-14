@@ -35,9 +35,9 @@ public:
 
     Timer(uint64_t intervalTime, bool is_cycle, 
             TimeManager* manager,
-            std::function<void()> m_main_cb,
-            std::function<bool()> condition= nullptr,
-            std::function<void()> condition_cb= nullptr);
+            std::function<Task<void>()> m_main_cb,
+            std::function<Task<bool>()> condition= nullptr,
+            std::function<Task<void>()> condition_cb= nullptr);
     ~Timer();
 
     struct Compare
@@ -50,13 +50,13 @@ protected:
 
     void enrollToManager();        // 添加到iomanager
 
-    void runner();          // ioManager中imefd注册回调，
+    Task<void> runner();          // ioManager中imefd注册回调，
 
 private:
 // 默认方法
-    static bool default_condition() { return true; }
+    static Task<bool> default_condition() { co_return true; }
     
-    static void default_condition_cb() { return; }
+    static Task<void> default_condition_cb() { co_return; }
 
     void re_enroll();
 
@@ -67,9 +67,9 @@ private:
     uint64_t m_nextTime;                        // 到期时间
     TimeManager* m_manager;                     // timer管理者
     // std::shared_mutex m_mutex;
-    std::function<void()> m_main_cb;            // 主任务函数
-    std::function<bool()> m_condition;          // 执行条件（默认无限循环
-    std::function<void()> m_condition_cb;       // 条件不成立后执行函数
+    std::function<Task<void>()> m_main_cb;            // 主任务函数
+    std::function<Task<bool>()> m_condition;          // 执行条件（默认无限循环
+    std::function<Task<void>()> m_condition_cb;       // 条件不成立后执行函数
 };
 
 
@@ -120,7 +120,7 @@ public:
         @brief 普通定时器，到期执行main_cb函数
     */
     int addTimer(uint64_t intervalTime, bool is_cycle, 
-        std::function<void()> main_cb);                                // 添加普通定时器
+        std::function<Task<void>()> main_cb);                                // 添加普通定时器
     
     /**
         @brief 条件定时器，满足condition时持续执行main_cb函数，否则执行condition_cb函数
@@ -131,9 +131,9 @@ public:
 
     */
     int addConditionTimer(uint64_t intervalTime, bool is_cycle, 
-        std::function<void()> main_cb,
-        std::function<bool()> condition,
-        std::function<void()> condition_cb);                        // 添加条件定时器, usec
+        std::function<Task<void>()> main_cb,
+        std::function<Task<bool>()> condition,
+        std::function<Task<void>()> condition_cb);                        // 添加条件定时器, usec
 
     /** 
         @brief _WithTimeout系列函数，在原有addEvent基础上为事件添加i时间限制功能，方便诸如超时系统开发。

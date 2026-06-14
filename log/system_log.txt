@@ -1,0 +1,898 @@
+╭─1781440642	[[32mINFO[0m]	[system]	[thread:206992:UNKNOWN fiber:4294967295]	tcpServer.cc:83	
+╰─bind and listen successed, address : 0.0.0.0:8803
+ socket fd=socket family : 2
+protocol : 0
+socket fd : 3
+type : 1
+╭─1781440642	[[32mINFO[0m]	[system]	[thread:206992:UNKNOWN fiber:4294967295]	test_websocket.cc:82	
+╰─server start
+╭─1781440648	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	httpServer.cc:323	
+╰─uri : /test
+╭─1781440648	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	httpServer.cc:241	
+╰─url: /test
+╭─1781440648	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	wsserver.cc:302	
+╰─handshake success, send response:
+HTTP/1.1 101 Switching Protocols
+Upgrade: WebSocket
+Connection: Upgrade
+Sec-WebSocket-Accept: kAnJhxXGFLM/nbn9IYblIdeuzM0=
+
+
+╭─1781440648	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:23	
+╰─successfully open websocket connection, sessionId:0
+╭─1781440650	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	httpServer.cc:323	
+╰─uri : /test
+╭─1781440650	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	httpServer.cc:241	
+╰─url: /test
+╭─1781440650	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	wsserver.cc:302	
+╰─handshake success, send response:
+HTTP/1.1 101 Switching Protocols
+Upgrade: WebSocket
+Connection: Upgrade
+Sec-WebSocket-Accept: tExazRc45ykUSYhvW6asXDukTOo=
+
+
+╭─1781440650	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:23	
+╰─successfully open websocket connection, sessionId:1
+╭─1781440653	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	httpServer.cc:323	
+╰─uri : /test
+╭─1781440653	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	httpServer.cc:241	
+╰─url: /test
+╭─1781440653	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	wsserver.cc:302	
+╰─handshake success, send response:
+HTTP/1.1 101 Switching Protocols
+Upgrade: WebSocket
+Connection: Upgrade
+Sec-WebSocket-Accept: pYam5HfLFEIAejSjKGvDFUUMPaw=
+
+
+╭─1781440653	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:23	
+╰─successfully open websocket connection, sessionId:2
+╭─1781440655	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	httpServer.cc:323	
+╰─uri : /test
+╭─1781440655	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	httpServer.cc:241	
+╰─url: /test
+╭─1781440655	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	wsserver.cc:302	
+╰─handshake success, send response:
+HTTP/1.1 101 Switching Protocols
+Upgrade: WebSocket
+Connection: Upgrade
+Sec-WebSocket-Accept: j9l7WHdcZVbeSKe1cNpC0OO5ERo=
+
+
+╭─1781440655	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:23	
+╰─successfully open websocket connection, sessionId:3
+╭─1781441491	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:dsafg
+╭─1781441491	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441491	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=11
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:sa
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=8
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:df
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=8
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441492	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441493	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441494	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441495	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441496	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441497	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441498	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441498	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441498	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441498	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441498	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441498	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441498	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:cd
+╭─1781441498	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441498	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=8
+╭─1781441499	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:ads
+╭─1781441499	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441499	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=9
+╭─1781441499	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:df
+╭─1781441499	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441499	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=8
+╭─1781441499	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:ds
+╭─1781441499	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441499	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=8
+╭─1781441499	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441499	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441499	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441500	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:dff
+╭─1781441500	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441500	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=9
+╭─1781441500	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:fdsaf
+╭─1781441500	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441500	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=11
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:dsaf
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=10
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:dsf
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=9
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:asdf
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=10
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:dsf
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=9
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:asf
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441501	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=9
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:dasf
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=10
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:d
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:afd
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=9
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:adsf
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=10
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:dg
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441502	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=8
+╭─1781441503	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:e
+╭─1781441503	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441503	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441503	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:ge
+╭─1781441503	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441503	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=8
+╭─1781441503	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:e
+╭─1781441503	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441503	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441503	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441503	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441503	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:dasv
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=10
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:a
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:vb
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=8
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:rwar
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=10
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:g
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441504	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441505	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:sdag
+╭─1781441505	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441505	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=10
+╭─1781441505	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:s
+╭─1781441505	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441505	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441505	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:afa
+╭─1781441505	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441505	[[32mINFO[0m]	[system]	[thread:206996:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=9
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:gasdg
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=11
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:ea
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=8
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:eg
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=8
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:dsg
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=9
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:a
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441506	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441507	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:s
+╭─1781441507	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441507	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441507	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:ae
+╭─1781441507	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441507	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=8
+╭─1781441507	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:we
+╭─1781441507	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441507	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=8
+╭─1781441507	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:g
+╭─1781441507	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441507	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=7
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:weegw
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=11
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:gew
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=9
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:gew
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=9
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:ge
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206993:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=8
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:ewg
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=9
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:weg
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441508	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=9
+╭─1781441509	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:wwge
+╭─1781441509	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441509	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=10
+╭─1781441509	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441509	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441509	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441510	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441510	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441510	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781441510	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:2, msg:
+╭─1781441510	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781441510	[[32mINFO[0m]	[system]	[thread:206995:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=2, opcode=1, payload length=6
+╭─1781444027	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:3, msg:uoiuho
+╭─1781444027	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1781444027	[[32mINFO[0m]	[system]	[thread:206994:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=3, opcode=1, payload length=12

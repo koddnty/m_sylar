@@ -157,7 +157,7 @@ public:
 
         iom->addEvent(m_fd, m_event, [this](){  // 回调函数，当有io事件可用或超时时恢复协程
             resume(m_state);
-            // IOManager::getInstance()->delEvent(fd, event);
+            // IOManager::getInstance()->delEvent(m_fd, m_event);
         });
     }
 
@@ -243,8 +243,9 @@ protected:
   void on_suspend() override
   {
     m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
-    tim->addTimer(m_time, false, [this](){
+    tim->addTimer(m_time, false, [this]()->Task<void> {
       resume(m_time);
+      co_return;
     });
   }
 

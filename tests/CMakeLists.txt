@@ -1,3 +1,7 @@
+##websocket 测试
+add_executable(test_websocket server/test_websocket.cc)
+add_dependencies(test_websocket sylar)
+target_link_libraries(test_websocket sylar ${LIB_LIB})
 
 
 # config 测试
@@ -54,10 +58,10 @@ add_executable(ock_test ock_test.cc)
 add_dependencies(ock_test sylar )
 target_link_libraries(ock_test sylar ${LIB_LIB})
 
-# 定时器模块测试
-add_executable(test_self_timer test_self_timer.cc)
-add_dependencies(test_self_timer sylar )
-target_link_libraries(test_self_timer sylar ${LIB_LIB})
+# 定时器模块测试 (TODO 26-6-14协程化改造，待更新测试)
+# add_executable(test_self_timer test_self_timer.cc)
+# add_dependencies(test_self_timer sylar )
+# target_link_libraries(test_self_timer sylar ${LIB_LIB})
 
 add_executable(address_test address_test.cc)
 add_dependencies(address_test sylar)

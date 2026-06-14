@@ -11,7 +11,8 @@ m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 ConfigVar<uint32_t>::ptr g_ws_recv_timeout = ConfigManager::LookUp("servers.websocket.timeout.recv", uint32_t(30), 0, "websocket server recv timeout");
 ConfigVar<uint32_t>::ptr g_ws_send_timeout = ConfigManager::LookUp("servers.websocket.timeout.send", uint32_t(30), 0, "websocket server send timeout");
-ConfigVar<uint32_t>::ptr g_ws_ping_timeout = ConfigManager::LookUp("servers.websocket.timeout.ping", uint32_t(30), 0, "websocket server send timeout");
+ConfigVar<uint32_t>::ptr g_ws_ping_interval = ConfigManager::LookUp("servers.websocket.interval.ping", uint32_t(5), 0, "websocket server send timeout");
+ConfigVar<uint32_t>::ptr g_ws_pong_timeout = ConfigManager::LookUp("servers.websocket.timeout.pong", uint32_t(15), 0, "websocket server send timeout");
 ConfigVar<uint32_t>::ptr g_ws_buffer_size = ConfigManager::LookUp("servers.websocket.limit.buffer_size", uint32_t(1024), 0, "websocket server parser buffer size");
 ConfigVar<uint32_t>::ptr g_ws_max_request_size  = ConfigManager::LookUp("servers.websocket.limit.max_request_size", uint32_t(10485760), 0, "websocket server parser buffer size");
 
@@ -50,6 +51,9 @@ Task<void> WsHandler::co_onPing(std::shared_ptr<WsSession> session, const std::s
 }
 
 Task<void> WsHandler::co_onPong(std::shared_ptr<WsSession> session, const std::string& reason) {
+    // 更新 最近pong时间戳
+    
+    session->setRecentPong(TimeManager::GetCurrentMS());
     co_return;
 }
 
@@ -76,22 +80,40 @@ WsSession::~WsSession() {
 }
 
 int WsSession::init() {
+    m_recent_pong = TimeManager::GetCurrentMS();
     auto self = shared_from_this();
-    m_timer_fd = TimeManager::getInstance()->addConditionTimer(g_ws_ping_timeout->getValue() * 1000000, true, 
-        []() {      // 主循环，无需做任何事
+    m_timer_fd = TimeManager::getInstance()->addConditionTimer(g_ws_ping_interval->getValue() * 1000000, true, 
+        []()->Task<void> {      // 主循环，无需做任何事
+            co_return;
         },
-        [self](){       // 条件判断
-            uint64_t recent = self->getRecentActivate();
-            uint64_t now = m_sylar::TimeManager::GetCurrentMS();
-            if(now - recent >= g_ws_ping_timeout->getValue() * 1000) {
-                M_SYLAR_LOG_INFO(g_logger) << "ping timeout, close session, sessionId=" << self->getSessionId()
-                                            << ", recent activate time=" << recent << ", now=" << now;
+        [self]()->Task<bool> {       // 条件判断
+            // 获取ping帧时间戳，判断是否超时
+            uint64_t now = TimeManager::GetCurrentMS();
+            // 发送ping
+            Frame::ptr pingFrame = std::make_shared<Frame>();
+            pingFrame->setOpcode(websocket_flags::WS_OP_PING);
+            pingFrame->setPingPayload(std::to_string(now));
+            co_await self->co_sendFrame(pingFrame);
 
-                return false;    // 超时，执行回调
+            co_await co_sleep(g_ws_pong_timeout->getValue());   // 等待pong超时
+            M_SYLAR_LOG_DEBUG(g_logger) << "ping check, sessionId=" << self->getSessionId();
+            
+            // 检查最近pong帧时间戳，如果超过超时时间，认为连接异常，进入关闭流程
+            now = TimeManager::GetCurrentMS();
+            uint64_t recent_pong = self->getRecentPong();
+            if(now < recent_pong) {
+                M_SYLAR_LOG_WARN(g_logger) << "current time is smaller than recent pong time, something may be wrong, sessionId=" << self->getSessionId();
+                co_return true;    // 时间异常但不认为连接异常，继续等待
             }
-            return true;
+            if(now > recent_pong && now - recent_pong > g_ws_pong_timeout->getValue() * 1000) {
+                M_SYLAR_LOG_DEBUG(g_logger) << "ping timeout(" << std::to_string(now - recent_pong ) << " > " << std::to_string(g_ws_pong_timeout->getValue()) 
+                                            << "), close session, sessionId=" << self->getSessionId();
+                co_return false;    // 连接超时，进入关闭流程
+            }
+            
+            co_return true;
         }, 
-        [self]() {
+        [self]()->Task<void>{
             IOManager::getInstance()->schedule([self]() {
                 if(self->getState() != State::OPEN) {
                     M_SYLAR_LOG_DEBUG(g_logger) << "timer" << self->getSessionId();
@@ -104,6 +126,7 @@ int WsSession::init() {
                 WsServer::getInstance()->close(self->getSessionId());           // 关闭连接
                 TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
             });
+            co_return;
         }
     );  
     if(m_timer_fd == -1) {

@@ -80,7 +80,7 @@ void testBase(IOManager* iom) {
     http_server->start();
 
     M_SYLAR_LOG_INFO(g_logger) << "server start";
-    sleep(1000);
+    sleep(3600);
     http_server->stop();
 }
 

@@ -23,10 +23,11 @@ protected:
   void on_suspend() override
   {
     m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
-    int fd = tim->addTimer(m_time * 1000000, false, [this](){
+    int fd = tim->addTimer(m_time * 1000000, false, [this]() -> Task<void> {
       std::cout << "SleepAwatier call back begin " << this << std::endl;
       resume(m_time);
       std::cout << "SleepAwatier call back end" << std::endl;
+      co_return;
     });
     std::cout << "on_suspend, time fd = " << fd << std::endl;
   }

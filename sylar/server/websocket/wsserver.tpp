@@ -133,7 +133,9 @@ Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
         removeSession(sessionId);
     }
     // 断开/重新调度
-    M_SYLAR_LOG_DEBUG(ghws_logger) << "websocket client one loop finished, isClosed " << isClosed <<  "sessionId=" << sessionId << ", socket:" << *client << ", code=" << code << ", reason=" << reason;
+    M_SYLAR_LOG_DEBUG(ghws_logger) << "websocket client one loop finished, isClosed " << isClosed 
+                << "\n loopCount: " << loopCount << " state:" << (int)session->getState() 
+                <<  "\n sessionId=" << sessionId << ", socket:" << *client << ", code=" << code << ", reason=" << reason;
     co_return nextId;
 }
 
