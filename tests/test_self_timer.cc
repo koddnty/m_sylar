@@ -2,117 +2,70 @@
 #include <memory>
 #include "basic/self_timer.h"
 #include "coroutine/corobase.h"
-// #include "basic/hook.h"
+#include "coroutine/corobase.h"
+#include <catch2/catch_test_macros.hpp>
+// #include "basic/hook.h"catch_test_macros
 
+using namespace m_sylar;    
 
-static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+bool test_condition(int need){
+    bool TimerFinished = false;
+    bool LoopFinished = false;
 
-int conunter = 0;
+    std::atomic<int> count = 0;
 
-void ccb()
-{
-    M_SYLAR_LOG_DEBUG(g_logger) << "counter : " << conunter ++ << "是奇数";
-}
+    IOManager iom("test_timer", 1);
+    TimeManager tim(&iom);
+    int newfd = -1;
+    newfd = tim.addConditionTimer(1 * 100000, true, 
+        [&TimerFinished, &LoopFinished]() ->Task<bool> {
+            TimerFinished = true;
+            LoopFinished = true;
+            co_return false;
+        }, 
+        [&count, &TimerFinished, &LoopFinished, need]() ->Task<bool> {
+            if(count < need) {
+                count++;
+                co_return false;
+            }
+            if(TimerFinished == true) {
+                // 循环结束还在跑，说明有问题
+                std::cout << "TimerFinished is true but loop is still running, count = " << count << std::endl;
+                LoopFinished = false;
+                co_return false;
+            }
+            co_return true;
+        }, 
+        []()->Task<bool>{
+            co_return true;
+        });
 
-bool condition()
-{
-    if(conunter % 2 == 0)
-    {
-        return false;
+    sleep(need / 10 + 1);
+
+    iom.stop();
+    if(count >= need && TimerFinished && LoopFinished) {
+        return true;
     }
-    return true;
+    return false;
 }
 
-void condition_cb()
+
+
+// void test2() {
+
+
+//     std::shared_ptr<m_sylar::TimeLimitInfo::State> eventState = std::make_shared<m_sylar::TimeLimitInfo::State>();
+//     m_sylar::TimeManager::getInstance()->addEventWithTimeout(10, m_sylar::FdContext::READ, timeoutTask, 4000000, eventState);
+
+//     sleep(10);
+//     std::cout << "task State: " << *eventState;
+//     return;
+// }
+
+
+TEST_CASE("test self timer", "[self_timer]")
 {
-    M_SYLAR_LOG_DEBUG(g_logger) << "counter : " << conunter ++ << "是偶数";
-}
-
-
-void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim);
-void test1()
-{   
-    m_sylar::IOManager::ptr iom (new m_sylar::IOManager("timer_test", 1));
-
-
-    m_sylar::TimeManager::ptr tim (new m_sylar::TimeManager(iom));
-
-    test1_aux1(iom, tim);
-
-    sleep(1);
-    iom->stop();
-}
-
-
-static int var = 0;
-void func()
-{
-    M_SYLAR_LOG_INFO(g_logger) << "var = " << ++var;
-}
-
-
-void test1_aux1(m_sylar::IOManager::ptr iom, m_sylar::TimeManager::ptr tim)
-{
-
-    bool tan = true;
-
-    for(int i = 0; i < 100; i++)
-    {
-            // tim->addTimer(1 * 1000000, true, tim, ccb);
-            int newfd = m_sylar::TimeManager::getInstance()->addConditionTimer(1 * 10000000, false, ccb, 
-                []() 
-                {
-                    // if(!tan)
-                    // {
-                    //     M_SYLAR_LOG_DEBUG(g_logger) << "p_tan is nullptr";
-                    //     return false;
-                    // }
-
-                    return false;
-                }
-            , func);
-
-            // sleep(3);
-            // std::cout << "自主取消timer" << ::std::endl;
-            // m_sylar::TimeManager::getInstance()->cancelTimer(newfd);        //
-            // std::cout << "取消timer结束" << ::std::endl;
-
-            // sleep(5);
+    for(int i = 2; i < 20; i++) {
+        REQUIRE(true == test_condition(i));
     }
-
-
-    sleep(1000);
-}
-
-m_sylar::Task<void, m_sylar::TaskBeginExecuter> timeoutEvent() {
-    co_await m_sylar::co_sleep(4);
-    co_return;
-}
-
-void timeoutTask(){
-    std::cout << "timeout Task runned";
-    return;
-}
-
-void test2() {
-
-
-    std::shared_ptr<m_sylar::TimeLimitInfo::State> eventState = std::make_shared<m_sylar::TimeLimitInfo::State>();
-    m_sylar::TimeManager::getInstance()->addEventWithTimeout(10, m_sylar::FdContext::READ, timeoutTask, 4000000, eventState);
-
-    sleep(10);
-    std::cout << "task State: " << *eventState;
-    return;
-}
-
-int main(void) 
-{
-    // test1();
-    m_sylar::IOManager iom ("test timeout event", 1);
-    m_sylar::TimeManager tim (&iom);
-    iom.schedule(test2);
-
-    sleep(5);
-    iom.autoStop();
-    return 0;
 }

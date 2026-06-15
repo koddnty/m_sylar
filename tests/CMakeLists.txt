@@ -1,3 +1,18 @@
+include(FetchContent)
+FetchContent_Declare(
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG        v3.6.0
+)
+FetchContent_MakeAvailable(Catch2)
+
+add_executable(tests test_main.cpp)
+add_dependencies(tests sylar)
+target_link_libraries(tests Catch2::Catch2WithMain sylar ${LIB_LIB})
+
+
+
+
 ##websocket 测试
 add_executable(test_websocket server/test_websocket.cc)
 add_dependencies(test_websocket sylar)
@@ -58,7 +73,7 @@ add_executable(ock_test ock_test.cc)
 add_dependencies(ock_test sylar )
 target_link_libraries(ock_test sylar ${LIB_LIB})
 
-# 定时器模块测试 (TODO 26-6-14协程化改造，待更新测试)
+# 定时器模块测试
 # add_executable(test_self_timer test_self_timer.cc)
 # add_dependencies(test_self_timer sylar )
 # target_link_libraries(test_self_timer sylar ${LIB_LIB})

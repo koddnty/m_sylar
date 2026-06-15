@@ -83,8 +83,9 @@ int WsSession::init() {
     m_recent_pong = TimeManager::GetCurrentMS();
     auto self = shared_from_this();
     m_timer_fd = TimeManager::getInstance()->addConditionTimer(g_ws_ping_interval->getValue() * 1000000, true, 
-        []()->Task<void> {      // 主循环，无需做任何事
-            co_return;
+        []()->Task<bool> {      // 主循环，无需做任何事
+            M_SYLAR_LOG_DEBUG(g_logger) << "end interval of websocket Timer";
+            co_return true;
         },
         [self]()->Task<bool> {       // 条件判断
             // 获取ping帧时间戳，判断是否超时
@@ -113,20 +114,20 @@ int WsSession::init() {
             
             co_return true;
         }, 
-        [self]()->Task<void>{
+        [self]()->Task<bool>{
             IOManager::getInstance()->schedule([self]() {
                 if(self->getState() != State::OPEN) {
                     M_SYLAR_LOG_DEBUG(g_logger) << "timer" << self->getSessionId();
-                    TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
+                    // TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
                     return;     // 连接未处于OPEN状态，无需处理
                 }
                 // TODO: 实现真正的主动关闭定时器操作
                 M_SYLAR_LOG_DEBUG(g_logger) << "ping timeout callback, close session, sessionId=" << self->getSessionId();
                 self->m_state = State::CLOSED;
                 WsServer::getInstance()->close(self->getSessionId());           // 关闭连接
-                TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
+                // TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
             });
-            co_return;
+            co_return false;
         }
     );  
     if(m_timer_fd == -1) {

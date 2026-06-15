@@ -243,9 +243,9 @@ protected:
   void on_suspend() override
   {
     m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
-    tim->addTimer(m_time, false, [this]()->Task<void> {
+    tim->addTimer(m_time, false, [this]()->Task<bool> {
       resume(m_time);
-      co_return;
+      co_return true;
     });
   }
 
