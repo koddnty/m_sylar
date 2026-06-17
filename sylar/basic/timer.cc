@@ -103,7 +103,7 @@ n_TimeManager* n_TimeManager::getInstance() {
 }
 
 void n_TimeManager::onTimerTriggered() {
-    uint64_t now = GetCurrentMS() + 1;              // 加1ms的误差补偿，确保不会漏掉过期的定时器任务
+    uint64_t now = GetCurrentMS();              // 加1ms的误差补偿，确保不会漏掉过期的定时器任务
     M_SYLAR_LOG_DEBUG(g_logger) << "timer triggered, now: " << now;
     std::vector<TimerBlock::ptr> expired_tasks;     // 存储过期的定时器任务
     {
@@ -140,7 +140,7 @@ void n_TimeManager::onTimerTriggered() {
     // 设置下一个定时器触发时间}
     {
         std::shared_lock<std::shared_mutex> rlock(m_mutex);
-        if(getTimerCount() == 0) {
+        if(m_time_blocks.empty()) {
             m_nextTimerTime = UINT64_MAX;
             rlock.unlock();
         }
@@ -182,6 +182,7 @@ void n_TimeManager::onTimerTriggered() {
     // 调度执行过期的定时器任务
     for(auto& time_task : expired_time_tasks) {
         M_SYLAR_LOG_DEBUG(g_logger) << "scheduling time task, address: " << time_task.get();
+        m_timerCount--;
         auto t = std::bind(&runTimeTask, time_task);
         m_iom->schedule(TaskCoro20::create_coro(t));
     }
@@ -273,25 +274,28 @@ int n_TimeManager::insertTimeTask(TimeTask::ptr time_task) {
         return -1;
     }
     uint64_t execute_time = time_task->getExecuteTime();
+
+    auto now = GetCurrentMS();
+    if(execute_time <= now) {     // 时间已过，直接执行,不插入时间片
+        M_SYLAR_LOG_WARN(g_logger) << "execute_time is in the past, execute_time: " << execute_time << ", current_time: " << now;
+        auto t = std::bind(&runTimeTask, time_task);
+        m_iom->schedule(TaskCoro20::create_coro(t));
+        return 0;
+    }
+
+    // 获取时间片
     TimerBlock::ptr timer_block = getOrCreateTimerBlock(execute_time);
     if(!timer_block) {
         return -1;
     }
 
-    auto now = GetCurrentMS();
     M_SYLAR_LOG_DEBUG(g_logger) << "inserting time task, execute_time: " << execute_time << ", current_time: " << now
         << ", block_start: " << timer_block->start_time << ", block_end: " << timer_block->end_time;
     // 计算时间限制
-    if(execute_time < timer_block->start_time || execute_time >= timer_block->end_time) {
+    if(execute_time < timer_block->start_time || execute_time >= timer_block->end_time) {       // 时间不合法，超出时间片范围
         M_SYLAR_LOG_ERROR(g_logger) << "execute_time is out of timer block range, execute_time: " << execute_time
             << ", block_start: " << timer_block->start_time << ", block_end: " << timer_block->end_time;
         return -1;
-    }
-    else if(execute_time < now) {     // 时间已过，直接执行,不插入时间片
-        M_SYLAR_LOG_WARN(g_logger) << "execute_time is in the past, execute_time: " << execute_time << ", current_time: " << now;
-        auto t = std::bind(&runTimeTask, time_task);
-        m_iom->schedule(TaskCoro20::create_coro(t));
-        return 0;
     }
 
     // 插入时间片
@@ -318,8 +322,15 @@ int n_TimeManager::updateTimerFd(uint64_t execute_time) {
     auto now = GetCurrentMS();
     struct itimerspec new_value;
     memset(&new_value, 0, sizeof(new_value));
-    new_value.it_value.tv_sec = (execute_time - now) / 1000;
-    new_value.it_value.tv_nsec = ((execute_time - now) % 1000) * 1000000;
+    if(execute_time <= now) {
+        new_value.it_value.tv_sec = 0;
+        new_value.it_value.tv_nsec = 1000000;     // 1ms的误差补偿，确保不会漏掉过期的定时器任务
+    }
+    else {
+        new_value.it_value.tv_sec = (execute_time - now) / 1000;
+        new_value.it_value.tv_nsec = ((execute_time - now) % 1000) * 1000000;
+    }
+
 
     std::unique_lock<std::shared_mutex> wlock {m_timerFd_mutex};
     M_SYLAR_LOG_DEBUG(g_logger) << "updating timerfd time, execute_time: " << execute_time << ", current_time: " << now

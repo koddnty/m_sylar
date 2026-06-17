@@ -2,7 +2,7 @@
     "logs" : [
         {
             "name" : "system",
-            "level" : "DEBUG",
+            "level" : "FATAL",
             "appenders" : [
                 {
                     "type" : "StdoutLogAppender",
