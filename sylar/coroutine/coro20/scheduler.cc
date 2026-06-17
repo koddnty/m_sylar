@@ -14,7 +14,17 @@ namespace m_sylar
 {
 
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+
+
+struct Context {
+    std::string name;          // 线程局部变量名字
+    void* currentCtx {nullptr};         // 当前存储局部线程局部变量
+    Context* nextCtx {nullptr};         // 下一个存储的线程局部变量
+};
+
+
 static thread_local Scheduler* tl_Scheduler;        // 当前线程调度器指针
+
 
 Scheduler::Scheduler (const std::string& name, size_t thread_num, size_t taskLoopNum)
     : m_name(name), m_threads_count(thread_num)

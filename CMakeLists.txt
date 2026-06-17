@@ -76,6 +76,11 @@ set(DBPOOL_SOURCES
     sylar/DBPool/factory.cc
 )
 
+# 新模块测试模块
+set(TEST_SOURCES
+    sylar/basic/timer.cc
+)
+
 # 选择模块
 
 add_definitions(-DSYLAR_USE_CORO20)
@@ -92,6 +97,7 @@ add_library(sylar STATIC
     ${DBPOOL_SOURCES}
     ${PROTOCOL_SOURCES}
     ${WEBSCOKET_SOURCES}
+    ${TEST_SOURCES}
 )
 
 

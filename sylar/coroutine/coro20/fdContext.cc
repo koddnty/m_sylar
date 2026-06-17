@@ -173,7 +173,6 @@ void FdContextManager::solveTasks()
 
 bool FdContextManager::solveSingleTask()
 {
-
     std::unique_lock<std::shared_mutex> wlock(m_task_mutex);
     std::list<std::shared_ptr<RegistedTask>> tasks;
     tasks.splice(tasks.end(), m_tasks);
@@ -188,7 +187,7 @@ bool FdContextManager::solveSingleTask()
         }
         catch(std::exception& e)
         {
-            M_SYLAR_LOG_ERROR(g_logger) << "failed to run task, error:\n" << e.what();
+            M_SYLAR_LOG_ERROR(g_logger) << "failed to run task(此处死锁可能是自身调度的任务内死锁), error:\n" << e.what();
             throw ;
         }
     }

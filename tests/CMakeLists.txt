@@ -11,7 +11,10 @@ add_dependencies(tests sylar)
 target_link_libraries(tests Catch2::Catch2WithMain sylar ${LIB_LIB})
 
 
-
+# 新定时器模块测试
+add_executable(test_new_timer test_timer.cc)
+add_dependencies(test_new_timer sylar)
+target_link_libraries(test_new_timer sylar ${LIB_LIB})
 
 ##websocket 测试
 add_executable(test_websocket server/test_websocket.cc)

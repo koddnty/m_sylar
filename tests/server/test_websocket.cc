@@ -87,6 +87,11 @@ void testBase(IOManager* iom) {
 
 
 int main(void) {
+
+    std::string config_path = "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/conf/basic.json";
+    std::cout << "[LoggerManager init] config path: " << config_path << std::endl;
+    m_sylar::ConfigManager::LoadJson(config_path, 0);
+    
     m_sylar::IOManager iom {"test websocekt", 4};
     testBase(&iom);
 
