@@ -1,6 +1,123 @@
-╭─1783321949	[[32mINFO[0m]	[system]	[thread:152632:UNKNOWN fiber:4294967295]	test_timer.cc:35	
-╰─start test condition timer, time= 25707786
-╭─1783321955	[[32mINFO[0m]	[system]	[thread:152632:UNKNOWN fiber:4294967295]	test_timer.cc:69	
-╰─test condition timer finished, time(from25707786)= 25713804
-╭─1783321955	[[32mINFO[0m]	[system]	[thread:152632:UNKNOWN fiber:4294967295]	test_timer.cc:70	
-╰─SUMMARY: total finished109999 tasks
+╭─1783327877	[[32mINFO[0m]	[system]	[thread:212807:UNKNOWN fiber:4294967295]	tcpServer.cc:83	
+╰─bind and listen successed, address : 0.0.0.0:8803
+ socket fd=socket family : 2
+protocol : 0
+socket fd : 5
+type : 1
+╭─1783327877	[[32mINFO[0m]	[system]	[thread:212807:UNKNOWN fiber:4294967295]	test_websocket.cc:83	
+╰─server start
+╭─1783327878	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	httpServer.cc:323	
+╰─uri : /test
+╭─1783327878	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	httpServer.cc:241	
+╰─url: /test
+╭─1783327878	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	wsserver.cc:307	
+╰─handshake success, send response:
+HTTP/1.1 101 Switching Protocols
+Upgrade: WebSocket
+Connection: Upgrade
+Sec-WebSocket-Accept: cQynwz6hHqeDQrqqc/u40zdSJX0=
+
+
+╭─1783327878	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	test_websocket.cc:23	
+╰─successfully open websocket connection, sessionId:0
+╭─1783327879	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:0, msg:1
+╭─1783327879	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1783327879	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=0, opcode=1, payload length=7
+╭─1783327882	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:0, msg:2
+╭─1783327882	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1783327882	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=0, opcode=1, payload length=7
+╭─1783327883	[[32mINFO[0m]	[system]	[thread:212811:test websocekt_3 fiber:4294967295]	wsserver.cc:95	
+╰─send ping message, sessionId=0, now=31641725
+╭─1783327886	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:0, msg:3
+╭─1783327886	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1783327886	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=0, opcode=1, payload length=7
+╭─1783327889	[[32mINFO[0m]	[system]	[thread:212811:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:0, msg:3
+╭─1783327889	[[32mINFO[0m]	[system]	[thread:212811:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1783327889	[[32mINFO[0m]	[system]	[thread:212811:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=0, opcode=1, payload length=7
+╭─1783327892	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:0, msg:3
+╭─1783327892	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1783327892	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=0, opcode=1, payload length=7
+╭─1783327895	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:0, msg:3
+╭─1783327895	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1783327895	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=0, opcode=1, payload length=7
+╭─1783327898	[[32mINFO[0m]	[system]	[thread:212810:test websocekt_2 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:0, msg:4
+╭─1783327898	[[32mINFO[0m]	[system]	[thread:212810:test websocekt_2 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1783327898	[[32mINFO[0m]	[system]	[thread:212810:test websocekt_2 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=0, opcode=1, payload length=7
+╭─1783327898	[[32mINFO[0m]	[system]	[thread:212810:test websocekt_2 fiber:4294967295]	wsserver.cc:102	
+╰─ping check, sessionId=0
+╭─1783327898	[[32mINFO[0m]	[system]	[thread:212810:test websocekt_2 fiber:4294967295]	wsserver.cc:95	
+╰─send ping message, sessionId=0, now=31656725
+╭─1783327901	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:0, msg:5
+╭─1783327901	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1783327901	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=0, opcode=1, payload length=7
+╭─1783327904	[[32mINFO[0m]	[system]	[thread:212811:test websocekt_3 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:0, msg:6
+╭─1783327904	[[32mINFO[0m]	[system]	[thread:212811:test websocekt_3 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1783327904	[[32mINFO[0m]	[system]	[thread:212811:test websocekt_3 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=0, opcode=1, payload length=7
+╭─1783327907	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:0, msg:7
+╭─1783327907	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1783327907	[[32mINFO[0m]	[system]	[thread:212809:test websocekt_1 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=0, opcode=1, payload length=7
+╭─1783327910	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	test_websocket.cc:30	
+╰─received websocket message, sessionId:0, msg:8
+╭─1783327910	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	test_websocket.cc:45	
+╰─FIN=1 RSV1=0 RSV2=0 RSV3=0 opcode=1
+╭─1783327910	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	test_websocket.cc:46	
+╰─reply frame, sessionId=0, opcode=1, payload length=7
+╭─1783327913	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	wsserver.cc:102	
+╰─ping check, sessionId=0
+╭─1783327913	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	wsserver.cc:95	
+╰─send ping message, sessionId=0, now=31671725
+╭─1783327913	[[33mWARN[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	wsserver.tpp:93	
+╰─recv http request failed, errno:11 error:Resource temporarily unavailable
+client:socket family : 2
+protocol : 0
+socket fd : -1
+type : 1
+ local address : 
+127.0.0.1:8803
+ remote address : 
+127.0.0.1:44328
+╭─1783327913	[[31mERROR[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	httpServer.cc:76	
+╰─recv http request failed, errno:11 error:Resource temporarily unavailable
+client:0x760c7c0011c0
+╭─1783327913	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	httpServer.cc:323	
+╰─uri : /test
+╭─1783327913	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	httpServer.cc:241	
+╰─url: /test
+╭─1783327913	[[32mINFO[0m]	[system]	[thread:212808:test websocekt_0 fiber:4294967295]	wsserver.cc:307	
+╰─handshake success, send response:
+HTTP/1.1 101 Switching Protocols
+Upgrade: WebSocket
+Connection: Upgrade
+Sec-WebSocket-Accept: cQynwz6hHqeDQrqqc/u40zdSJX0=
+
+

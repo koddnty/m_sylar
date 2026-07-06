@@ -28,7 +28,6 @@ set(BASIC_SOURCES
     sylar/basic/until.cc
     sylar/basic/config.cc
     sylar/basic/thread.cc
-    sylar/basic/self_timer.cc
     sylar/basic/fdManager.cc
     sylar/basic/address.cc
     sylar/basic/socket.cc

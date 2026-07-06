@@ -1,3 +1,4 @@
+#pragma once
 #include <map>
 
 #include "coroutine/coro20/ioManager.h"
@@ -13,13 +14,43 @@ namespace m_sylar
 {
 
 
-class n_TimeManager : public std::enable_shared_from_this<n_TimeManager> {
-public:
-    using ptr = std::shared_ptr<n_TimeManager>;
+class TimeLimitInfo {
+public: 
+    enum State {        //  WAITING->FINISHED/ERROR/TIMEOUT
+        WAITING = 0,
+        FINISHED = 1,
+        ERROR = 2,
+        TIMEOUT = 3,
+    };
+    using ptr = std::shared_ptr<TimeLimitInfo>;
+    using StatePtr = std::shared_ptr<TimeLimitInfo::State>;
+    TimeLimitInfo() {}
+    State getState() {
+        return m_state.load();
+    }
+    /** @brief 将原本是origin_state的状态替换为new_state, 失败则返回-1， 成功返回0 */
+    int setState(State origin_state, State new_state) {
+        State expect = origin_state;
+        if(m_state.compare_exchange_strong(expect, new_state)) {
+            return 0;
+        }
+        else {
+            return -1;
+        }
+    }
+protected:
+    std::atomic<State> m_state = WAITING;
+};
 
-    n_TimeManager(IOManager::ptr iom, size_t blockLength);
-    n_TimeManager(IOManager* iom, size_t blockLength);
-    ~n_TimeManager();
+
+
+class TimeManager : public std::enable_shared_from_this<TimeManager> {
+public:
+    using ptr = std::shared_ptr<TimeManager>;
+
+    TimeManager(IOManager::ptr iom, size_t blockLength);
+    TimeManager(IOManager* iom, size_t blockLength);
+    ~TimeManager();
 
     int init();
     int close();
@@ -41,8 +72,8 @@ public:
 
     inline size_t getTimerCount() const { return m_timerCount.load(); }     // 获取定时器数量
 
-    // static void setInstance(std::shared_ptr<n_TimeManager> tim);
-    // static std::shared_ptr<n_TimeManager> getInstance();
+    // static void setInstance(std::shared_ptr<TimeManager> tim);
+    static std::shared_ptr<TimeManager> getInstance();
     static uint64_t GetCurrentMS();                                     // 获取当前时间
 
     Task<void, TaskBeginExecuter> runTimeTask(TimeTask::ptr timetask);     // 协程睡眠，单位ms

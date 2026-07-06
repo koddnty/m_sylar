@@ -6,9 +6,9 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(tests unit_tests.cpp)
-add_dependencies(tests sylar)
-target_link_libraries(tests Catch2::Catch2WithMain sylar ${LIB_LIB})
+add_executable(unit_tests unit_tests.cpp)
+add_dependencies(unit_tests sylar)
+target_link_libraries(unit_tests Catch2::Catch2WithMain sylar ${LIB_LIB})
 
 
 # 新定时器模块测试

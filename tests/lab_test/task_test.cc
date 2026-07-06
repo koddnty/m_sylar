@@ -5,7 +5,7 @@
 #include <iostream>
 #include <ostream>
 
-#include "basic/self_timer.h"
+#include "basic/timer/timer.hpp"
 
 using namespace m_sylar;
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
@@ -22,14 +22,15 @@ public:
 protected:
   void on_suspend() override
   {
-    m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
-    int fd = tim->addTimer(m_time * 1000000, false, [this]() -> Task<bool> {
+    m_sylar::TimeManager::ptr tim = m_sylar::TimeManager::getInstance();
+    TimeTask::ptr time_task = TimeTask::create(m_time * 1000000, false, [this](TimeTask::ptr time_task) -> Task<void> {
       std::cout << "SleepAwatier call back begin " << this << std::endl;
       resume(m_time);
       std::cout << "SleepAwatier call back end" << std::endl;
-      co_return true;
+      co_return ;
     });
-    std::cout << "on_suspend, time fd = " << fd << std::endl;
+
+    tim->addTimer(time_task);
   }
 
   void before_resume() override
@@ -114,7 +115,7 @@ void test_twice_coro()
 int main(void)
 {
   m_sylar::IOManager::ptr iom (new m_sylar::IOManager("timer_test", 1));
-  TimeManager tim (iom);
+  TimeManager tim (iom, 2000);
   // test_void();
   // test_resume();
   // test_awaiter();

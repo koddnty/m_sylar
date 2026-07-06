@@ -1,6 +1,6 @@
 #include "server/websocket/wsserver.hpp"
 #include "protocol/websocket/WebSocket.h"
-#include "basic/self_timer.h"
+#include "basic/timer/timer.hpp"
 #include <random>
 
 namespace m_sylar {
@@ -82,22 +82,24 @@ WsSession::~WsSession() {
 int WsSession::init() {
     m_recent_pong = TimeManager::GetCurrentMS();
     auto self = shared_from_this();
-    m_timer_fd = TimeManager::getInstance()->addConditionTimer(g_ws_ping_interval->getValue() * 1000000, true, 
-        []()->Task<bool> {      // 主循环，无需做任何事
+    
+    TimeTask::ptr time_task = TimeTask::create(g_ws_ping_interval->getValue() * 1000, true, 
+        [](TimeTask::ptr time_task)->Task<void> {      // 主循环，无需做任何事
             M_SYLAR_LOG_DEBUG(g_logger) << "end interval of websocket Timer";
-            co_return true;
+            co_return;
         },
         [self]()->Task<bool> {       // 条件判断
             // 获取ping帧时间戳，判断是否超时
             uint64_t now = TimeManager::GetCurrentMS();
             // 发送ping
+            M_SYLAR_LOG_INFO(g_logger) << "send ping message, sessionId=" << self->getSessionId() << ", now=" << now;
             Frame::ptr pingFrame = std::make_shared<Frame>();
             pingFrame->setOpcode(websocket_flags::WS_OP_PING);
             pingFrame->setPingPayload(std::to_string(now));
             co_await self->co_sendFrame(pingFrame);
 
-            co_await co_sleep(g_ws_pong_timeout->getValue());   // 等待pong超时
-            M_SYLAR_LOG_DEBUG(g_logger) << "ping check, sessionId=" << self->getSessionId();
+            co_await co_sleep(g_ws_pong_timeout->getValue() * 1000);   // 等待pong超时
+            M_SYLAR_LOG_INFO(g_logger) << "ping check, sessionId=" << self->getSessionId();
             
             // 检查最近pong帧时间戳，如果超过超时时间，认为连接异常，进入关闭流程
             now = TimeManager::GetCurrentMS();
@@ -114,7 +116,7 @@ int WsSession::init() {
             
             co_return true;
         }, 
-        [self]()->Task<bool>{
+        [self](TimeTask::ptr time_task)->Task<void>{
             IOManager::getInstance()->schedule([self]() {
                 if(self->getState() != State::OPEN) {
                     M_SYLAR_LOG_DEBUG(g_logger) << "timer" << self->getSessionId();
@@ -127,10 +129,12 @@ int WsSession::init() {
                 WsServer::getInstance()->close(self->getSessionId());           // 关闭连接
                 // TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
             });
-            co_return false;
+            co_return;
         }
     );  
-    if(m_timer_fd == -1) {
+
+    m_timer_task = TimeManager::getInstance()->addConditionTimer(time_task);
+    if(m_timer_task == nullptr) {
         M_SYLAR_LOG_ERROR(g_logger) << "failed to add ping timer for session, sessionId=" << m_sessionId;
         m_state = State::CLOSED;
         return -1;
@@ -194,7 +198,7 @@ Task<int> WsSession::co_sendFrame(const Frame& frame) {
     // 发送当前帧
     auto data = frame.make();
     int rt = co_await sendMessage((const char*)data.data(), data.size());
-    if(rt == -1) {
+    if(rt == -1 && errno != EAGAIN) {
         M_SYLAR_LOG_ERROR(g_logger) << "send websocket frame failed, errno:" << errno << " error:" << strerror(errno) << "\nclient:" << getSocket()->toString();
         co_return -1;
     }

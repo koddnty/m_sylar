@@ -105,7 +105,7 @@ private:
     uint64_t m_close_timeout = 5000;                    // 关闭连接的超时时间，单位ms
     FrameBuffer m_frame_buffer;                         // 消息帧缓冲区
     std::atomic<State> m_state = State::INIT;                 // 连接状态
-    int m_timer_fd = -1;                                    // 定时器fd
+    TimeTask::ptr m_timer_task {nullptr};                       // 心跳定时器，定时发送ping帧
     void* m_data = nullptr;
     std::atomic<uint64_t> m_recent_activate{0};
     std::atomic<uint64_t> m_recent_pong{0};             // 最近pong帧的时间戳，单位ms

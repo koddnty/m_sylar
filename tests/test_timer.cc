@@ -8,8 +8,8 @@ static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 int test_base_timer() {
     IOManager::ptr iom = std::make_shared<IOManager>("test_timer", 1);
-    n_TimeManager::ptr tim = std::make_shared<n_TimeManager>(iom, 2000);
-    auto begin = n_TimeManager::GetCurrentMS();
+    TimeManager::ptr tim = std::make_shared<TimeManager>(iom, 2000);
+    auto begin = TimeManager::GetCurrentMS();
     M_SYLAR_LOG_INFO(g_logger) << "start test timer, time= " << begin;
 
     tim->init();
@@ -22,7 +22,7 @@ int test_base_timer() {
     }   
 
     sleep(10);
-    M_SYLAR_LOG_INFO(g_logger) << "test timer finished, time(from" << begin << ")= " << n_TimeManager::GetCurrentMS();
+    M_SYLAR_LOG_INFO(g_logger) << "test timer finished, time(from" << begin << ")= " << TimeManager::GetCurrentMS();
 
     iom->autoStop();
     return 1;
@@ -30,8 +30,8 @@ int test_base_timer() {
 
 int test_condition_timer() {
     IOManager::ptr iom = std::make_shared<IOManager>("test_timer", 4);
-    n_TimeManager::ptr tim = std::make_shared<n_TimeManager>(iom, 2000);
-    auto begin = n_TimeManager::GetCurrentMS();
+    TimeManager::ptr tim = std::make_shared<TimeManager>(iom, 2000);
+    auto begin = TimeManager::GetCurrentMS();
     M_SYLAR_LOG_INFO(g_logger) << "start test condition timer, time= " << begin;
 
     tim->init();
@@ -66,7 +66,7 @@ int test_condition_timer() {
         sleep(3);
     }
     tim->close();
-    M_SYLAR_LOG_INFO(g_logger) << "test condition timer finished, time(from" << begin << ")= " << n_TimeManager::GetCurrentMS();
+    M_SYLAR_LOG_INFO(g_logger) << "test condition timer finished, time(from" << begin << ")= " << TimeManager::GetCurrentMS();
     M_SYLAR_LOG_INFO(g_logger) << "SUMMARY: total finished" << condition_counter << " tasks";
 
     iom->autoStop();

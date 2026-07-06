@@ -1,6 +1,8 @@
 #include <server/websocket/wsserver.hpp>
 #include <server/http/httpServer.hpp>
-
+/**
+    存在问题,ping,pong报文排队导致连接超时
+*/
 using namespace m_sylar;
 
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
@@ -44,7 +46,8 @@ public:
 
         M_SYLAR_LOG_INFO(g_logger) << "FIN=" << FIN << " RSV1=" << RSV1 << " RSV2=" << RSV2 << " RSV3=" << RSV3 << " opcode=" << opcode;
         M_SYLAR_LOG_INFO(g_logger) << "reply frame, sessionId=" << session->getSessionId() << ", opcode=" << opcode << ", payload length=" << f.getPayloadLength();
-        for(int i = 0; i < 1000; i++) {
+        for(int i = 0; i < 100; i++) {
+            co_await co_sleep(30);   // 每30ms秒发送一次消息
             co_await session->co_sendFrame(f);   // 回复消息
         }
         co_return;
