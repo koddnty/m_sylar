@@ -5,43 +5,11 @@
 
 
 namespace m_sylar {
-static n_TimeManager* t_tim = nullptr;
+static std::shared_ptr<n_TimeManager> t_tim = nullptr;
 static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 ConfigVar<uint32_t>::ptr g_basic_timer = ConfigManager::LookUp("basic.timer.blocklength", uint32_t(3000), 0, "默认单个时间块的时间长度，单位ms,越小锁竞争越少");
 
-Task<bool> TimeTask::runner() {
-    bool rt = true;
-    if(m_is_canceled == false) {
-        rt = true;
-    }
-    if(m_condition) {
-        if(co_await m_condition()) {
-            co_await m_main_cb();
-        }
-        else if(m_condition_cb) {
-            co_await m_condition_cb();
-        }
-        rt = true;
-    }
-    else {
-        co_await m_main_cb();
-        rt = true;
-    }
-
-    next();
-    co_return rt;
-}
-
-uint64_t TimeTask::next() {
-    if(m_is_cycle) {
-         m_execute_ms += m_intreval_ms;
-    }
-    else {
-        m_execute_ms = 0;
-    }
-    return m_execute_ms;
-}
 
 
 
@@ -88,14 +56,18 @@ int n_TimeManager::close() {
     return 0;
 }
 
+void n_TimeManager::setInstance(std::shared_ptr<n_TimeManager> tim) {
+    t_tim = tim;
+}
 
-n_TimeManager* n_TimeManager::getInstance() {
+
+n_TimeManager::ptr n_TimeManager::getInstance() {
     if(t_tim) {
         return t_tim;
     }
     m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
     if(iom) {
-        t_tim = new n_TimeManager(iom, g_basic_timer->getValue());
+        t_tim = std::make_shared<n_TimeManager>(iom, g_basic_timer->getValue());
         t_tim->init();
         return t_tim;
     }
@@ -147,10 +119,11 @@ void n_TimeManager::onTimerTriggered() {
         else {
             TimerBlock::ptr block = m_time_blocks.begin()->second;
             if(!block->time_tasks.empty()) {
-                m_nextTimerTime = block->time_tasks.begin()->first;
-                rlock.unlock();
-                if(-1 == updateTimerFd(m_nextTimerTime)) {
-                    M_SYLAR_LOG_ERROR(g_logger) << "failed to update timerfd time, next_timer_time: " << m_nextTimerTime;
+                m_nextTimerTime = UINT64_MAX;
+                auto time = block->time_tasks.begin()->first;
+                rlock.unlock(); 
+                if(-1 == updateTimerFd(time)) {
+                    //M_SYLAR_LOG_ERROR(g_logger) << "failed to update timerfd time, next_timer_time: ";
                 }
             }
             else {
@@ -232,7 +205,7 @@ Task<void, TaskBeginExecuter> n_TimeManager::runTimeTask(TimeTask::ptr timetask)
     co_return;
 }
 
-n_TimeManager::TimerBlock::ptr n_TimeManager::getOrCreateTimerBlock(uint64_t execute_time) {
+TimerBlock::ptr n_TimeManager::getOrCreateTimerBlock(uint64_t execute_time) {
     // 检查时间范围合理性
     auto now = GetCurrentMS();
     if(execute_time < now) {
@@ -350,25 +323,5 @@ int n_TimeManager::updateTimerFd(uint64_t execute_time) {
 
 
 
-
-int n_TimeManager::TimerBlock::insert(TimeTask::ptr time_task) {
-    std::unique_lock<std::shared_mutex> wlock(mutex);
-    task_count++;
-    return time_tasks.insert({time_task->getExecuteTime(), time_task}) != time_tasks.end() ? 0 : -1;
-}
-
-
-std::list<TimeTask::ptr> n_TimeManager::TimerBlock::getAndRemove(uint64_t timeMs) {
-    std::list<TimeTask::ptr> expired_tasks;
-    std::unique_lock<std::shared_mutex> wlock(mutex);
-    auto it = time_tasks.begin();
-    while(it != time_tasks.end() && it->first <= timeMs) {
-        expired_tasks.push_back(it->second);
-        it++;
-        task_count--;
-    }
-    time_tasks.erase(time_tasks.begin(), it);    // 从时间块中删除过期的定时器任务
-    return expired_tasks;
-}
 
 }

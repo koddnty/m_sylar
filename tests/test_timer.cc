@@ -1,4 +1,4 @@
-#include "basic/timer.hpp"
+#include "basic/timer/timer.hpp"
 #include <sys/timerfd.h>
 
 
@@ -25,37 +25,44 @@ int test_base_timer() {
     sleep(10);
     M_SYLAR_LOG_INFO(g_logger) << "test timer finished, time(from" << begin << ")= " << n_TimeManager::GetCurrentMS();
 
-    iom.stop();
+    iom.autoStop();
     return 1;
 }
 
 int test_condition_timer() {
-    IOManager iom {"test_condition_timer", 1};
-    n_TimeManager tim(&iom, 2000);
+    IOManager iom {"test_condition_timer", 4};
+    n_TimeManager::ptr tim = std::make_shared<n_TimeManager>(&iom, 2000);
     auto begin = n_TimeManager::GetCurrentMS();
     M_SYLAR_LOG_INFO(g_logger) << "start test condition timer, time= " << begin;
 
-    tim.init();
-    std::atomic<int> condition_counter {0};
+    tim->init();
 
-    for(int i = 0; i < 1; i++) {
-        TimeTask::ptr time_task = TimeTask::create(1 + 50 * i, true, []() -> Task<bool> {
-            std::cout << "1" << std::flush;
+    n_TimeManager::setInstance(tim);
+
+    std::atomic<int> condition_counter {0};
+    std::atomic<int> loop_counter {0};
+    sleep(1);
+    for(int i = 0; i < 10000; i++) {
+        TimeTask::ptr time_task = TimeTask::create(1, true, [&condition_counter, &loop_counter]() -> Task<bool> {
+            condition_counter++;
+            if(condition_counter % 5000 == 0) {
+                loop_counter++;
+                std::cout << "finished " << loop_counter * 5000 << " timer tasks" << std::endl;
+            }
             co_return true;
-        }, [&condition_counter]() -> Task<bool> {
-            if(condition_counter++ % 2 == 0) {
-                co_return true;
-            }
-            else {
-                co_return false;
-            }
         }, []() -> Task<bool> {
-            std::cout << "0" << std::flush;
+            co_return true;
+        }, []() -> Task<bool> {
             co_return true;
         });
-        tim.addConditionTimer(time_task);
+        tim->addConditionTimer(time_task);
     }   
 
+    for(int i = 0 ; i < 2; i++) {
+        tim->printInfo();
+        sleep(3);
+    }
+    tim->close();
     sleep(10);
     M_SYLAR_LOG_INFO(g_logger) << "test condition timer finished, time(from" << begin << ")= " << n_TimeManager::GetCurrentMS();
 

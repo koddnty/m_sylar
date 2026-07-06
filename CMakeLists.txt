@@ -33,6 +33,7 @@ set(BASIC_SOURCES
     sylar/basic/address.cc
     sylar/basic/socket.cc
     sylar/basic/tool.cc
+
 )
 
 # 协议模块
@@ -78,7 +79,9 @@ set(DBPOOL_SOURCES
 
 # 新模块测试模块
 set(TEST_SOURCES
-    sylar/basic/timer.cc
+    sylar/basic/timer/timer.cc
+    sylar/basic/timer/timer_task.cc
+    sylar/basic/timer/timer_block.cc
 )
 
 # 选择模块
@@ -98,6 +101,7 @@ add_library(sylar STATIC
     ${PROTOCOL_SOURCES}
     ${WEBSCOKET_SOURCES}
     ${TEST_SOURCES}
+    sylar/basic/timer/timer_task.hpp
 )
 
 
