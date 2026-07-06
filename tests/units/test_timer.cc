@@ -4,7 +4,7 @@
 #include "coroutine/corobase.h"
 #include "coroutine/corobase.h"
 #include <catch2/catch_test_macros.hpp>
-// #include "basic/hook.h"catch_test_macros
+
 
 using namespace m_sylar;    
 
@@ -49,18 +49,6 @@ bool test_condition(int need){
     return false;
 }
 
-
-
-// void test2() {
-
-
-//     std::shared_ptr<m_sylar::TimeLimitInfo::State> eventState = std::make_shared<m_sylar::TimeLimitInfo::State>();
-//     m_sylar::TimeManager::getInstance()->addEventWithTimeout(10, m_sylar::FdContext::READ, timeoutTask, 4000000, eventState);
-
-//     sleep(10);
-//     std::cout << "task State: " << *eventState;
-//     return;
-// }
 
 
 TEST_CASE("test self timer", "[self_timer]")

@@ -1,0 +1,6 @@
+╭─1783321949	[[32mINFO[0m]	[system]	[thread:152632:UNKNOWN fiber:4294967295]	test_timer.cc:35	
+╰─start test condition timer, time= 25707786
+╭─1783321955	[[32mINFO[0m]	[system]	[thread:152632:UNKNOWN fiber:4294967295]	test_timer.cc:69	
+╰─test condition timer finished, time(from25707786)= 25713804
+╭─1783321955	[[32mINFO[0m]	[system]	[thread:152632:UNKNOWN fiber:4294967295]	test_timer.cc:70	
+╰─SUMMARY: total finished109999 tasks

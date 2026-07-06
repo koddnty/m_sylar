@@ -7,54 +7,57 @@ using namespace m_sylar;
 static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 int test_base_timer() {
-    IOManager iom {"test_timer", 1};
-    n_TimeManager tim(&iom, 2000);
+    IOManager::ptr iom = std::make_shared<IOManager>("test_timer", 1);
+    n_TimeManager::ptr tim = std::make_shared<n_TimeManager>(iom, 2000);
     auto begin = n_TimeManager::GetCurrentMS();
     M_SYLAR_LOG_INFO(g_logger) << "start test timer, time= " << begin;
 
-    tim.init();
-    
+    tim->init();
     for(int i = 0; i < 1; i++) {
-        TimeTask::ptr time_task = TimeTask::create(1 + 50 * i, true, []() -> Task<bool> {
+        TimeTask::ptr time_task = TimeTask::create(1 + 50 * i, true, [](TimeTask::ptr task) -> Task<void> {
             M_SYLAR_LOG_INFO(g_logger) << "time task executed";
-            co_return true;
+            co_return ;
         });
-        tim.addTimer(time_task);
+        tim->addTimer(time_task);
     }   
 
     sleep(10);
     M_SYLAR_LOG_INFO(g_logger) << "test timer finished, time(from" << begin << ")= " << n_TimeManager::GetCurrentMS();
 
-    iom.autoStop();
+    iom->autoStop();
     return 1;
 }
 
 int test_condition_timer() {
-    IOManager iom {"test_condition_timer", 4};
-    n_TimeManager::ptr tim = std::make_shared<n_TimeManager>(&iom, 2000);
+    IOManager::ptr iom = std::make_shared<IOManager>("test_timer", 4);
+    n_TimeManager::ptr tim = std::make_shared<n_TimeManager>(iom, 2000);
     auto begin = n_TimeManager::GetCurrentMS();
     M_SYLAR_LOG_INFO(g_logger) << "start test condition timer, time= " << begin;
 
     tim->init();
 
-    n_TimeManager::setInstance(tim);
 
     std::atomic<int> condition_counter {0};
     std::atomic<int> loop_counter {0};
-    sleep(1);
     for(int i = 0; i < 10000; i++) {
-        TimeTask::ptr time_task = TimeTask::create(1, true, [&condition_counter, &loop_counter]() -> Task<bool> {
-            condition_counter++;
-            if(condition_counter % 5000 == 0) {
-                loop_counter++;
-                std::cout << "finished " << loop_counter * 5000 << " timer tasks" << std::endl;
-            }
-            co_return true;
-        }, []() -> Task<bool> {
-            co_return true;
-        }, []() -> Task<bool> {
-            co_return true;
-        });
+        TimeTask::ptr time_task = TimeTask::create(1, true, 
+            [&condition_counter, &loop_counter](TimeTask::ptr task) -> Task<void> {
+                condition_counter++;
+                if(condition_counter % 5000 == 0) {
+                    loop_counter++;
+                    std::cout << "finished " << loop_counter * 5000 << " timer tasks" << std::endl;
+                }
+                if(condition_counter > 100000) {
+                    task->cancel();
+                }
+                co_return;
+            }, 
+            []() -> Task<bool> {
+                co_return true;
+            }, 
+            [](TimeTask::ptr task) -> Task<void> {
+                co_return ;
+            });
         tim->addConditionTimer(time_task);
     }   
 
@@ -63,10 +66,10 @@ int test_condition_timer() {
         sleep(3);
     }
     tim->close();
-    sleep(10);
     M_SYLAR_LOG_INFO(g_logger) << "test condition timer finished, time(from" << begin << ")= " << n_TimeManager::GetCurrentMS();
+    M_SYLAR_LOG_INFO(g_logger) << "SUMMARY: total finished" << condition_counter << " tasks";
 
-    iom.autoStop();
+    iom->autoStop();
     return 1;
 }
 

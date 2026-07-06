@@ -16,12 +16,12 @@ ConfigVar<uint32_t>::ptr g_basic_timer = ConfigManager::LookUp("basic.timer.bloc
 
 
 n_TimeManager::n_TimeManager(IOManager::ptr iom, size_t blockLength) {
-    m_iom = iom.get();
+    m_iom = iom;
     m_block_size_ms = blockLength;
 }
 
 n_TimeManager::n_TimeManager(IOManager* iom, size_t blockLength) {
-    m_iom = iom;
+    m_iom = std::shared_ptr<IOManager>{iom};
     m_block_size_ms = blockLength;
 }
 
@@ -56,23 +56,23 @@ int n_TimeManager::close() {
     return 0;
 }
 
-void n_TimeManager::setInstance(std::shared_ptr<n_TimeManager> tim) {
-    t_tim = tim;
-}
+// void n_TimeManager::setInstance(std::shared_ptr<n_TimeManager> tim) {
+//     t_tim = tim;
+// }
 
 
-n_TimeManager::ptr n_TimeManager::getInstance() {
-    if(t_tim) {
-        return t_tim;
-    }
-    m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
-    if(iom) {
-        t_tim = std::make_shared<n_TimeManager>(iom, g_basic_timer->getValue());
-        t_tim->init();
-        return t_tim;
-    }
-    return nullptr;
-}
+// n_TimeManager::ptr n_TimeManager::getInstance() {
+//     if(t_tim) {
+//         return t_tim;
+//     }
+//     m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
+//     if(iom) {
+//         t_tim = std::make_shared<n_TimeManager>(iom, g_basic_timer->getValue());
+//         t_tim->init();
+//         return t_tim;
+//     }
+//     return nullptr;
+// }
 
 void n_TimeManager::onTimerTriggered() {
     uint64_t now = GetCurrentMS();              // 加1ms的误差补偿，确保不会漏掉过期的定时器任务
@@ -132,31 +132,12 @@ void n_TimeManager::onTimerTriggered() {
         }
     }
 
-
-    // if(m_time_blocks.empty()) {
-    //     m_nextTimerTime = UINT64_MAX;
-    //     rlock.unlock();
-    // }
-    // else {
-    //     TimerBlock::ptr block = m_time_blocks.begin()->second;
-    //     rlock.unlock();
-    //     if(!block->time_tasks.empty()) {
-    //         m_nextTimerTime = block->time_tasks.begin()->first;
-    //         if(-1 == updateTimerFd(m_nextTimerTime)) {
-    //             M_SYLAR_LOG_ERROR(g_logger) << "failed to update timerfd time, next_timer_time: " << m_nextTimerTime;
-    //         }
-    //     }
-    //     else {
-    //         m_nextTimerTime = UINT64_MAX;
-    //     }
-    // }
-
     M_SYLAR_LOG_DEBUG(g_logger) << "next timer time updated, next_timer_time: " << m_nextTimerTime << ", scheduling expired timer tasks";
     // 调度执行过期的定时器任务
     for(auto& time_task : expired_time_tasks) {
         M_SYLAR_LOG_DEBUG(g_logger) << "scheduling time task, address: " << time_task.get();
         m_timerCount--;
-        auto t = std::bind(&runTimeTask, time_task);
+        auto t = std::bind(&n_TimeManager::runTimeTask, shared_from_this(), time_task);
         m_iom->schedule(TaskCoro20::create_coro(t));
     }
 }
@@ -181,6 +162,122 @@ TimeTask::ptr n_TimeManager::addConditionTimer(TimeTask::ptr time_task){
     return time_task;
 }
 
+
+
+IOManager& n_TimeManager::addEventWithTimeout(int fd, FdContext::Event event, TaskCoro20&& task, 
+                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag){
+    IOManager* iom = IOManager::getInstance();
+    std::shared_ptr<TimeLimitInfo> exeInfo = std::make_shared<TimeLimitInfo>();
+    std::shared_ptr<uint64_t> timerfd = std::make_shared<uint64_t>(0);
+    std::shared_ptr<TaskCoro20> taskwrapper = std::make_shared<TaskCoro20>(std::move(task));
+    if(timeout < 1) {
+        M_SYLAR_LOG_WARN(g_logger) << "timeout is too short, may cause some other problems";
+    }
+
+
+    // 定时器注册
+    int iom_fd = fd;
+    FdContext::Event iom_event = event;
+    TimeTask::ptr time_task = TimeTask::create(timeout, false,  
+        [taskwrapper, rtState, iom_fd, iom_event, closeFlag](TimeTask::ptr time_task) mutable -> Task<void> {
+            *rtState = TimeLimitInfo::State::TIMEOUT;
+            if(closeFlag) {
+                IOManager::getInstance()->closeWithNoClose(iom_fd);         // 删除事件
+            }
+            else {
+                IOManager::getInstance()->delEvent(iom_fd, iom_event);      // 完全删除事件
+            }
+            IOManager::getInstance()->schedule(std::move((*taskwrapper)));
+            co_return;
+        }, 
+        [exeInfo]() ->Task<bool> {  // 判断回调是否执行
+            if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::TIMEOUT)) {
+                // 执行成功，当前任务超时，进入超时逻辑, 取消注册的事件。
+                co_return true;        
+            }
+            else {
+                co_return false;       // 无处理逻辑。
+            }
+        }, 
+        [](TimeTask::ptr time_task)->Task<void>{ co_return;});
+            // 回调事件注册
+            iom->addEvent(fd, event, [time_task, timerfd, exeInfo, taskwrapper, rtState]() mutable {
+                if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::FINISHED)) {
+                    // 可以执行，取消定时器。
+                    *rtState = TimeLimitInfo::State::FINISHED;
+                    time_task->cancel();
+                    IOManager::getInstance()->schedule(std::move((*taskwrapper)));
+                } 
+                else {      // 超时或其他， 无操作
+                }
+                return;
+        }
+    );
+
+    addConditionTimer(time_task);
+
+    return *iom;
+}       
+
+IOManager& n_TimeManager::addEventWithTimeout(int fd, FdContext::Event event, std::function<void()> cb_func, 
+                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag){
+    IOManager* iom = IOManager::getInstance();
+    std::shared_ptr<TimeLimitInfo> exeInfo = std::make_shared<TimeLimitInfo>();
+    std::shared_ptr<uint64_t> timerfd = std::make_shared<uint64_t>(0);
+    std::shared_ptr<std::function<void()>> taskwrapper = std::make_shared<std::function<void()>>(std::move(cb_func));
+    if(timeout < 1) {
+        M_SYLAR_LOG_WARN(g_logger) << "timeout too short (<10ms), may cause unexpected behavior";
+    }
+
+    // 定时器注册
+    int iom_fd = fd;
+    FdContext::Event iom_event = event;
+    TimeTask::ptr time_task = TimeTask::create(timeout, false,  
+        [taskwrapper, rtState, iom_fd, iom_event, closeFlag](TimeTask::ptr task) mutable -> Task<void> {
+            *rtState = TimeLimitInfo::State::TIMEOUT;
+            if(closeFlag) {
+                IOManager::getInstance()->closeWithNoClose(iom_fd);         // 删除事件
+            }
+            else {
+                IOManager::getInstance()->delEvent(iom_fd, iom_event);      // 完全删除事件
+            }
+            IOManager::getInstance()->schedule(std::move((*taskwrapper)));
+            co_return;
+        }, 
+        [exeInfo]() ->Task<bool> {  // 判断回调是否执行
+            if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::TIMEOUT)) {
+                // 执行成功，当前任务超时，进入超时逻辑, 取消注册的事件。
+                co_return true;        
+            }
+            else {
+                co_return false;       // 无处理逻辑。
+            }
+        }, 
+        [](TimeTask::ptr task)->Task<void>{ co_return;});
+            // 回调事件注册
+            iom->addEvent(fd, event, [time_task, timerfd, exeInfo, taskwrapper, rtState]() mutable {
+                if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::FINISHED)) {
+                    // 可以执行，取消定时器。
+                    *rtState = TimeLimitInfo::State::FINISHED;
+                    time_task->cancel();
+                    IOManager::getInstance()->schedule(std::move((*taskwrapper)));
+                } 
+                else {      // 超时或其他， 无操作
+                }
+                return;
+            }
+        );
+
+    addConditionTimer(time_task);
+    return *iom;
+}
+
+
+
+
+
+
+
 uint64_t n_TimeManager::GetCurrentMS() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -197,7 +294,7 @@ Task<void, TaskBeginExecuter> n_TimeManager::runTimeTask(TimeTask::ptr timetask)
     co_await timetask->runner();       // 运行后会自动更新时间戳
     if(!timetask->getIsCanceled() && timetask->getIsCycle()) {
         // 重新插入定时器
-        n_TimeManager::getInstance()->insertTimeTask(timetask);
+        insertTimeTask(timetask);
         co_return;
     }
     M_SYLAR_LOG_DEBUG(g_logger) << "timer task finished, execute_time: " << timetask->getExecuteTime() << ", is_cycle: " << timetask->getIsCycle() 
@@ -250,8 +347,7 @@ int n_TimeManager::insertTimeTask(TimeTask::ptr time_task) {
 
     auto now = GetCurrentMS();
     if(execute_time <= now) {     // 时间已过，直接执行,不插入时间片
-        M_SYLAR_LOG_WARN(g_logger) << "execute_time is in the past, execute_time: " << execute_time << ", current_time: " << now;
-        auto t = std::bind(&runTimeTask, time_task);
+        auto t = std::bind(&n_TimeManager::runTimeTask, shared_from_this(), time_task);
         m_iom->schedule(TaskCoro20::create_coro(t));
         return 0;
     }

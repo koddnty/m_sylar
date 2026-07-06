@@ -6,7 +6,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(tests test_main.cpp)
+add_executable(tests unit_tests.cpp)
 add_dependencies(tests sylar)
 target_link_libraries(tests Catch2::Catch2WithMain sylar ${LIB_LIB})
 
