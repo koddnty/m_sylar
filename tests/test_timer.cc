@@ -45,7 +45,7 @@ int test_condition_timer() {
                 condition_counter++;
                 if(condition_counter % 5000 == 0) {
                     loop_counter++;
-                    std::cout << "finished " << loop_counter * 5000 << " timer tasks" << std::endl;
+                    M_SYLAR_LOG_INFO(g_logger) << "finished " << loop_counter * 5000 << " timer tasks" << std::endl;
                 }
                 if(condition_counter > 100000) {
                     task->cancel();

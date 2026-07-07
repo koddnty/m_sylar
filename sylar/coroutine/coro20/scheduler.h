@@ -92,16 +92,16 @@ public:
     virtual bool isStopping();
 
 protected:
+    std::atomic<size_t> m_activeThreadCount = {0};                  // 活跃线程数
     std::string m_name;                                             // schedule名称
     // std::list<TaskCoro20> m_tasks;                                  // 任务队列
     // std::map<std::pair<int, int>, Thread::ptr> m_threads;           //{{线程序号，线程号}， 线程指针}
     std::vector<Thread::ptr> m_threads;
-    int m_threads_count;                                            // 线程个数
-    bool m_autoStop;                                                // 软停止（执行完毕所有任务
-    bool m_Stop;                                                    // 直接停止
-    std::atomic<size_t> m_activeThreadCount = {0};                  // 活跃线程数
-    std::atomic<size_t> m_idleThreadCount = {0};                    // 空闲线程数
+    std::atomic<int> m_threads_count;                                            // 线程个数
+    std::atomic<bool> m_autoStop;                                                // 软停止（执行完毕所有任务
+    std::atomic<bool> m_stop;                                                    // 直接停止
     std::shared_mutex m_mutex;
+    std::atomic<size_t> m_idleThreadCount = {0};                    // 空闲线程数
 
     TaskPool m_task_pool;           // 任务池
 

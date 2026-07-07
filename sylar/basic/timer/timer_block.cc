@@ -1,6 +1,10 @@
 #include "timer_block.hpp"
 
 namespace m_sylar {
+TimerBlock::TimerBlock(uint64_t start, uint64_t end) : start_time(start), end_time(end) {
+}
+
+
 int TimerBlock::insert(TimeTask::ptr time_task) {
     std::unique_lock<std::shared_mutex> wlock(mutex);
     task_count++;

@@ -104,7 +104,7 @@ void TimeManager::onTimerTriggered() {
     {
         std::unique_lock<std::shared_mutex> wlock(m_mutex);
         auto it = m_time_blocks.begin();
-        while(it != m_time_blocks.end() && it->second->end_time <= now) {
+        while(it != m_time_blocks.end() && it->second->getEndTime() <= now) {
             it = m_time_blocks.erase(it);     // 从时间块列表中删除过期的时间块
         }
     }
@@ -118,17 +118,14 @@ void TimeManager::onTimerTriggered() {
             rlock.unlock();
         }
         else {
+            m_nextTimerTime = UINT64_MAX;
             TimerBlock::ptr block = m_time_blocks.begin()->second;
-            if(!block->time_tasks.empty()) {
-                m_nextTimerTime = UINT64_MAX;
-                auto time = block->time_tasks.begin()->first;
+            uint64_t next_time = block->getNextExecuteTime();
+            if(next_time != UINT64_MAX) {
                 rlock.unlock(); 
-                if(-1 == updateTimerFd(time)) {
+                if(-1 == updateTimerFd(next_time)) {
                     //M_SYLAR_LOG_ERROR(g_logger) << "failed to update timerfd time, next_timer_time: ";
                 }
-            }
-            else {
-                m_nextTimerTime = UINT64_MAX;
             }
         }
     }
@@ -314,6 +311,22 @@ Task<void, TaskBeginExecuter> TimeManager::runTimeTask(TimeTask::ptr timetask) {
     co_return;
 }
 
+
+void TimeManager::printInfo(){
+    std::stringstream ss;
+    ss <<  "====================TimeManager Info====================" << std::endl
+        << "timer fd: " << m_timerFd << std::endl
+        << "timer count: " << m_timerCount.load() << std::endl
+        << "time blocks count: " << m_time_blocks.size() << std::endl
+        << "next timer time: " << m_nextTimerTime.load() << std::endl
+        << "current    time: " << GetCurrentMS() << std::endl
+        << "block size: " << m_block_size_ms << std::endl
+        << "base time: " << m_base_time << std::endl
+        << "^^^^^^^^^^^^^^^^^^^TimeManager Info^^^^^^^^^^^^^^^^^^^" << std::endl << std::flush;
+
+    M_SYLAR_LOG_INFO(g_logger) << ss.str();
+}
+
 TimerBlock::ptr TimeManager::getOrCreateTimerBlock(uint64_t execute_time) {
     // 检查时间范围合理性
     auto now = GetCurrentMS();
@@ -333,11 +346,10 @@ TimerBlock::ptr TimeManager::getOrCreateTimerBlock(uint64_t execute_time) {
     rlock.unlock();
 
     // 没有找到合适的时间片，创建新的时间片
-    TimerBlock::ptr new_block = std::make_shared<TimerBlock>();
-    // 创建时间片
     uint64_t end = begin + m_block_size_ms;
-    new_block->start_time = begin;
-    new_block->end_time = end;
+    TimerBlock::ptr new_block = std::make_shared<TimerBlock>(begin, end);
+    // 创建时间片
+
     M_SYLAR_ASSERT2(begin <= execute_time && execute_time < end, "bad timerBlockRange");     // 确保时间片不存在
 
     // 插入时间片
@@ -371,11 +383,11 @@ int TimeManager::insertTimeTask(TimeTask::ptr time_task) {
     }
 
     M_SYLAR_LOG_DEBUG(g_logger) << "inserting time task, execute_time: " << execute_time << ", current_time: " << now
-        << ", block_start: " << timer_block->start_time << ", block_end: " << timer_block->end_time;
+        << ", block_start: " << timer_block->getStartTime() << ", block_end: " << timer_block->getEndTime();
     // 计算时间限制
-    if(execute_time < timer_block->start_time || execute_time >= timer_block->end_time) {       // 时间不合法，超出时间片范围
+    if(execute_time < timer_block->getStartTime() || execute_time >= timer_block->getEndTime()) {       // 时间不合法，超出时间片范围
         M_SYLAR_LOG_ERROR(g_logger) << "execute_time is out of timer block range, execute_time: " << execute_time
-            << ", block_start: " << timer_block->start_time << ", block_end: " << timer_block->end_time;
+            << ", block_start: " << timer_block->getStartTime() << ", block_end: " << timer_block->getEndTime();
         return -1;
     }
 

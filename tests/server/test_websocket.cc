@@ -22,8 +22,7 @@ void ignore_sigpipe() {
 class TestHandler : public websocket::WsHandler {
 public:
     static Task<void> co_onOpen(std::shared_ptr<websocket::WsSession> session){
-        M_SYLAR_LOG_INFO(g_logger) << "successfully open websocket connection, sessionId:" << session->getSessionId();
-        std::cout << "-----------------oh yeah-----------------" << std::endl;
+        M_SYLAR_LOG_INFO(g_logger) << "successfully open websocket connection, sessionId: \n-----------------oh yeah----------------- " << session->getSessionId();
         co_return;
     }                                       // 连接建立
 
@@ -46,8 +45,9 @@ public:
 
         M_SYLAR_LOG_INFO(g_logger) << "FIN=" << FIN << " RSV1=" << RSV1 << " RSV2=" << RSV2 << " RSV3=" << RSV3 << " opcode=" << opcode;
         M_SYLAR_LOG_INFO(g_logger) << "reply frame, sessionId=" << session->getSessionId() << ", opcode=" << opcode << ", payload length=" << f.getPayloadLength();
-        for(int i = 0; i < 100; i++) {
-            co_await co_sleep(30);   // 每30ms秒发送一次消息
+        for(int i = 0; i < 1000; i++) {
+            co_await co_sleep(5);   // 每30ms秒发送一次消息
+            f.setTextPayload(std::to_string(i));
             co_await session->co_sendFrame(f);   // 回复消息
         }
         co_return;
@@ -83,7 +83,7 @@ void testBase(IOManager* iom) {
     http_server->start();
 
     M_SYLAR_LOG_INFO(g_logger) << "server start";
-    sleep(3600);
+    sleep(600);
     http_server->stop();
 }
 

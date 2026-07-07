@@ -79,21 +79,7 @@ public:
     Task<void, TaskBeginExecuter> runTimeTask(TimeTask::ptr timetask);     // 协程睡眠，单位ms
     
 
-    void printInfo() {
-        std::cout << "====================TimeManager Info====================" << std::endl;
-        std::cout << "timer fd: " << m_timerFd << std::endl;
-        std::cout << "timer count: " << m_timerCount.load() << std::endl;
-        std::cout << "time blocks count: " << m_time_blocks.size() << std::endl;
-        std::cout << "next timer time: " << m_nextTimerTime.load() << std::endl;
-        std::cout << "current    time: " << GetCurrentMS() << std::endl;
-        std::cout << "block size: " << m_block_size_ms << std::endl;
-        std::cout << "base time: " << m_base_time << std::endl;
-        for(auto& block : m_time_blocks) {
-            std::cout << "block start time: " << block.second->getStartTime() << 
-                       "\n, end       time: " << block.second->getEndTime() << ", task count: " << block.second->getTaskCount() << std::endl;
-        }
-        std::cout << "^^^^^^^^^^^^^^^^^^^TimeManager Info^^^^^^^^^^^^^^^^^^^" << std::endl << std::flush;
-    }
+    void printInfo();
 
 private:
 

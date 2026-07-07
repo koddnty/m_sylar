@@ -64,8 +64,11 @@ IOManager::IOManager(const std::string& name, int thread_num)
 
 IOManager::~IOManager()
 {
-    close(m_epollFd);
+    stop();
+    m_autoStop = true;
     close(m_eventFd);
+    close(m_epollFd);
+
 }
 
 
