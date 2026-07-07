@@ -11,7 +11,7 @@ m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 ConfigVar<uint32_t>::ptr g_ws_recv_timeout = ConfigManager::LookUp("servers.websocket.timeout.recv", uint32_t(30), 0, "websocket server recv timeout");
 ConfigVar<uint32_t>::ptr g_ws_send_timeout = ConfigManager::LookUp("servers.websocket.timeout.send", uint32_t(30), 0, "websocket server send timeout");
-ConfigVar<uint32_t>::ptr g_ws_ping_interval = ConfigManager::LookUp("servers.websocket.interval.ping", uint32_t(5), 0, "websocket server send timeout");
+ConfigVar<uint32_t>::ptr g_ws_ping_interval = ConfigManager::LookUp("servers.websocket.interval.ping", uint32_t(20), 0, "websocket server send timeout");
 ConfigVar<uint32_t>::ptr g_ws_pong_timeout = ConfigManager::LookUp("servers.websocket.timeout.pong", uint32_t(15), 0, "websocket server send timeout");
 ConfigVar<uint32_t>::ptr g_ws_buffer_size = ConfigManager::LookUp("servers.websocket.limit.buffer_size", uint32_t(1024), 0, "websocket server parser buffer size");
 ConfigVar<uint32_t>::ptr g_ws_max_request_size  = ConfigManager::LookUp("servers.websocket.limit.max_request_size", uint32_t(10485760), 0, "websocket server parser buffer size");
@@ -53,7 +53,6 @@ Task<void> WsHandler::co_onPing(std::shared_ptr<WsSession> session, const std::s
 Task<void> WsHandler::co_onPong(std::shared_ptr<WsSession> session, const std::string& reason) {
     // 更新 最近pong时间戳
     
-    session->setRecentPong(TimeManager::GetCurrentMS());
     co_return;
 }
 
@@ -77,10 +76,14 @@ WsSession::WsSession(Socket::ptr socket, size_t sessionId) : Session(socket) {
 }
 
 WsSession::~WsSession() {
+    if(m_timer_task) {
+        m_timer_task->cancel();   // 取消定时器
+        m_timer_task = nullptr;
+    }
 }
 
 int WsSession::init() {
-    m_recent_pong = TimeManager::GetCurrentMS();
+    setRecentFrameTime(TimeManager::GetCurrentMS());
     auto self = shared_from_this();
     
     TimeTask::ptr time_task = TimeTask::create(g_ws_ping_interval->getValue() * 1000, true, 
@@ -99,17 +102,17 @@ int WsSession::init() {
             co_await self->co_sendFrame(pingFrame);
 
             co_await co_sleep(g_ws_pong_timeout->getValue() * 1000);   // 等待pong超时
-            M_SYLAR_LOG_INFO(g_logger) << "ping check, sessionId=" << self->getSessionId();
             
             // 检查最近pong帧时间戳，如果超过超时时间，认为连接异常，进入关闭流程
             now = TimeManager::GetCurrentMS();
-            uint64_t recent_pong = self->getRecentPong();
+            uint64_t recent_pong = self->getRecentFrameTime();
+            M_SYLAR_LOG_INFO(g_logger) << "ping check,(timeout " << g_ws_pong_timeout->getValue() * 1000 << ") sessionId=" << self->getSessionId() << ", now=" << now << ", recent_pong=" << recent_pong;
             if(now < recent_pong) {
                 M_SYLAR_LOG_WARN(g_logger) << "current time is smaller than recent pong time, something may be wrong, sessionId=" << self->getSessionId();
                 co_return true;    // 时间异常但不认为连接异常，继续等待
             }
             if(now > recent_pong && now - recent_pong > g_ws_pong_timeout->getValue() * 1000) {
-                M_SYLAR_LOG_DEBUG(g_logger) << "ping timeout(" << std::to_string(now - recent_pong ) << " > " << std::to_string(g_ws_pong_timeout->getValue()) 
+                M_SYLAR_LOG_WARN(g_logger) << "ping timeout(" << std::to_string(now - recent_pong ) << " > " << std::to_string(g_ws_pong_timeout->getValue()) 
                                             << "), close session, sessionId=" << self->getSessionId();
                 co_return false;    // 连接超时，进入关闭流程
             }
@@ -247,7 +250,10 @@ Task<int> WsSession::co_close(int code, const std::string& reason) {
     M_SYLAR_LOG_DEBUG(g_logger) << "close data: " << std::string(data.begin(), data.end());
     co_await sendMessage((const char*)data.data(), data.size());   // 发送空消息
     // 关闭定时器
-
+    if(m_timer_task) {
+        m_timer_task->cancel();   // 取消定时器
+        m_timer_task = nullptr;
+    }
     m_state = State::CLOSED;
 
     co_return 0;
@@ -321,6 +327,7 @@ int WsServer::close(int sessionId) {
     }
     session->close();
     std::string reason {"Normal Closure"};
+    
     return 0;
 }
 

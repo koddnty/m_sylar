@@ -89,7 +89,7 @@ void Thread::join(){
         int rt = pthread_join(m_thread, nullptr);
         if(rt){
             M_SYLAR_LOG_ERROR(g_logger) << "pthread_join thread failed rt = " << rt 
-             << " m_name = " << m_name;
+             << " m_name = " << m_name << "error: " << strerror(rt);
             throw std::logic_error("pthread_join thread failed");
         }
     }

@@ -16,14 +16,12 @@ ConfigVar<uint32_t>::ptr g_basic_timer = ConfigManager::LookUp("basic.timer.bloc
 
 
 
-TimeManager::TimeManager(IOManager::ptr iom, size_t blockLength) {
+TimeManager::TimeManager(IOManager::ptr iom, size_t blockLength) : m_block_size_ms(blockLength) {
     m_iom = iom;
-    m_block_size_ms = blockLength;
 }
 
-TimeManager::TimeManager(IOManager* iom, size_t blockLength) {
+TimeManager::TimeManager(IOManager* iom, size_t blockLength) : m_block_size_ms(blockLength) {
     m_iom = std::shared_ptr<IOManager>{iom};
-    m_block_size_ms = blockLength;
 }
 
 TimeManager::~TimeManager() {
@@ -314,14 +312,18 @@ Task<void, TaskBeginExecuter> TimeManager::runTimeTask(TimeTask::ptr timetask) {
 
 void TimeManager::printInfo(){
     std::stringstream ss;
+    std::shared_lock<std::shared_mutex> rlock(m_mutex);
+    size_t block_count = m_time_blocks.size();
+    uint64_t base_time = m_base_time;
+    rlock.unlock();
     ss <<  "====================TimeManager Info====================" << std::endl
         << "timer fd: " << m_timerFd << std::endl
         << "timer count: " << m_timerCount.load() << std::endl
-        << "time blocks count: " << m_time_blocks.size() << std::endl
+        << "time blocks count: " << block_count << std::endl
         << "next timer time: " << m_nextTimerTime.load() << std::endl
         << "current    time: " << GetCurrentMS() << std::endl
         << "block size: " << m_block_size_ms << std::endl
-        << "base time: " << m_base_time << std::endl
+        << "base time: " << base_time << std::endl
         << "^^^^^^^^^^^^^^^^^^^TimeManager Info^^^^^^^^^^^^^^^^^^^" << std::endl << std::flush;
 
     M_SYLAR_LOG_INFO(g_logger) << ss.str();

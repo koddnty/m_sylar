@@ -47,7 +47,7 @@ Socket::Socket(Socket&& other) noexcept {
     m_family = other.m_family;
     m_type = other.m_type;
     m_protocol = other.m_protocol;
-    m_isConnected = other.m_isConnected;    
+    m_isConnected = other.m_isConnected.load();    
     m_is_set_reuseport = other.m_is_set_reuseport;
     m_local_address = other.m_local_address;
     m_remote_address = other.m_remote_address;
@@ -70,7 +70,7 @@ Socket& Socket::operator=(Socket&& other) {
     m_family = other.m_family;
     m_type = other.m_type;
     m_protocol = other.m_protocol;
-    m_isConnected = other.m_isConnected;    
+    m_isConnected = other.m_isConnected.load();    
     m_is_set_reuseport = other.m_is_set_reuseport;
     m_local_address = other.m_local_address;
     m_remote_address = other.m_remote_address;

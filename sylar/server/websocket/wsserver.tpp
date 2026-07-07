@@ -8,6 +8,7 @@ namespace websocket
 template<WsHandlerType T>
 Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr frame) {
     // 处理不同类型的帧
+    session->setRecentFrameTime(TimeManager::GetCurrentMS());
     if(frame == nullptr) {
         M_SYLAR_LOG_ERROR(ghws_logger) << "frame is nullptr, sessionId=" << session->getSessionId();
         co_return -1;

@@ -128,7 +128,7 @@ private:
     int m_protocol;             // protocol (OSTREAM)
     int m_type;                 // type, socket协议类型
     int m_is_set_reuseport = 1;
-    bool m_isConnected;
+    std::atomic<bool> m_isConnected;
 
     Address::ptr m_local_address;
     Address::ptr m_remote_address;

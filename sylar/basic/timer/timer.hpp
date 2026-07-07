@@ -98,7 +98,7 @@ private:
     std::shared_ptr<IOManager> m_iom;                                                   // IOManager指针，定时器通过IOManager实现事件注册和触发
     std::multimap<uint64_t, TimerBlock::ptr> m_time_blocks;             // 定时器任务列表，存储所有定时器任务的迭代器，方便取消定时器{开始时间, TimerBlock}
     std::shared_mutex m_mutex;      
-    uint64_t m_block_size_ms {10000};                                      // 时间片大小，单位ms
+    const uint64_t m_block_size_ms {10000};                                      // 时间片大小，单位ms
     uint64_t m_base_time {0};                                                   // 基准时间，单位ms
 
     std::atomic<size_t> m_timerCount = 0;                       // 定时器数量

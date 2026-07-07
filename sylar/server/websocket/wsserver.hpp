@@ -60,6 +60,8 @@ public:
 
 
 
+
+// ws会话
 class WsSession : public Session, public std::enable_shared_from_this<WsSession>{
 public:
     using ptr = std::shared_ptr<WsSession>;
@@ -95,8 +97,8 @@ public:
     inline uint64_t getRecentActivate() const {return m_recent_activate;}
 
     // ms
-    inline uint64_t getRecentPong() const { return m_recent_pong; }    // 目前ping/pong共用一个时间戳，后续可以根据需要分开
-    inline void setRecentPong(uint64_t timestamp) { m_recent_pong = timestamp; }
+    inline uint64_t getRecentFrameTime() const { return m_recent_frame_time; }    // 目前ping/pong共用一个时间戳，后续可以根据需要分开
+    inline void setRecentFrameTime(uint64_t timestamp) { m_recent_frame_time = timestamp; }
 
 private:
     size_t m_sessionId;                                      // 会话ID
@@ -107,7 +109,7 @@ private:
     TimeTask::ptr m_timer_task {nullptr};                       // 心跳定时器，定时发送ping帧
     void* m_data = nullptr;
     std::atomic<uint64_t> m_recent_activate{0};
-    std::atomic<uint64_t> m_recent_pong{0};             // 最近pong帧的时间戳，单位ms
+    std::atomic<uint64_t> m_recent_frame_time{0};             // 最近pong帧的时间戳，单位ms
 
 
 
