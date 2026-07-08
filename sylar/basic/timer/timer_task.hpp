@@ -11,14 +11,14 @@ class TimeTask : public std::enable_shared_from_this<TimeTask> {
 public:
     using ptr = std::shared_ptr<TimeTask>;
     TimeTask(std::function<Task<void>(TimeTask::ptr task)> main_cb,
-             std::function<Task<bool>()> condition,
+             std::function<Task<bool>(TimeTask::ptr task)> condition,
              std::function<Task<void>(TimeTask::ptr task)> condition_cb, bool is_cycle = false)
         : m_main_cb(main_cb), m_condition(condition), m_condition_cb(condition_cb), m_is_cycle(is_cycle) {
         }
 
     static TimeTask::ptr create(uint64_t ms, bool is_cycle,
         std::function<Task<void>(TimeTask::ptr task)> main_cb,
-        std::function<Task<bool>()> condition = nullptr,
+        std::function<Task<bool>(TimeTask::ptr task)> condition = nullptr,
         std::function<Task<void>(TimeTask::ptr task)> condition_cb = nullptr) {
         auto time_task = std::make_shared<TimeTask>(main_cb, condition, condition_cb, is_cycle);
         time_task->m_execute_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -32,7 +32,7 @@ public:
 
 
     std::function<Task<void>(TimeTask::ptr task)> m_main_cb;            // 主任务函数
-    std::function<Task<bool>()> m_condition {nullptr};          // 执行条件,若返回true后才执行main_cb, 否则执行condition_cb
+    std::function<Task<bool>(TimeTask::ptr task)> m_condition {nullptr};          // 执行条件,若返回true后才执行main_cb, 否则执行condition_cb
     std::function<Task<void>(TimeTask::ptr task)> m_condition_cb {nullptr};       // 条件不成立后执行函数
 
 

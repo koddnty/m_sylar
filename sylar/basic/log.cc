@@ -196,7 +196,7 @@ bool FileLogAppender::reopen(){
     return !!m_file_stream;
 }
 void FileLogAppender::log(LogLevel::Level level, std::shared_ptr<m_sylar::Logger> logger, LogEvent::ptr event){
-    std::shared_lock<std::shared_mutex> r_lock (m_rwMutex);
+    std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
     // std::cout << "FileLogAppender" << level << "<<>>" << m_level << std::endl;
     if(level >= m_level){
         if(m_formatter){
@@ -210,7 +210,7 @@ void FileLogAppender::log(LogLevel::Level level, std::shared_ptr<m_sylar::Logger
     }
 }
 void StdoutLogAppender::log(LogLevel::Level level, std::shared_ptr<m_sylar::Logger> logger, LogEvent::ptr event){
-    std::shared_lock<std::shared_mutex> r_lock (m_rwMutex);
+    std::unique_lock<std::shared_mutex> w_lock (m_rwMutex);
     if(level >= m_level){
         if(m_formatter){
             std::cout << m_formatter->format(level, logger, event);

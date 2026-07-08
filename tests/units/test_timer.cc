@@ -32,7 +32,7 @@ bool test_condition(int need){
             time_task->cancel();
             co_return ;
         }, 
-        [&count, &TimerFinished, &LoopFinished, need]() ->Task<bool> {
+        [&count, &TimerFinished, &LoopFinished, need](TimeTask::ptr task) ->Task<bool> {
             if(count < need) {
                 count++;
                 co_return false;
@@ -86,7 +86,7 @@ int test_plenty_timer(int thread_num, int timer_count, int target_count, int blo
                 }
                 co_return;
             }, 
-            []() -> Task<bool> {
+            [](TimeTask::ptr task) -> Task<bool> {
                 co_return true;
             }, 
             [](TimeTask::ptr task) -> Task<void> {

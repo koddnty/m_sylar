@@ -77,7 +77,7 @@ Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
     }
 
     M_SYLAR_LOG_DEBUG(ghws_logger) << "websocket client connected, sessionId=" << sessionId << ", socket:" << *client;
-    int nextId = sessionId;
+    int nextId = sessionId;             // 下一个sessionId，-1表示关闭连接
     M_SYLAR_LOG_DEBUG(ghws_logger) << "new websocket client, sessionId=" << sessionId << ", socket:" << *client;
     // 通信
     do {
@@ -91,7 +91,7 @@ Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
             break; /* 连接关闭 */
         }
         else if(rt == -1){
-            M_SYLAR_LOG_WARN(ghws_logger) << "recv http request failed"
+            M_SYLAR_LOG_WARN(ghws_logger) << "recv websocket frame failed"
                                         << ", errno:" << errno
                                         << " error:" << strerror(errno)
                                         << "\nclient:" << client->toString();
@@ -128,8 +128,7 @@ Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
         }
     } while (loopCount < 10000 && session->getState() != WsSession::State::CLOSED);     // 限制最大请求数，防止死循环
 
-    // M_SYLAR_LOG_DEBUG(ghws_logger) << "websocket client loop end, nextId=" << nextId << ", socket:" << *client << ", code=" << code << ", reason=" << reason;
-    if(nextId == -1) {
+    if(nextId == -1 || session->getState() == WsSession::State::CLOSED) {
         co_await session->co_close(code, reason);    // 确保连接关闭
         removeSession(sessionId);
     }
@@ -159,7 +158,7 @@ void WsServer::registerUrl(const std::string& url){
                 M_SYLAR_LOG_DEBUG(ghws_logger) << "enter websocket handle loop, url:" << session->getRequest()->get_uri();
                 sessionId = co_await WsServer::getInstance()->handleClient<T>(session->getSocket(), sessionId);          // 进入websocket流程处理
             } while(sessionId >= 0);
-        }, protocol::http::HttpMethod::GET);   // websocket握手协议必须是GET方法
+        }, protocol::http::HttpMethod::GET);        // websocket握手协议必须是GET方法
     }
 }
 

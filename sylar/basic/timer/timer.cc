@@ -17,11 +17,11 @@ ConfigVar<uint32_t>::ptr g_basic_timer = ConfigManager::LookUp("basic.timer.bloc
 
 
 TimeManager::TimeManager(IOManager::ptr iom, size_t blockLength) : m_block_size_ms(blockLength) {
-    m_iom = iom;
+    m_iom = iom.get();
 }
 
 TimeManager::TimeManager(IOManager* iom, size_t blockLength) : m_block_size_ms(blockLength) {
-    m_iom = std::shared_ptr<IOManager>{iom};
+    m_iom = iom;
 }
 
 TimeManager::~TimeManager() {
@@ -186,7 +186,7 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, Task
             IOManager::getInstance()->schedule(std::move((*taskwrapper)));
             co_return;
         }, 
-        [exeInfo]() ->Task<bool> {  // 判断回调是否执行
+        [exeInfo](TimeTask::ptr task) ->Task<bool> {  // 判断回调是否执行
             if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::TIMEOUT)) {
                 // 执行成功，当前任务超时，进入超时逻辑, 取消注册的事件。
                 co_return true;        
@@ -240,7 +240,7 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, std:
             IOManager::getInstance()->schedule(std::move((*taskwrapper)));
             co_return;
         }, 
-        [exeInfo]() ->Task<bool> {  // 判断回调是否执行
+        [exeInfo](TimeTask::ptr task) ->Task<bool> {  // 判断回调是否执行
             if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::TIMEOUT)) {
                 // 执行成功，当前任务超时，进入超时逻辑, 取消注册的事件。
                 co_return true;        

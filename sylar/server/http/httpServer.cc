@@ -73,7 +73,7 @@ Task<int> HttpSession::co_recvRequest()
         }
         else if(recv_len < 0)
         {   // 错误
-            M_SYLAR_LOG_ERROR(g_logger) << "recv http request failed"
+            M_SYLAR_LOG_WARN(g_logger) << "recv http request failed"
                                         << ", errno:" << errno
                                         << " error:" << strerror(errno)
                                         << "\nclient:" << getRequest();

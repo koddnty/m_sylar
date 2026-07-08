@@ -91,8 +91,12 @@ int WsSession::init() {
             M_SYLAR_LOG_DEBUG(g_logger) << "end interval of websocket Timer";
             co_return;
         },
-        [self]()->Task<bool> {       // 条件判断
+        [self](TimeTask::ptr task)->Task<bool> {       // 条件判断
             // 获取ping帧时间戳，判断是否超时
+            if(self->getState() != State::OPEN) {
+                task->cancel();   // 连接已关闭，停止定时器
+                co_return false;  
+            }
             uint64_t now = TimeManager::GetCurrentMS();
             // 发送ping
             M_SYLAR_LOG_INFO(g_logger) << "send ping message, sessionId=" << self->getSessionId() << ", now=" << now;
@@ -103,6 +107,11 @@ int WsSession::init() {
 
             co_await co_sleep(g_ws_pong_timeout->getValue() * 1000);   // 等待pong超时
             
+            // 检查定时器状态
+            if(self->getState() != State::OPEN) {
+                task->cancel();   // 连接已关闭，停止定时器
+                co_return false;  
+            }
             // 检查最近pong帧时间戳，如果超过超时时间，认为连接异常，进入关闭流程
             now = TimeManager::GetCurrentMS();
             uint64_t recent_pong = self->getRecentFrameTime();
@@ -112,7 +121,7 @@ int WsSession::init() {
                 co_return true;    // 时间异常但不认为连接异常，继续等待
             }
             if(now > recent_pong && now - recent_pong > g_ws_pong_timeout->getValue() * 1000) {
-                M_SYLAR_LOG_WARN(g_logger) << "ping timeout(" << std::to_string(now - recent_pong ) << " > " << std::to_string(g_ws_pong_timeout->getValue()) 
+                M_SYLAR_LOG_WARN(g_logger) << "ping timeout(" << std::to_string(now - recent_pong ) << " > " << std::to_string(g_ws_pong_timeout->getValue() * 1000) 
                                             << "), close session, sessionId=" << self->getSessionId();
                 co_return false;    // 连接超时，进入关闭流程
             }
@@ -201,7 +210,7 @@ Task<int> WsSession::co_sendFrame(const Frame& frame) {
     // 发送当前帧
     auto data = frame.make();
     int rt = co_await sendMessage((const char*)data.data(), data.size());
-    if(rt == -1 && errno != EAGAIN) {
+    if(rt == -1) {
         M_SYLAR_LOG_ERROR(g_logger) << "send websocket frame failed, errno:" << errno << " error:" << strerror(errno) << "\nclient:" << getSocket()->toString();
         co_return -1;
     }

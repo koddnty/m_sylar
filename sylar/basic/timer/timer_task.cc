@@ -10,7 +10,7 @@ Task<bool> TimeTask::runner() {
         rt = true;
     }
     if(m_condition) {
-        if(co_await m_condition()) {
+        if(co_await m_condition(shared_from_this())) {
             co_await m_main_cb(shared_from_this());
         }
         else if(m_condition_cb) {

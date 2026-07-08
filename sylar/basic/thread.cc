@@ -75,6 +75,7 @@ Thread::Thread(std::function<void()> cb, const std::string& name = "UNKNOWN"){
 
 Thread::~Thread () {
     if(m_state == Thread::State::RUNNING ) {
+        m_state = Thread::State::JOINED;
         int rt = pthread_join(m_thread, nullptr);
         if(rt){
             M_SYLAR_LOG_ERROR(g_logger) << "pthread_join thread failed rt = " << rt 
@@ -85,6 +86,10 @@ Thread::~Thread () {
 }
 
 void Thread::join(){
+    if(m_state == State::JOINED || m_state == State::DETACHED){
+        return;
+    }
+    m_state = State::JOINED;
     if(m_thread){
         int rt = pthread_join(m_thread, nullptr);
         if(rt){

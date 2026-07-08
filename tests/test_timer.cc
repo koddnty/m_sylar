@@ -52,7 +52,7 @@ int test_condition_timer() {
                 }
                 co_return;
             }, 
-            []() -> Task<bool> {
+            [](TimeTask::ptr task) -> Task<bool> {
                 co_return true;
             }, 
             [](TimeTask::ptr task) -> Task<void> {

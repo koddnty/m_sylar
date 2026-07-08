@@ -58,14 +58,6 @@ public:
 
 
 void testBase(IOManager* iom) {
-    // auto http_server = http::HttpServer::getInstance(); 
-    // m_sylar::Address::ptr addr = m_sylar::Address::LookupAnyIPAddress("0.0.0.0");
-    // std::dynamic_pointer_cast<m_sylar::IPv4Address>(addr)->setPort(8803);
-    // http_server->bind(addr, 1);
-    // http_server->start();
-
-    // auto ws_server = websocket::WsServer::getInstance();
-    // ws_server->registerUrl<TestHandler>("/test");
     ignore_sigpipe();  // 忽略SIGPIPE
     std::string config_path = "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/conf/basic.json";
     std::cout << "[LoggerManager init] config path: " << config_path << std::endl;
@@ -83,7 +75,7 @@ void testBase(IOManager* iom) {
     http_server->start();
 
     M_SYLAR_LOG_INFO(g_logger) << "server start";
-    sleep(600);
+    sleep(6000);
     http_server->stop();
 }
 
@@ -98,7 +90,8 @@ int main(void) {
     m_sylar::IOManager iom {"test websocekt", 4};
     testBase(&iom);
 
-    sleep(100);
+    sleep(10);
+    M_SYLAR_LOG_INFO(g_logger) << "test websocket server end, iomanager stop";
     iom.autoStop();
     return 0;
 }

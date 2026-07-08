@@ -55,7 +55,7 @@ Task<void, TaskBeginExecuter> testConditionTimer() {
             co_return;
         },
         // 条件：返回 true 才执行主回调
-        [&counter]() -> Task<bool> {
+        [&counter](TimeTask::ptr task) -> Task<bool> {
             co_return counter < 1000;
         },
         // 备选回调：条件不满足时执行
