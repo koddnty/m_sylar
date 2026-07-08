@@ -128,7 +128,7 @@ Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
             co_await session->co_close(code, reason);
             break;
         }
-    } while (loopCount < 10000 && session->getState() != WsSession::State::CLOSED);     // 限制最大请求数，防止死循环
+    } while (loopCount < 1000 && session->getState() != WsSession::State::CLOSED);     // 限制最大请求数，防止死循环
 
     if(nextId == -1 || session->getState() == WsSession::State::CLOSED) {
         co_await session->co_close(code, reason);    // 确保连接关闭
