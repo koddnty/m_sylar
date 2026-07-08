@@ -6,22 +6,37 @@
 namespace m_sylar{
 
 
+
+
+class ResultCreate{
+
+};
+
+
 template<typename ReturnType, typename ErrorType>
-class Result {
+class ResultImpl {
 public:
-    Result(const ReturnType& value) : m_value_or_error(value) {m_isError = false;}
-    Result(const ErrorType& error) : m_value_or_error(error) { m_isError = true; }
+    static ResultImpl<ReturnType, ErrorType> createValue(const ReturnType& value) {
+        return ResultImpl<ReturnType, ErrorType>(value, false);
+    }
+    static ResultImpl<ReturnType, ErrorType> createError(const ErrorType& error) {
+        return ResultImpl<ReturnType, ErrorType>(error, true);
+    }
 
-    Result(ReturnType&& value) : m_value_or_error(std::move(value)) {m_isError = false;}
-    Result(ErrorType&& error) : m_value_or_error(std::move(error)) {m_isError = true; }
+public:
+    explicit ResultImpl(const ReturnType& value, bool type = false) : m_value_or_error(value) {m_isError = type;}
+    explicit ResultImpl(const ErrorType& error, bool type = true) : m_value_or_error(error) { m_isError = type; }
+
+    explicit ResultImpl(ReturnType&& value, bool type = false) : m_value_or_error(std::move(value)) {m_isError = type;}
+    explicit ResultImpl(ErrorType&& error, bool type = true) : m_value_or_error(std::move(error)) {m_isError = type; }
 
 
-    Result(Result&& other) noexcept {
+    ResultImpl(ResultImpl&& other) noexcept {
         m_isError = other.m_isError;
         m_value_or_error = std::move(other.m_value_or_error);
     }
 
-    Result& operator=(Result&& other) noexcept {
+    ResultImpl& operator=(ResultImpl&& other) noexcept {
         if (this != &other) {
             m_isError = other.m_isError;
             m_value_or_error = std::move(other.m_value_or_error);
@@ -29,8 +44,8 @@ public:
         return *this;
     }
 
-    Result(const Result& other) = delete; // 禁止拷贝构造
-    Result& operator=(const Result& other) = delete; // 禁止拷贝赋值
+    ResultImpl(const ResultImpl& other) = delete; // 禁止拷贝构造
+    ResultImpl& operator=(const ResultImpl& other) = delete; // 禁止拷贝赋值
 
 
     bool isError() const {
@@ -56,6 +71,15 @@ public:
         return std::get<ErrorType>(m_value_or_error);;
     }
 
+    void setValue(const ReturnType& value) {
+        m_value_or_error = value;
+        m_isError = false;
+    }
+
+    void setError(const ErrorType& error) {
+        m_value_or_error = error;
+        m_isError = true;
+    }
 public:
     explicit operator bool() const {
         return !m_isError;

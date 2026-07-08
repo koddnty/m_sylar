@@ -156,7 +156,10 @@ public:
 
         @tparam T 处理器类型，必须满足WsHandlerType概念
 
-        @return 是否需要关闭连接，true表示连接已经正常/异常关闭，false表示未关闭连接，需要重新调度后通信。
+        @param client 底层socket连接
+        @param sessionId 会话ID，-1表示新连接，>0表示已有,用于循环调度
+
+        @return 返回当前处理的sessionId, <0表示连接已关闭或发生异常，>0表示当前处理的sessionId.可用于重新调度
     */
     template<WsHandlerType T>
     Task<int> handleClient(Socket::ptr client, int sessionId = -1);        // websocket流程处理

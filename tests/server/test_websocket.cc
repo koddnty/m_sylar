@@ -35,21 +35,23 @@ public:
         f.setTextPayload(reply);
 
         auto data = f.make();   // 构造帧数据
-        auto first = data[0];
-        uint8_t first_byte = data[0];
-        bool FIN  = (first_byte >> 7) & 1;
-        bool RSV1 = (first_byte >> 6) & 1;
-        bool RSV2 = (first_byte >> 5) & 1;
-        bool RSV3 = (first_byte >> 4) & 1;
-        int  opcode = first_byte & 0x0F;
+        // auto first = data[0];
+        // uint8_t first_byte = data[0];
+        // bool FIN  = (first_byte >> 7) & 1;
+        // bool RSV1 = (first_byte >> 6) & 1;
+        // bool RSV2 = (first_byte >> 5) & 1;
+        // bool RSV3 = (first_byte >> 4) & 1;
+        // int  opcode = first_byte & 0x0F;
 
-        M_SYLAR_LOG_INFO(g_logger) << "FIN=" << FIN << " RSV1=" << RSV1 << " RSV2=" << RSV2 << " RSV3=" << RSV3 << " opcode=" << opcode;
-        M_SYLAR_LOG_INFO(g_logger) << "reply frame, sessionId=" << session->getSessionId() << ", opcode=" << opcode << ", payload length=" << f.getPayloadLength();
-        for(int i = 0; i < 1000; i++) {
-            co_await co_sleep(5);   // 每30ms秒发送一次消息
-            f.setTextPayload(std::to_string(i));
-            co_await session->co_sendFrame(f);   // 回复消息
-        }
+        // M_SYLAR_LOG_INFO(g_logger) << "FIN=" << FIN << " RSV1=" << RSV1 << " RSV2=" << RSV2 << " RSV3=" << RSV3 << " opcode=" << opcode;
+        // M_SYLAR_LOG_INFO(g_logger) << "reply frame, sessionId=" << session->getSessionId() << ", opcode=" << opcode << ", payload length=" << f.getPayloadLength();
+        M_SYLAR_LOG_INFO(g_logger) << "recevied a message: ==============================\n" << msg << "============================================================\n";
+
+        // for(int i = 0; i < 1000; i++) {
+        //     co_await co_sleep(5);   // 每30ms秒发送一次消息
+        //     f.setTextPayload(std::to_string(i));
+        //     co_await session->co_sendFrame(f);   // 回复消息
+        // }
         co_return;
     }
     

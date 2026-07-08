@@ -41,3 +41,4 @@ compile_commands.json
 *.vcxproj.filters
 *.vspscc
 *.vssscc
+log/

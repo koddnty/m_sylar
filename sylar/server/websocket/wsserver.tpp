@@ -45,6 +45,8 @@ Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr fra
     co_return rt;
 }
 
+
+
 template<WsHandlerType T>
 Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
     // 外部http服务器已经完成握手升级协议，传入的client是一个websocket连接
@@ -130,6 +132,7 @@ Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
 
     if(nextId == -1 || session->getState() == WsSession::State::CLOSED) {
         co_await session->co_close(code, reason);    // 确保连接关闭
+        nextId = -1;
         removeSession(sessionId);
     }
     // 断开/重新调度
