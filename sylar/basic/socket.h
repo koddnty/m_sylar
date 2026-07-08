@@ -34,6 +34,12 @@ public:
     Socket(int family, int type, int protocol);
     ~Socket();
 
+    Socket(const Socket& other) = delete;
+    Socket& operator=(const Socket& other) = delete;
+
+    Socket(Socket&& other) noexcept;
+    Socket& operator=(Socket&& other);
+
     static ptr CreateTCP(m_sylar::Address::ptr address);
     static ptr CreateUDP(m_sylar::Address::ptr address);
 
@@ -111,6 +117,8 @@ public:
         return obj.dump_short(os);
     }
 
+    inline int getFd() const {return m_sock_fd;}
+
 private:
     void initSock();
     void newSock();
@@ -120,7 +128,7 @@ private:
     int m_protocol;             // protocol (OSTREAM)
     int m_type;                 // type, socket协议类型
     int m_is_set_reuseport = 1;
-    bool m_isConnected;
+    std::atomic<bool> m_isConnected;
 
     Address::ptr m_local_address;
     Address::ptr m_remote_address;

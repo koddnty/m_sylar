@@ -23,7 +23,7 @@ MysqlAwaiter::~MysqlAwaiter(){
 
 void MysqlAwaiter::on_suspend() {
     // auto self = shared_from_this();
-    TimeManager* tim = m_sylar::TimeManager::getInstance();
+    TimeManager::ptr tim = m_sylar::TimeManager::getInstance();
     std::shared_ptr<TimeLimitInfo::State> state = std::make_shared<TimeLimitInfo::State> ();
     // 回调事件注册
     tim->addEventWithTimeout(m_fd, m_event, [this, state](){  

@@ -9,6 +9,7 @@ TaskPoolNode::TaskPoolNode()
 
 TaskPoolNode::~TaskPoolNode()
 {
+    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
 }
 
 bool TaskPoolNode::addTask(TaskCoro20&& tasks)
@@ -64,17 +65,22 @@ TaskPool::TaskPool(int nodeNum)
 
 TaskPool::~TaskPool()
 {
+    std::unique_lock<std::shared_mutex> w_lock(m_mutex);
 }
 
 void TaskPool::taskAlloc(TaskCoro20&& task)
 {
-    m_nodes[m_alloc_idx++ % m_node_num]->addTask(std::move(task));
+    TaskPoolNode::ptr node = m_nodes[m_alloc_idx++ % m_node_num];
+
+    node->addTask(std::move(task));
     m_task_count++;
 }
 
 int TaskPool::taskGet(std::list<TaskCoro20>& tasks)
 {
-    int rt = m_nodes[m_loop_idx++ % m_node_num]->getTask(tasks);
+    // 先获得一个节点的任务
+    TaskPoolNode::ptr node = m_nodes[m_loop_idx++ % m_node_num];
+    int rt = node->getTask(tasks);
     m_task_count -= rt;
     std::string info = "task count is litter than 0, value = " + std::to_string(m_task_count);
     M_SYLAR_ASSERT2(m_task_count >= 0, info.c_str()); 

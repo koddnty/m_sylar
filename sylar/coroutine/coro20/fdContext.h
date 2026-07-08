@@ -183,7 +183,7 @@ private:
 class FdContextManager::CLOSE_TASK_NOCLOSEFD : public FdContextManager::RegistedTask
 {
 public:
-    using ptr = std::shared_ptr<CLOSE_TASK>;
+    using ptr = std::shared_ptr<CLOSE_TASK_NOCLOSEFD>;
     CLOSE_TASK_NOCLOSEFD(FdContextManager::ptr fd_ctx_manager, FdContext::Event event, std::function<void(FdContext::ptr, FdContext::Event )> m_cb);
 
     void run() override;

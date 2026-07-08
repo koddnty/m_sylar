@@ -74,17 +74,40 @@ Thread::Thread(std::function<void()> cb, const std::string& name = "UNKNOWN"){
 }
 
 Thread::~Thread () {
-    pthread_detach(m_thread);
+    if(m_state == Thread::State::RUNNING ) {
+        m_state = Thread::State::JOINED;
+        int rt = pthread_join(m_thread, nullptr);
+        if(rt){
+            M_SYLAR_LOG_ERROR(g_logger) << "pthread_join thread failed rt = " << rt 
+                << " m_name = " << m_name;
+        }
+    }
     // M_SYLAR_LOG_INFO(g_logger) << "thread destructor";
 }
 
 void Thread::join(){
+    if(m_state == State::JOINED || m_state == State::DETACHED){
+        return;
+    }
+    m_state = State::JOINED;
     if(m_thread){
         int rt = pthread_join(m_thread, nullptr);
         if(rt){
             M_SYLAR_LOG_ERROR(g_logger) << "pthread_join thread failed rt = " << rt 
-             << " m_name = " << m_name;
+             << " m_name = " << m_name << "error: " << strerror(rt);
             throw std::logic_error("pthread_join thread failed");
+        }
+    }
+    m_thread = 0;
+}
+
+void Thread::detach(){
+    if(m_thread){
+        int rt = pthread_detach(m_thread);
+        if(rt){
+            M_SYLAR_LOG_ERROR(g_logger) << "pthread_detach thread failed rt = " << rt 
+             << " m_name = " << m_name;
+            throw std::logic_error("pthread_detach thread failed");
         }
     }
     m_thread = 0;

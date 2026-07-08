@@ -56,12 +56,12 @@ bool FdCtx::init()
     // 改变socketfd属性
     if(m_is_socket)
     {
+        m_sysNoblock = true;
         int flag = fcntl(m_fd, F_GETFL,0);
         if(!(flag & O_NONBLOCK))
         {
             fcntl(m_fd, F_SETFL, flag | O_NONBLOCK);
         }
-        m_sysNoblock = true;
     }
     else 
     {

@@ -9,6 +9,7 @@ class Singleton{
 public:
     static T* GetInstance () {
         static T c;
+        c.init();
         return &c;
     }
 };
@@ -18,6 +19,7 @@ class SingletonPtr{
 public:
     static std::shared_ptr<T> GetInstance() {
         static std::shared_ptr<T> v(new T);
+        v->init();
         return v;
     }
 };

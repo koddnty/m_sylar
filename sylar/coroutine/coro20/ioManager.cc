@@ -64,8 +64,11 @@ IOManager::IOManager(const std::string& name, int thread_num)
 
 IOManager::~IOManager()
 {
-    close(m_epollFd);
+    stop();
+    m_autoStop = true;
     close(m_eventFd);
+    close(m_epollFd);
+
 }
 
 
@@ -79,7 +82,9 @@ IOManager& IOManager::addEvent(int fd, FdContext::Event event, TaskCoro20&& task
     if(fd >= m_fd_events.size()) {ResizeEvents(fd); }
     // std::unique_lock<std::shared_mutex> wlock(m_mutex);
     std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
-    m_fd_events[fd]->addEvent(event, std::move(task),
+    auto sevent = m_fd_events[fd];
+    rlock.unlock();
+    sevent->addEvent(event, std::move(task),
         std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
     return *this;
 }
@@ -95,7 +100,9 @@ IOManager& IOManager::addEvent(int fd, FdContext::Event event, std::function<voi
     if(fd >= m_fd_events.size()) {ResizeEvents(fd); }
     // std::unique_lock<std::shared_mutex> wlock(m_mutex);
     std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
-    m_fd_events[fd]->addEvent(event, std::move(t),
+    auto sevent = m_fd_events[fd];
+    rlock.unlock();
+    sevent->addEvent(event, std::move(t),
     std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
     return *this;
 }
@@ -126,9 +133,11 @@ IOManager& IOManager::addOnceEvent(int fd, FdContext::Event event, std::function
     if(fd >= m_fd_events.size()) {ResizeEvents(fd); }
     // std::unique_lock<std::shared_mutex> wlock(m_mutex);
     std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
-    m_fd_events[fd]->addEvent(event, std::move(t),
+    auto sevent = m_fd_events[fd];
+    rlock.unlock();
+    sevent->addEvent(event, std::move(t),
         std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
-    m_fd_events[fd]->delEvent(event, 
+    sevent->delEvent(event, 
         std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
     return *this;
 }
@@ -145,8 +154,9 @@ IOManager& IOManager::delEvent(int fd, FdContext::Event event)
     // M_SYLAR_ASSERT2(fd >= m_fd_events.size(), s.c_str());
     // std::unique_lock<std::shared_mutex> wlock(m_mutex);
     std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
-
-    m_fd_events[fd]->delEvent(event, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    auto sevent = m_fd_events[fd];
+    rlock.unlock();
+    sevent->delEvent(event, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
     return *this;
 }
 
@@ -158,7 +168,9 @@ IOManager& IOManager::closeFd(int fd)
         return *this;
     }
     std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
-    m_fd_events[fd]->closeEvent(FdContext::NONE, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    auto sevent = m_fd_events[fd];
+    rlock.unlock();
+    sevent->closeEvent(FdContext::NONE, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
     return *this;
 }
 
@@ -168,7 +180,9 @@ IOManager& IOManager::closeWithNoClose(int fd) {
         return *this;
     }
     std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
-    m_fd_events[fd]->closeEventNoCloseFd(FdContext::NONE, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    auto sevent = m_fd_events[fd];
+    rlock.unlock();
+    sevent->closeEventNoCloseFd(FdContext::NONE, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
     return *this;
 }
 
@@ -177,8 +191,10 @@ IOManager& IOManager::cancelEvent(int fd, FdContext::Event event)
 {
     M_SYLAR_ASSERT2(fd < m_fd_events.size(), "fd is bigger than fd_event.size(), bad access");
     std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
-    m_fd_events[fd]->trigger(event, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
-    m_fd_events[fd]->delEvent(event, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    auto sevent = m_fd_events[fd];
+    rlock.unlock();
+    sevent->trigger(event, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
+    sevent->delEvent(event, std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
     return *this;
 }
 
@@ -287,7 +303,9 @@ void IOManager::idle()
                 std::shared_lock<std::shared_mutex> rlock(m_event_mutex);
 
                 if(io_fd == m_eventFd)  {continue; }
-                m_fd_events[io_fd]->trigger((FdContext::Event)events[i].events,
+                auto event = m_fd_events[io_fd];
+                rlock.unlock();
+                event->trigger((FdContext::Event)events[i].events,
                     std::bind(&IOManager::stateSync, this, std::placeholders::_1, std::placeholders::_2));
             }
         }
@@ -307,7 +325,7 @@ void IOManager::tickle()
     // }
 
         int64_t buffer = 1;
-        if(1 == write(m_eventFd, &buffer, sizeof(buffer)))
+        if(-1 == write(m_eventFd, &buffer, sizeof(buffer)))
         {
             M_SYLAR_LOG_ERROR(g_logger) << "[IOManager]failed to tickle othres while write eventFd"
                                         << "\nerrno=" << errno << " error:" << strerror(errno);

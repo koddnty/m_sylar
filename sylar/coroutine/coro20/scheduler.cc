@@ -14,12 +14,21 @@ namespace m_sylar
 {
 
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
+
+
+struct Context {
+    std::string name;          // 线程局部变量名字
+    void* currentCtx {nullptr};         // 当前存储局部线程局部变量
+    Context* nextCtx {nullptr};         // 下一个存储的线程局部变量
+};
+
+
 static thread_local Scheduler* tl_Scheduler;        // 当前线程调度器指针
 
+
 Scheduler::Scheduler (const std::string& name, size_t thread_num, size_t taskLoopNum)
-    : m_name(name), m_threads_count(thread_num)
-    , m_autoStop(false), m_Stop(false)
-    , m_activeThreadCount(thread_num), m_task_pool(thread_num)
+    : m_activeThreadCount(thread_num), m_name(name), m_threads_count(thread_num)
+    , m_autoStop(false), m_stop(false), m_task_pool(thread_num)
 {
 }
 
@@ -60,7 +69,7 @@ void Scheduler::run()
 {   // 调度器有任务运行时
     setThis();
     std::list<TaskCoro20> work_list;
-    while(true)
+    while(!m_stop)
     {
         // 取任务
         {
@@ -87,7 +96,7 @@ void Scheduler::run()
         M_SYLAR_ASSERT2(!work_list.size(), "[coro scheduler]: work_list is unempty");
 
         // 下一步，结束/idle-下一个任务
-        if(m_Stop || (getTaskCount() == 0 && m_autoStop))
+        if(m_stop || (getTaskCount() == 0 && m_autoStop))
         {
             // 强停止或自动无任务停止
             break;
@@ -137,21 +146,28 @@ void Scheduler::autoStop()
         usleep(10000);
         tickle();
     }
+    stop();
 }
 
 void Scheduler::stop()
 {
-    m_Stop = true;
+    m_stop = true;
     while(m_threads_count)
     {
         usleep(10000);
         tickle();
     }
+    for(int i = 0; i < m_threads.size(); i++)
+    {
+        m_threads[i]->join();
+    }
+    m_threads.clear();
+    M_SYLAR_LOG_DEBUG(g_logger) << "scheduler stopped";
 }
 
 bool Scheduler::isStopping()
 {
-    return m_Stop || m_autoStop;
+    return m_stop || m_autoStop;
 }
 
 

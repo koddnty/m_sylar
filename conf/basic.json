@@ -1,0 +1,59 @@
+{
+    "logs" : [
+        {
+            "name" : "system",
+            "level" : "INFO",
+            "appenders" : [
+                {
+                    "type" : "StdoutLogAppender",
+                    "level" : "DEBUG"
+                },
+                {
+                    "type" : "FileLogAppender",
+                    "file" : "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/log/system_log.txt",
+                    "level" : "INFO"
+                }
+            ]
+        },
+        {
+            "name" : "root",
+            "level" : "INFO",
+            "appenders" : [
+                {
+                    "type" : "StdoutLogAppender",
+                    "level" : "INFO"
+                },
+                {
+                    "type" : "FileLogAppender",
+                    "file" : "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/log/root_log.txt",
+                    "level" : "INFO"
+                }
+            ]
+        }
+    ],
+    "servers" : {
+        "http" : {
+            "type" : "http",
+            "timeout" : {
+                "connect" : 60,
+                "recv" : 60,
+                "send" : 60,
+                "keep_alive" : 1200
+            },
+            "limit" : {
+                "max_request_size" : 10485760,
+                "max_response_size" : 10485760,
+                "buffer_size" : 4096
+            },
+            "websocket" : {
+                "enable" : false,
+                "ping_interval" : 30,
+                "ping_timeout" : 60
+            }
+        },
+        "websocket" : {
+
+        }
+        
+    }
+}

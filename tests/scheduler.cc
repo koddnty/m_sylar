@@ -7,7 +7,7 @@
 m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 void func() {
-    M_SYLAR_LOG_DEBUG(g_logger) << "func is welld runed";
+    M_SYLAR_LOG_INFO(g_logger) << "func is welld runed";
 }
 
 int main(void) {

@@ -18,7 +18,7 @@
 #include "coroutine/coro20/task.hpp"
 #include "basic/config.h"
 #include "basic/log.h"
-#include "basic/self_timer.h"
+#include "basic/timer/timer.hpp"
 
 
 namespace m_sylar
@@ -54,7 +54,7 @@ namespace m_sylar
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 static m_sylar::ConfigVar<uint64_t>::ptr g_tcp_connect_timeout =
-    m_sylar::configManager::Lookup("http.tcpserver.timeout.connect", (uint64_t)5000, "tcp connect timeout");     // 
+    m_sylar::ConfigManager::LookUp("servers.http.tcpserver.timeout.connect", (uint64_t)5000, M_SYALR_LOG_KEY, "tcp connect timeout");     // 
 
 
 /**
@@ -139,35 +139,16 @@ public:
         std::weak_ptr<fdTimerInfo> wfdtino (fdtino);
         TimeLimitInfo::StatePtr timeState = std::make_shared<TimeLimitInfo::State> ();
         uint64_t timeOut = HOOK_IOAWAIT_TIMEOUT;
-        // 回调事件注册
-        // tim->addEventWithTimeout(m_fd, m_event, [this, timeState](){  // 回调函数，当有io事件可用或超时时恢复协程
-        //     // resume(timeState);        
-        //     if(*timeState == TimeLimitInfo::FINISHED) {
-        //         resume(IOState::SUCCESS);
-        //     }
-        //     else if(*timeState == TimeLimitInfo::TIMEOUT) {
-        //         M_SYLAR_LOG_WARN(g_logger) << "IOawaiter timed out";
-        //         resume(IOState::TIMEOUT);
-        //     }
-        //     else {
-        //         M_SYLAR_LOG_WARN(g_logger) << "IOawaiter trigged with a bad IOState Type";
-        //         resume(IOState::UNKNOWN);
-        //     }
-        // }, timeOut, timeState);
+
 
         iom->addEvent(m_fd, m_event, [this](){  // 回调函数，当有io事件可用或超时时恢复协程
             resume(m_state);
-            // IOManager::getInstance()->delEvent(fd, event);
+            // IOManager::getInstance()->delEvent(m_fd, m_event);
         });
     }
 
     void before_resume() override
     {
-        if(m_time_fd > 0)
-        {   // 删除定时器
-            m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
-            tim->cancelTimer(m_time_fd);
-        }
     }
 
     enum State
@@ -181,7 +162,6 @@ public:
 private:
     int m_state = READY;    // 0 事件可行， 1 超时， -1 出现错误 -2 未定义
     int m_fd;
-    int m_time_fd = -1;
     uint64_t m_timo;
     m_sylar::FdContext::Event m_event;
 };
@@ -242,10 +222,12 @@ public:
 protected:
   void on_suspend() override
   {
-    m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
-    tim->addTimer(m_time, false, [this](){
+    m_sylar::TimeManager::ptr tim = m_sylar::TimeManager::getInstance();
+    TimeTask::ptr time_task = TimeTask::create(m_time, false, [this](TimeTask::ptr task)->Task<void> {
       resume(m_time);
+      co_return ;
     });
+    tim->addTimer(time_task);
   }
 
   void before_resume() override
@@ -257,9 +239,9 @@ private:
 };
 
 
-m_sylar::Task<unsigned int> co_sleep(unsigned int seconds)
+m_sylar::Task<unsigned int> co_sleep(unsigned int seconds)          // msec
 {
-    co_await SleepAwaiter(seconds * 1000000);
+    co_await SleepAwaiter(seconds);
     co_return 0;
 }
 
@@ -452,7 +434,7 @@ m_sylar::Task<ssize_t> co_sendmsg(int sockfd, const struct msghdr *msg, int flag
 
 // close, 一般mod不用设置，若为非0值则只进行epoll等清理不会closeFd.
 int co_close(int fd, int mod){
-    // M_SYLAR_LOG_DEBUG(g_logger) << "co_close fd=" << fd << " in " << mod << " mod";
+    M_SYLAR_LOG_DEBUG(g_logger) << "co_close fd=" << fd << " in " << mod << " mod";
     if(mod == 0) {
         m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(fd);
         if(IOManager::getInstance())
