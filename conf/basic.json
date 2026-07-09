@@ -2,7 +2,7 @@
     "logs" : [
         {
             "name" : "system",
-            "level" : "INFO",
+            "level" : "ERROR",
             "appenders" : [
                 {
                     "type" : "StdoutLogAppender",

@@ -147,7 +147,7 @@ template<WsHandlerType T>
 void WsServer::registerUrl(const std::string& url){
         static_assert(std::is_base_of_v<WsHandler, T>, "T must inherit from WsHandler");
         m_httpServer->registerUrl(url, [](http::HttpSession::ptr session) -> Task<void> {
-            M_SYLAR_LOG_DEBUG(ghws_logger) << "receive websocket handshake request, url:" << session->getRequest()->get_uri();
+            M_SYLAR_LOG_DEBUG(ghws_logger) << "receive websocket handshake request, url:" << session->getRequest()->getUri();
             session->setKeepAlive(false);    // websocket连接不支持长连接，强制设置为短连接
 
             int rt = co_await WsServer::getInstance()->handShake(session);                          // 完成握手，建立websocket连接
@@ -158,7 +158,7 @@ void WsServer::registerUrl(const std::string& url){
             
             int sessionId = -1;
             do {
-                M_SYLAR_LOG_DEBUG(ghws_logger) << "enter websocket handle loop, url:" << session->getRequest()->get_uri();
+                M_SYLAR_LOG_DEBUG(ghws_logger) << "enter websocket handle loop, url:" << session->getRequest()->getUri();
                 sessionId = co_await WsServer::getInstance()->handleClient<T>(session->getSocket(), sessionId);          // 进入websocket流程处理
             } while(sessionId >= 0);
         }, protocol::http::HttpMethod::GET);        // websocket握手协议必须是GET方法

@@ -12,6 +12,7 @@
 #include "protocol/http/request.hpp"
 #include "protocol/http/response.hpp"
 #include "server/common/session.hpp"
+#include "protocol/http/http.hpp"
 // #include "server/websocket/wsserver.hpp"
 
 namespace m_sylar
@@ -35,13 +36,15 @@ class HttpSession : public Session
 {
 public: 
     using ptr = std::shared_ptr<HttpSession>;
-    using Request = protocol::http::parser::request;
-    using Response = protocol::http::parser::response;
+    using WS_Request = protocol::http::parser::request;         // websocketpp提供的请求格式解析类
+    using WS_Response = protocol::http::parser::response;
     HttpSession(Socket::ptr socket);
     ~HttpSession();
 
-    inline Request::ptr getRequest() { return m_request;}      // 用户获取当前http请求
-    inline Response::ptr getResponse() {return m_response;};    // 获得响应报文以修改
+    inline http::Request::ptr getRequest() { 
+        return std::make_shared<http::Request>(m_request);
+    }      // 用户获取当前http请求
+    inline http::Response::ptr getResponse() { return std::make_shared<http::Response>(m_response);};    // 获得响应报文以修改
     inline bool isKeep() const {return m_is_keep_alive; }
     inline void setKeepAlive(bool v) { m_is_keep_alive = v; }  // 强制置长短连接，用户一般不需要调用这个函数，除非想强制设置长短连接
 
@@ -58,8 +61,8 @@ public:
 private:
     // HttpRequestParser::ptr m_request_parser;    
     // HttpResponse::ptr m_response;
-    Request::ptr m_request;
-    Response::ptr m_response;
+    WS_Request::ptr m_request;
+    WS_Response::ptr m_response;
     bool m_is_keep_alive = true;       // 长短连接
 };
 

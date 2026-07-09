@@ -40,6 +40,7 @@ file(GLOB_RECURSE PROTOCOL_SOURCES_FIND
     "sylar/protocol/websocket/*.cc"
     "sylar/protocol/websocket/*.c"
     "sylar/protocol/websocket/*.cpp"
+    "sylar/protocol/http/*.cc"
 )
 set(PROTOCOL_SOURCES
     ${PROTOCOL_SOURCES_FIND}

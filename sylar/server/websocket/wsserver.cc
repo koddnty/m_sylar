@@ -306,7 +306,7 @@ WsServer::~WsServer() {
 Task<int> WsServer::handShake(http::HttpSession::ptr http_session) {
     // 完成握手，建立websocket连接
     // 请求判断
-    std::shared_ptr<protocol::http::parser::request> request = http_session->getRequest();
+    std::shared_ptr<protocol::http::parser::request> request = http_session->getRequest()->get();
 
     std::string request_str = request->raw();
     std::shared_ptr<WebSocket> ws = std::make_shared<WebSocket>();
