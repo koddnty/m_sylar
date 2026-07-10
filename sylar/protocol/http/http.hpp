@@ -10,6 +10,10 @@ inline std::string toString(StatusCode code) {
     return protocol::http::status_code::get_string(code);
 }
 
+using Method = protocol::http::HttpMethod;
+inline std::string toString(Method method) {
+    return protocol::http::HttpMethodToString(method);
+}
 
 
 class Request {
@@ -18,10 +22,12 @@ public:
     Request() = delete;
     Request(protocol::http::parser::request::ptr request) : m_request(request) {
         parserParams();
+        parserCookies(request->get_header("Cookie"));
     }
 
 public:
     void parserParams();
+    void parserCookies(const std::string& cookie_str);
     protocol::http::parser::request::ptr get() {
         return m_request;
     }
@@ -53,11 +59,29 @@ public:
         return m_request->get_body();
     }
 
+    const std::string& getCookie(const std::string& key)  {
+        auto it = m_cookies.find(key);
+        if(it == m_cookies.end()) {
+            return empty_string;
+        }
+        return it->second;
+    }
+
+
+    const std::string& getParam(const std::string& key) {
+        auto it = m_params.find(key);
+        if(it == m_params.end()) {
+            return empty_string;
+        }
+        return it->second;
+    }
 
 
 private:
     std::string m_path {};
+    std::string empty_string{};
     std::map<std::string, std::string> m_params {};
+    std::map<std::string, std::string> m_cookies {};
     protocol::http::parser::request::ptr m_request;
 };
 

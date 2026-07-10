@@ -80,7 +80,7 @@ bool TcpServer::bind(std::vector<std::pair<Address::ptr, int>>& addrs_num, std::
                 continue;
             }
 
-            M_SYLAR_LOG_INFO(g_logger) << "bind and listen successed, address : " << addr.first->toString()
+            M_SYLAR_LOG_DEBUG   (g_logger) << "bind and listen successed, address : " << addr.first->toString()
                                     << "\n socket fd=" << sock->toString();
             m_sockets.push_back(sock);
         }

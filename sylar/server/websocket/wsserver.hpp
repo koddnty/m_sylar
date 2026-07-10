@@ -35,6 +35,7 @@ concept WsHandlerType = requires(std::shared_ptr<WsSession> session, Frame::ptr 
     { T::co_onPing(session, msg) }      -> std::same_as<Task<void>>;
     { T::co_onPong(session, msg) }      -> std::same_as<Task<void>>;
     { T::co_onError(session, msg) }      -> std::same_as<Task<void>>;
+    { T::co_onBadClose(session) } -> std::same_as<Task<void>>;
 };
 
 
@@ -56,7 +57,54 @@ public:
     static Task<void> co_onPing(std::shared_ptr<WsSession> session, const std::string& reason);                 // ping消息
     static Task<void> co_onPong(std::shared_ptr<WsSession> session, const std::string& reason);                 // pong消息
     static Task<void> co_onError(std::shared_ptr<WsSession> session, const std::string& error);                 // 连接错误
+    static Task<void> co_onBadClose(std::shared_ptr<WsSession> session);                                        // 连接错误导致的关闭
 };
+
+// 默认实现,新配置应确保覆盖
+// // Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr frame) 
+
+// Task<void> WsHandler::co_onOpen(std::shared_ptr<WsSession> session) {
+//     M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onOpen event, sessionId=" << session->getSessionId();
+    
+//     co_return;
+// }
+
+// Task<void> WsHandler::co_onMessage(std::shared_ptr<WsSession> session, const std::string& msg) {
+//     M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onMessage event, sessionId=" << session->getSessionId();
+//     co_return;
+// }
+
+// Task<void> WsHandler::co_onBinary(std::shared_ptr<WsSession> session, const std::vector<uint8_t>& data) {
+//     M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onBinary event, sessionId=" << session->getSessionId();
+//     co_return;
+// }
+
+// Task<void> WsHandler::co_onClose(std::shared_ptr<WsSession> session, int code, const std::string& reason) {
+//     // M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onClose event, sessionId=" << session->getSessionId();
+//     co_await session->co_close(code, reason);
+//     co_return;
+// }
+
+// Task<void> WsHandler::co_onPing(std::shared_ptr<WsSession> session, const std::string& reason) {
+//     // 收到ping消息，回复pong消息
+//     M_SYLAR_LOG_INFO(g_logger) << "Received ping message, sessionId=" << session->getSessionId() << ", reason=" << reason;
+//     Frame pongFrame{};
+//     pongFrame.setOpcode(websocket_flags::WS_OP_PONG);
+//     pongFrame.setPongPayload(reason);
+//     co_await session->co_sendFrame(pongFrame);
+// }
+
+// Task<void> WsHandler::co_onPong(std::shared_ptr<WsSession> session, const std::string& reason) {
+//     // 更新 最近pong时间戳
+    
+//     co_return;
+// }
+
+// Task<void> WsHandler::co_onError(std::shared_ptr<WsSession> session, const std::string& error) {
+//     M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onError event, sessionId=" << session->getSessionId();
+//     co_return;
+// }
+
 
 
 
@@ -64,6 +112,7 @@ public:
 // ws会话
 class WsSession : public Session, public std::enable_shared_from_this<WsSession>{
 public:
+    friend class WsServer;
     using ptr = std::shared_ptr<WsSession>;
     WsSession(Socket::ptr socket, size_t sessionId);
     ~WsSession();
@@ -82,6 +131,7 @@ public:
     Task<int> co_sendFrame(Frame::ptr frame);
     Task<int> co_close(int code, const std::string& reason);        // 发送close报文
 
+
     /** 
         @brief 每次数据通信后更新：更新 最近活跃时间 等等（待扩展
     */
@@ -99,6 +149,12 @@ public:
     // ms
     inline uint64_t getRecentFrameTime() const { return m_recent_frame_time; }    // 目前ping/pong共用一个时间戳，后续可以根据需要分开
     inline void setRecentFrameTime(uint64_t timestamp) { m_recent_frame_time = timestamp; }
+    inline const http::Request::ptr getRequest() const { return m_request; }
+
+private:
+    inline void setRequest(http::Request::ptr request) { m_request = request; }
+
+    int clean();
 
 private:
     size_t m_sessionId;                                      // 会话ID
@@ -110,6 +166,7 @@ private:
     void* m_data = nullptr;
     std::atomic<uint64_t> m_recent_activate{0};
     std::atomic<uint64_t> m_recent_frame_time{0};             // 最近pong帧的时间戳，单位ms
+    http::Request::ptr m_request {nullptr};                       // 握手请求对象,包含cookie等
 
 
 
@@ -156,13 +213,13 @@ public:
 
         @tparam T 处理器类型，必须满足WsHandlerType概念
 
-        @param client 底层socket连接
+        @param http_session http会话，包含握手请求和响应信息
         @param sessionId 会话ID，-1表示新连接，>0表示已有,用于循环调度
 
         @return 返回当前处理的sessionId, <0表示连接已关闭或发生异常，>0表示当前处理的sessionId.可用于重新调度
     */
     template<WsHandlerType T>
-    Task<int> handleClient(Socket::ptr client, int sessionId = -1);        // websocket流程处理
+    Task<int> handleClient(http::HttpSession::ptr http_session, int sessionId = -1);        // websocket流程处理
 
 
 
@@ -183,7 +240,7 @@ public:
     WsSession::ptr getSession(int sessionId);             // 获取session，成功返回session指针，失败返回nullptr
 
 private:
-    WsSession::ptr createSession(Socket::ptr client);     // 创建session，成功返回session指针，失败返回nullptr
+    WsSession::ptr createSession(http::HttpSession::ptr client);     // 创建session，成功返回session指针，失败返回nullptr
     int removeSession(int sessionId);                   // 从session列表移除session，成功返回0，失败返回-1
 
 private:

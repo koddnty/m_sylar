@@ -61,6 +61,11 @@ Task<void> WsHandler::co_onError(std::shared_ptr<WsSession> session, const std::
     co_return;
 }
 
+Task<void> WsHandler::co_onBadClose(std::shared_ptr<WsSession> session) {
+    M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onBadClose event, sessionId=" << session->getSessionId();
+    co_return;
+}
+
 
 
 
@@ -258,12 +263,7 @@ Task<int> WsSession::co_close(int code, const std::string& reason) {
     auto data = f.make();
     M_SYLAR_LOG_DEBUG(g_logger) << "close data: " << std::string(data.begin(), data.end());
     co_await sendMessage((const char*)data.data(), data.size());   // 发送空消息
-    // 关闭定时器
-    if(m_timer_task) {
-        m_timer_task->cancel();   // 取消定时器
-        m_timer_task = nullptr;
-    }
-    m_state = State::CLOSED;
+
 
     co_return 0;
 }
@@ -273,6 +273,18 @@ int WsSession::upDateSessionOnRecv() {
     m_recent_activate = TimeManager::GetCurrentMS();   // 取消原有定时器
     return 0;
 }
+
+// 清理定时器资源
+int WsSession::clean() {
+    // 关闭定时器
+    if(m_timer_task) {
+        m_timer_task->cancel();   // 取消定时器
+        m_timer_task = nullptr;
+    }
+    m_state = State::CLOSED;
+    return 0;
+}
+
 
 
 
@@ -371,7 +383,8 @@ WsSession::ptr WsServer::getSession(int sessionId) {
     return m_sessions[sessionId];
 }
 
-WsSession::ptr WsServer::createSession(Socket::ptr client) {
+WsSession::ptr WsServer::createSession(http::HttpSession::ptr http_session) {
+    Socket::ptr client = http_session->getSocket();
     int sessionId = m_sessionIdAllocator->alloc();
     if(sessionId < 0) {
         M_SYLAR_LOG_ERROR(g_logger) << "createSession failed, sessionId alloc failed, error code:" << (int)m_sessionIdAllocator->getErrorCode();
@@ -395,6 +408,8 @@ WsSession::ptr WsServer::createSession(Socket::ptr client) {
         m_sessionIdAllocator->free(sessionId);   // 释放sessionId
         return nullptr;
     }
+
+    session->setRequest(http_session->getRequest());   // 设置握手请求对象
     
     // 将session添加到session列表
     std::unique_lock<std::shared_mutex> w_lock(*m_session_mutexs[sessionId / 64]);
@@ -404,6 +419,7 @@ WsSession::ptr WsServer::createSession(Socket::ptr client) {
     m_sessionCount.fetch_add(1, std::memory_order_relaxed);
     return session;
 }
+
 
 int WsServer::removeSession(int sessionId) {
     if(sessionId < 0 || sessionId >= (int)m_sessions.size()) {

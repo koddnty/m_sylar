@@ -76,7 +76,7 @@ Task<int> HttpSession::co_recvRequest()
             M_SYLAR_LOG_WARN(g_logger) << "recv http request failed"
                                         << ", errno:" << errno
                                         << " error:" << strerror(errno)
-                                        << "\nclient:" << getRequest();
+                                        << "\nclient:" << m_request;
             co_return -1;
         }
 
@@ -176,7 +176,7 @@ Task<int> HttpSession::co_sendResp(const std::string& resp) {
 bool HttpSession::updateSession()
 {   // recv 后更新session状态， 如keep-alive
     // connection 头
-    std::string connect_header = getRequest()->getHeader("Connection");
+    std::string connect_header = getRawRequest()->get_header("Connection");
     if(connect_header == "close")
     {
         m_is_keep_alive = false;
@@ -242,9 +242,9 @@ Task<void> HttpServer::execHandler(const std::string& url, HttpSession::ptr sess
 
     auto request_pair = m_urls.find(path);
     if(request_pair == m_urls.end() ||
-       session->getRequest()->getMethod() != HttpMethodToString(request_pair->second.first))
+       session->getRawRequest()->get_method() != HttpMethodToString(request_pair->second.first))
     {   // 方法不匹配
-        M_SYLAR_LOG_DEBUG(g_logger) << "no handler for url: " << path << " method: " << session->getRequest()->getMethod();
+        M_SYLAR_LOG_DEBUG(g_logger) << "no handler for url: " << path << " method: " << session->getRawRequest()->get_method();
         co_return;
     }
     // request_pair->second.secownd(session);
@@ -304,28 +304,12 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
 
         is_keep_alive = session->isKeep();
 
-
-        // websocket握手处理，成功则进入websocket流程，失败则关闭连接
-        // if(m_enable_websocket && response_count == 0) {
-        //     // 握手
-        //     int ws_rt = co_await m_ws_server->handShake(session);
-        //     if(ws_rt == 0) {
-
-        //         co_return;
-        //     }
-        //     else { // 握手失败
-        //         M_SYLAR_LOG_WARN(g_logger) << "websocket handshake failed, close connection. client:" << client->toString();
-        //         co_return;
-        //     } 
-        // }
-
-
-        M_SYLAR_LOG_INFO(g_logger) << "uri : " << session->getRequest()->getUri();
-        co_await execHandler(session->getRequest()->get()->get_uri(), session);         // 处理任务回调
+        co_await execHandler(session->getRawRequest()->get_uri(), session);         // 处理任务回调
         // session->getResponse()->updateHeader();
         M_SYLAR_LOG_DEBUG(g_logger) << "httpServer next loop";
 
         // co_await session->co_sendResp();                // 发送响应报文      // ！！！需要所有程序改动
+        is_keep_alive = session->isKeep();
         response_count++;
     } while (is_keep_alive && response_count < stack_deep);     // 限制最大请求数，防止死循环
 

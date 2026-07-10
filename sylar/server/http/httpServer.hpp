@@ -45,6 +45,9 @@ public:
         return std::make_shared<http::Request>(m_request);
     }      // 用户获取当前http请求
     inline http::Response::ptr getResponse() { return std::make_shared<http::Response>(m_response);};    // 获得响应报文以修改
+
+    inline protocol::http::parser::request::ptr getRawRequest() { return m_request; }  // 获取原始请求报文
+    inline protocol::http::parser::response::ptr getRawResponse() { return m_response; }  // 获取原始响应报文
     inline bool isKeep() const {return m_is_keep_alive; }
     inline void setKeepAlive(bool v) { m_is_keep_alive = v; }  // 强制置长短连接，用户一般不需要调用这个函数，除非想强制设置长短连接
 

@@ -48,7 +48,8 @@ Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr fra
 
 
 template<WsHandlerType T>
-Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
+Task<int> WsServer::handleClient(http::HttpSession::ptr http_session, int sessionId) {
+    Socket::ptr client = http_session->getSocket();
     // 外部http服务器已经完成握手升级协议，传入的client是一个websocket连接
     int code = 1000;
     int loopCount = 0;
@@ -57,7 +58,7 @@ Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
     WsSession::ptr session{};
     if(sessionId < 0) {
         M_SYLAR_LOG_DEBUG(ghws_logger) << "handle websocket client, socket:" << *client;
-        session = createSession(client);
+        session = createSession(http_session);
         if(!session) {
             M_SYLAR_LOG_ERROR(ghws_logger) << "handleClient failed, create session failed, error code:" << (int)m_sessionIdAllocator->getErrorCode();
             co_return -1;    // 创建session失败，无法处理连接，直接关闭连接
@@ -82,7 +83,7 @@ Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
     int nextId = sessionId;             // 下一个sessionId，-1表示关闭连接
     M_SYLAR_LOG_DEBUG(ghws_logger) << "new websocket client, sessionId=" << sessionId << ", socket:" << *client;
     // 通信
-    do {
+    while (loopCount < 1000 && session->getState() != WsSession::State::CLOSED) {
         loopCount++;
         // 获取报文
         int rt = co_await session->co_recvFrame();
@@ -128,11 +129,19 @@ Task<int> WsServer::handleClient(Socket::ptr client, int sessionId) {
             co_await session->co_close(code, reason);
             break;
         }
-    } while (loopCount < 1000 && session->getState() != WsSession::State::CLOSED);     // 限制最大请求数，防止死循环
+    } 
 
     if(nextId == -1 || session->getState() == WsSession::State::CLOSED) {
-        co_await session->co_close(code, reason);    // 确保连接关闭
-        nextId = -1;
+        // 互斥路径
+        if(session->getState() != WsSession::State::CLOSED) {       // 连接未关闭，可能是因为协议错误或其他异常情况导致的关闭
+            session->clean();
+            co_await T::co_onBadClose(session);
+        }
+        else {
+            co_await session->co_close(code, reason);    // 确保连接关闭
+            nextId = -1;    
+        }
+        nextId = -1;    
         removeSession(sessionId);
     }
     // 断开/重新调度
@@ -159,7 +168,7 @@ void WsServer::registerUrl(const std::string& url){
             int sessionId = -1;
             do {
                 M_SYLAR_LOG_DEBUG(ghws_logger) << "enter websocket handle loop, url:" << session->getRequest()->getUri();
-                sessionId = co_await WsServer::getInstance()->handleClient<T>(session->getSocket(), sessionId);          // 进入websocket流程处理
+                sessionId = co_await WsServer::getInstance()->handleClient<T>(session, sessionId);          // 进入websocket流程处理
             } while(sessionId >= 0);
         }, protocol::http::HttpMethod::GET);        // websocket握手协议必须是GET方法
     }
