@@ -36,8 +36,7 @@ Task<void> WsHandler::co_onBinary(std::shared_ptr<WsSession> session, const std:
 }
 
 Task<void> WsHandler::co_onClose(std::shared_ptr<WsSession> session, int code, const std::string& reason) {
-    // M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onClose event, sessionId=" << session->getSessionId();
-    co_await session->co_close(code, reason);
+    M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onClose event, sessionId=" << session->getSessionId();
     co_return;
 }
 
@@ -62,7 +61,7 @@ Task<void> WsHandler::co_onError(std::shared_ptr<WsSession> session, const std::
 }
 
 Task<void> WsHandler::co_onBadClose(std::shared_ptr<WsSession> session) {
-    M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onBadClose event, sessionId=" << session->getSessionId();
+    M_SYLAR_LOG_WARN(g_logger) << "unhandled websocket onBadClose event, sessionId=" << session->getSessionId();
     co_return;
 }
 
@@ -264,7 +263,7 @@ Task<int> WsSession::co_close(int code, const std::string& reason) {
     M_SYLAR_LOG_DEBUG(g_logger) << "close data: " << std::string(data.begin(), data.end());
     co_await sendMessage((const char*)data.data(), data.size());   // 发送空消息
 
-
+    m_state = State::CLOSED;
     co_return 0;
 }
 
@@ -312,7 +311,6 @@ WsServer::WsServer(http::HttpServer* httpServer, int maxSession)
 }
 
 WsServer::~WsServer() {
-    
 }
 
 Task<int> WsServer::handShake(http::HttpSession::ptr http_session) {
