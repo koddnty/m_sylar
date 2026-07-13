@@ -1,9 +1,7 @@
-#include "wsserver.hpp"
+#pragma once
 
-namespace m_sylar
-{
-namespace websocket
-{
+namespace m_sylar :: websocket {
+static Logger::ptr ghws_logger = M_SYLAR_LOG_NAME("system");
 
 template<WsHandlerType T>
 Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr frame) {
@@ -36,7 +34,7 @@ Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr fra
             co_await T::co_onPong(session, frame->getTextPayload());
             break;
         default:
-            M_SYLAR_LOG_DEBUG(ghws_logger) << "UNKNOWD OPCODE: " << (int)frame->getType();
+            M_SYLAR_LOG_DEBUG(ghws_logger) << "UNKNOWN OPCODE: " << (int)frame->getType();
             co_await T::co_onError(session, "Unsupported frame type: " + std::to_string((int)frame->getType()));
             M_SYLAR_LOG_WARN(ghws_logger) << "Received frame with opcode: " << (int)frame->getType() << ", payload length: " << frame->getPayloadLength();
             rt = -1;
@@ -48,8 +46,8 @@ Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr fra
 
 
 template<WsHandlerType T>
-Task<int> WsServer::handleClient(http::HttpSession::ptr http_session, int sessionId) {
-    Socket::ptr client = http_session->getSocket();
+Task<int> WsServer::handleClient(const http::HttpSession::ptr http_session, int sessionId) {
+    const Socket::ptr client = http_session->getSocket();
     // 外部http服务器已经完成握手升级协议，传入的client是一个websocket连接
     int code = 1000;
     int loopCount = 0;
@@ -59,12 +57,12 @@ Task<int> WsServer::handleClient(http::HttpSession::ptr http_session, int sessio
         M_SYLAR_LOG_DEBUG(ghws_logger) << "handle websocket client, socket:" << *client;
         session = createSession(http_session);
         if(!session) {
-            M_SYLAR_LOG_ERROR(ghws_logger) << "handleClient failed, create session failed, error code:" << (int)m_sessionIdAllocator->getErrorCode();
+            M_SYLAR_LOG_ERROR(ghws_logger) << "handleClient failed, create session failed, error code:" << static_cast<int>(m_sessionIdAllocator->getErrorCode());
             co_return -1;    // 创建session失败，无法处理连接，直接关闭连接
         }
         sessionId = session->getSessionId();
         if(sessionId < 0) {
-            M_SYLAR_LOG_ERROR(ghws_logger) << "handleClient failed, create session failed, error code:" << (int)m_sessionIdAllocator->getErrorCode();
+            M_SYLAR_LOG_ERROR(ghws_logger) << "handleClient failed, create session failed, error code:" << static_cast<int>(m_sessionIdAllocator->getErrorCode());
             co_return -1;
         }
 
@@ -183,9 +181,3 @@ void WsServer::registerUrl(const std::string& url){
         }, protocol::http::HttpMethod::GET);        // websocket握手协议必须是GET方法
     }
 }
-
-
-
-}
-
-

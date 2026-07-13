@@ -7,20 +7,15 @@
 #include "server/common/session.hpp"
 #include "server/http/httpServer.hpp"
 
-#include "protocol/http/parser.hpp"
-#include "protocol/http/request.hpp"
-#include "protocol/http/response.hpp"
 #include "protocol/websocket/WebSocket.h"
-#include "protocol/websocket/websocket_parser.h"
 #include "protocol/websocket/parser.hpp"
 #include "basic/tool.hpp"
 
 namespace m_sylar
 {
-namespace websocket
-{
+namespace websocket {
+
 class WsSession;
-static Logger::ptr ghws_logger = M_SYLAR_LOG_NAME("system");
 
 // handler类型
 template<typename T>
@@ -106,7 +101,13 @@ public:
 // }
 
 
-
+// 会话信息基类
+class SessionInfoBase {
+public:
+    using ptr = std::shared_ptr<SessionInfoBase>;
+    SessionInfoBase() = default;
+    virtual ~SessionInfoBase() = default;
+};
 
 
 // ws会话
@@ -137,22 +138,22 @@ public:
     */
     int upDateSessionOnRecv();          // Frame到来更新函数
 
-    inline void setSessionId(size_t sessionId) { m_sessionId = sessionId; }
-    inline void setData(void* data) { m_data = data; }
+    inline void setSessionId(const size_t sessionId) { m_sessionId = sessionId; }
+    inline void setData(SessionInfoBase::ptr data) { m_data = std::move(data); }
 
     inline size_t getSessionId() const { return m_sessionId; }
-    inline void* getData() const { return m_data; }
+    inline SessionInfoBase::ptr getData() const { return m_data; }
     inline Frame::ptr getFrame() { return m_frame_buffer.getFrame(); }
     inline State getState() const { return m_state; }
     inline uint64_t getRecentActivate() const {return m_recent_activate;}
 
     // ms
     inline uint64_t getRecentFrameTime() const { return m_recent_frame_time; }    // 目前ping/pong共用一个时间戳，后续可以根据需要分开
-    inline void setRecentFrameTime(uint64_t timestamp) { m_recent_frame_time = timestamp; }
-    inline const http::Request::ptr getRequest() const { return m_request; }
+    inline void setRecentFrameTime(const uint64_t timestamp) { m_recent_frame_time = timestamp; }
+    inline http::Request::ptr getRequest() const { return m_request; }
 
 private:
-    inline void setRequest(http::Request::ptr request) { m_request = request; }
+    inline void setRequest(http::Request::ptr request) { m_request = std::move(request); }
 
     int clean();
 
@@ -163,7 +164,7 @@ private:
     FrameBuffer m_frame_buffer;                         // 消息帧缓冲区
     std::atomic<State> m_state = State::INIT;                 // 连接状态
     TimeTask::ptr m_timer_task {nullptr};                       // 心跳定时器，定时发送ping帧
-    void* m_data = nullptr;
+    SessionInfoBase::ptr m_data = nullptr;                                 // 用户自定义数据
     std::atomic<uint64_t> m_recent_activate{0};
     std::atomic<uint64_t> m_recent_frame_time{0};             // 最近pong帧的时间戳，单位ms
     http::Request::ptr m_request {nullptr};                       // 握手请求对象,包含cookie等

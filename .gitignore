@@ -42,3 +42,5 @@ compile_commands.json
 *.vspscc
 *.vssscc
 log/
+cmake-build-debug
+.idea
