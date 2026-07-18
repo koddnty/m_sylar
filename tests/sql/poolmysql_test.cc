@@ -11,6 +11,7 @@ std::atomic<int> count = 0;
 m_sylar::Task<void, m_sylar::TaskBeginExecuter> testNext () {
     std::string sql = "select * from learn";
     m_sylar::MySQLResp::ptr resp = co_await m_sylar::DB::Mysql::getInstance()->executeQuery(sql);
+    // co_await resp->co_fetchAll();
     if(resp) {
         auto row = resp->nextRow();
         while(row) {

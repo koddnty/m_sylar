@@ -1,10 +1,14 @@
 #include "mysql.h"
 
+#include <sys/stat.h>
+
+// #include "../../build/_deps/catch2-src/src/catch2/internal/catch_enforce.hpp"
+
 namespace m_sylar
 {
 static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
-MysqlAwaiter::MysqlAwaiter(MYSQL* mysql, int status, uint64_t timeOut){
+MysqlAwaiter::MysqlAwaiter(MYSQL* mysql, const int status, const uint64_t timeOut){
     m_timeout = timeOut;
     m_fd = mysql_get_socket(mysql);
     if(status & MYSQL_WAIT_READ ){
@@ -16,21 +20,18 @@ MysqlAwaiter::MysqlAwaiter(MYSQL* mysql, int status, uint64_t timeOut){
 }
 
 MysqlAwaiter::~MysqlAwaiter(){
-    // std::cout << "registe  del Event finished" << std::endl;
     IOManager::getInstance()->delEvent(m_fd, m_event);
-    // std::cout << "registe  del Event finished" << std::endl;
 }
 
 void MysqlAwaiter::on_suspend() {
-    // auto self = shared_from_this();
-    TimeManager::ptr tim = m_sylar::TimeManager::getInstance();
-    std::shared_ptr<TimeLimitInfo::State> state = std::make_shared<TimeLimitInfo::State> ();
+    const TimeManager::ptr tim = m_sylar::TimeManager::getInstance();
+    auto tl_state = std::make_shared<TimeLimitInfo::State> ();
     // 回调事件注册
-    tim->addEventWithTimeout(m_fd, m_event, [this, state](){  
-        if(*state == TimeLimitInfo::FINISHED) {
+    tim->addEventWithTimeout(m_fd, m_event, [this, tl_state](){
+        if(*tl_state == TimeLimitInfo::FINISHED) {
             resume(IOState::SUCCESS);
         }
-        else if(*state == TimeLimitInfo::TIMEOUT) {
+        else if(*tl_state == TimeLimitInfo::TIMEOUT) {
             M_SYLAR_LOG_WARN(g_logger) << "mysqlAwaiter timed out";
             resume(IOState::TIMEOUT);
         }
@@ -38,7 +39,7 @@ void MysqlAwaiter::on_suspend() {
             M_SYLAR_LOG_WARN(g_logger) << "mysqlAwaiter trigged with a bad IOState Type";
             resume(IOState::UNKNOWN);
         }
-    }, m_timeout, state, 1);
+    }, m_timeout, tl_state, 1);
 }
 
 void MysqlAwaiter::before_resume() {
@@ -47,22 +48,12 @@ void MysqlAwaiter::before_resume() {
 
 
 // 响应封装
-MySQLResp::MySQLResp(MYSQL* mysql, IOState::State state){
-    m_respBody = nullptr;
-    m_colCount = 0;
-    m_state = false;
-    m_IOstate = state;
+MySQLResp::MySQLResp(MYSQL* mysql, IOState state) : m_mysql(mysql) {
     if(mysql == nullptr) {
+        m_state = IOState::FAILED;          // 错误传参默认失败
         return;
     }
-    m_respBody = mysql_store_result(mysql);
-    if(!m_respBody) {return; }
-    m_colCount = mysql_field_count(mysql);
-    m_rowCount = mysql_num_rows(m_respBody);
-    if(!m_respBody || !m_colCount) {
-        return;
-    }
-    m_state = true;
+    m_state = state;
 }
 
 MySQLResp::~MySQLResp(){
@@ -122,18 +113,19 @@ MySQLResp::Value MySQLResp::Row::nextValue(){
 }
 
 MySQLResp::Row MySQLResp::nextRow(){
-    if(!m_state || !m_respBody) {
+    if(m_state != IOState::SUCCESS || !m_respBody) {
         M_SYLAR_LOG_ERROR(g_logger) << "failed to get next row: MySQL response is invalid or null resp"; 
         return {nullptr, 0, nullptr};
     }
     auto row = mysql_fetch_row(m_respBody);
     auto len = mysql_fetch_lengths(m_respBody);
+
     return {row, m_colCount, len};
 }
 
 
 void MySQLResp::resetRow() {
-    if(!m_state || !m_respBody) {
+    if(m_state != IOState::SUCCESS  || !m_respBody) {
         M_SYLAR_LOG_ERROR(g_logger) << "failed to get next row: MySQL response is invalid null resp"; 
         return;
     }
@@ -142,7 +134,7 @@ void MySQLResp::resetRow() {
 }
 
 int MySQLResp::formatDate() {
-    if(!m_state || !m_respBody) {
+    if(m_state != IOState::SUCCESS  || !m_respBody) {
         M_SYLAR_LOG_ERROR(g_logger) << "failed to formatDate: MySQL response is invalid or null resp"; 
         return -1;
     }
@@ -193,6 +185,53 @@ MySQLResp::ColProxy MySQLResp::operator[](std::string fieldName) {
 }
 
 
+Task<IOState> MySQLResp::co_fetchAll() {
+    if (m_state != IOState::SUCCESS) {co_return m_state; }
+
+    // 获取所有数据,加载到内存
+    //      初始化异步循环
+    int status = mysql_store_result_start(&m_respBody, m_mysql);
+
+    //      循环等待
+    while(status) {
+        constexpr uint64_t timeout = MYSQL_QUERY_TIMEOUT;
+        const IOState state = co_await MysqlAwaiter(m_mysql, status, timeout);
+        // M_SYLAR_LOG_DEBUG(g_logger) << "origin state: " << state;
+        if(state == IOState::TIMEOUT) {
+            m_state = IOState::FAILED;
+            M_SYLAR_LOG_WARN(g_logger) << "fetch data from mysql timed out";
+            co_return IOState::TIMEOUT;
+        }
+        status = mysql_store_result_cont(&m_respBody, m_mysql, status);
+    }
+
+
+    // 状态变量获取 (列数,行数等)
+    if(!m_respBody) {
+        // update等语句判断
+        if (mysql_field_count(m_mysql) != 0) {
+            m_state = IOState::FAILED;
+            M_SYLAR_LOG_ERROR(g_logger) << std::string("mysql_store_result failed, error: ") + mysql_error(m_mysql);
+            co_return IOState::FAILED;
+        }
+        // 没有结果集的语句(比如 UPDATE),这里可以按需要单独处理,而不是当成 FAILED
+        m_colCount = 0;
+        m_rowCount = 0;
+        m_state = IOState::SUCCESS;
+        co_return IOState::SUCCESS;
+    }
+    // 普通查询判断
+    m_colCount = mysql_field_count(m_mysql);
+    m_rowCount = mysql_num_rows(m_respBody);
+    if(!m_respBody || !m_colCount) {
+        m_state = IOState::FAILED;
+        co_return IOState::FAILED;
+    }
+
+    m_state = IOState::SUCCESS;
+    co_return IOState::SUCCESS;
+}
+
 
 
 
@@ -228,7 +267,7 @@ int MySQLConn::connect(const std::string& host,
 
     // 状态同步
     if (mysql_options(m_mysql, MYSQL_OPT_NONBLOCK, 0)) {
-        std::cout << "1mysql_optins failed : " << mysql_error(m_mysql) << std::endl;
+        M_SYLAR_LOG_ERROR(g_logger) << "mysql_optins failed : " << mysql_error(m_mysql) << std::endl;
     }
 
     MYSQL* rt = mysql_real_connect(m_mysql, host.c_str(), user.c_str(), passwd.c_str(), 
@@ -253,7 +292,7 @@ Task<MySQLResp::ptr> MySQLConn::executeQuery(const std::string& query){
     int status = mysql_real_query_start(&err, m_mysql, query.c_str(), query.length());
     
     if(status == 0) {
-        co_return std::make_shared<MySQLResp>(m_mysql);
+        co_return std::make_shared<MySQLResp>(m_mysql, IOState::SUCCESS);
     }
 
     if(err) {
@@ -263,9 +302,9 @@ Task<MySQLResp::ptr> MySQLConn::executeQuery(const std::string& query){
     }
 
 
-    while(status){
+    while(status) {
         uint64_t timeout = MYSQL_QUERY_TIMEOUT;
-        IOState::State state = co_await MysqlAwaiter(m_mysql, status, timeout);
+        IOState state = co_await MysqlAwaiter(m_mysql, status, timeout);
         // M_SYLAR_LOG_DEBUG(g_logger) << "origin state: " << state;
         if(state == IOState::TIMEOUT) {
             co_return std::make_shared<MySQLResp>(m_mysql, IOState::TIMEOUT);
@@ -277,7 +316,7 @@ Task<MySQLResp::ptr> MySQLConn::executeQuery(const std::string& query){
         }
     }
 
-    co_return std::make_shared<MySQLResp>(m_mysql);
+    co_return std::make_shared<MySQLResp>(m_mysql, IOState::SUCCESS);
 }
 
 
@@ -318,8 +357,7 @@ MySQLPoolManager::MySQLPoolManager(int min_conn, int max_conn)
 
 }
 
-MySQLPoolManager::~MySQLPoolManager() {
-}
+
 
 Task<MySQLResp::ptr> MySQLPoolManager::executeQuery(const std::string& query) {
     if(!checkRunState()) {
@@ -334,11 +372,21 @@ retry:
     connectorIdx = borrowOneConn();
     if(connectorIdx >= 0) {        // 有当前可用连接std::string finishQuery = "RESET SESSION;";
         // std::string finishQuery =   "SET @@session.autocommit = 1; SET @@session.transaction_isolation = 'REPEATABLE-READ';RESET SESSION;"
-        std::string finishQuery = "RESET SESSION;";
+
         MySQLResp::ptr resp = co_await m_connectors[connectorIdx]->executeQuery(query);
-        MySQLResp::ptr resetPtr = co_await m_connectors[connectorIdx]->executeQuery(finishQuery);
+        if(resp->getState() != IOState::SUCCESS) {
+            M_SYLAR_LOG_ERROR(g_logger) << "failed to execute query: " << query << " error: " << mysql_error(m_connectors[connectorIdx]->getMYSQL());
+        }
+        resp->co_fetchAll();
+
+        // 回滚所有未提交事务
+        MySQLResp::ptr resetPtr = co_await m_connectors[connectorIdx]->executeQuery("ROLLBACK;");
+        if(resetPtr->getState() != IOState::SUCCESS) {
+            M_SYLAR_LOG_ERROR(g_logger) << "failed to execute query: ROLLBACK; error: " << mysql_error(m_connectors[connectorIdx]->getMYSQL());
+        }
+        resetPtr->co_fetchAll();
         bool isTimo = (resp->getState() == IOState::TIMEOUT || resetPtr->getState() == IOState::TIMEOUT);
-        if(-1 == returnConnn(connectorIdx, isTimo)) {   // 归还
+        if(-1 == returnConn(connectorIdx, isTimo)) {   // 归还
             M_SYLAR_LOG_ERROR(g_logger) << "failed to return connect source";
         }    
 
@@ -481,7 +529,7 @@ int MySQLPoolManager::borrowOneConn(){
     return -1;
 }
 
-int MySQLPoolManager::returnConnn(int free_idx, bool isTimeOut){
+int MySQLPoolManager::returnConn(const int free_idx, const bool isTimeOut){
     std::unique_lock<std::shared_mutex> w_lock(m_ConnectPoolMutex);
     if(!checkRunState() || (free_idx < 0 || free_idx >= m_maxConnector)) {
         return -1;
@@ -511,7 +559,7 @@ int MySQLPoolManager::returnConnn(int free_idx, bool isTimeOut){
     // 唤醒部分等待者
     w_lock.unlock();
     tickle();
-    // std::cout << "\n pool state: free:" << m_freeConnInfos.size();
+    // M_SYLAR_LOG_DEBUG(g_logger) << "\n pool state: free:" << m_freeConnInfos.size();
     return 0;
 }
 

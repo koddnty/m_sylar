@@ -11,7 +11,7 @@ namespace m_sylar {
 class RedisResp {
 public:
     using ptr = std::shared_ptr<RedisResp>;
-    RedisResp(redisReply* mysql, IOState::State state = IOState::SUCCESS, bool is_child = false);
+    RedisResp(redisReply* mysql, IOState state = IOState::SUCCESS, bool is_child = false);
     ~RedisResp();
 
     int getType();      /* REDIS_REPLY_*, 类型与hiredis提供一致 */
@@ -20,9 +20,9 @@ public:
     std::string asString();
     const std::vector<RedisResp::ptr>& asArray();
 
-    IOState::State getState() const { return m_state; }
+    IOState getState() const { return m_state; }
 protected:
-    RedisResp& setState(IOState::State state) { m_state = state; return *this; }
+    RedisResp& setState(IOState state) { m_state = state; return *this; }
 
 private:
     redisReply* m_reply;
@@ -30,7 +30,7 @@ private:
     bool m_is_arry_inited = false;
     bool m_is_child = false;            // 若为true,则析构时不会free数据
     std::vector<RedisResp::ptr> m_array = {};
-    IOState::State m_state = IOState::INIT;
+    IOState m_state = IOState::INIT;
 };
 
 
@@ -70,7 +70,7 @@ public:
 
 protected:
     int borrowOneConn() override;
-    int returnConnn(int free_idx, bool isTimeOut = false) override;
+    int returnConn(int free_idx, bool isTimeOut = false) override;
     int expand() override;
 
 

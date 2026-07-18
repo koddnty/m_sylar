@@ -26,7 +26,7 @@ public:
         ERROR = 16
     };
 
-    DBPool(int min_conn, int max_conn) {
+    DBPool(const int min_conn,const  int max_conn) {
         m_state = INIT;
         if(min_conn < 0 || max_conn < 0 || max_conn < min_conn) {
             throw std::runtime_error("failed to create a msyql db connector manager, min_conn or max_conn invalid");
@@ -38,10 +38,9 @@ public:
         m_minConnector = min_conn;
         m_maxConnector = max_conn;
     }
-    ~DBPool() {
-    }
+    virtual ~DBPool() = default;
 
-    bool checkRunState() {
+    [[nodiscard]] bool checkRunState() const {
         switch(m_state) {
             case INIT:
             case CLOSED:
@@ -51,8 +50,9 @@ public:
             case READY:
             case FULL:
                 return true;
+            default:
+                return false;
         }
-        return false;
     }
     void close() {
         m_state = CLOSING;
@@ -65,10 +65,10 @@ public:
 
 protected:
     virtual int borrowOneConn() = 0;                            // 线程不安全, 返回空闲连接索引
-    virtual int returnConnn(int free_idx, bool isTimeOut = false) = 0;              // 线程不安全
+    virtual int returnConn(int free_idx, bool isTimeOut) = 0;              // 线程不安全
     virtual int expand() = 0;                               // 线程安全, 扩展连接池, 返回扩容后连接数目, -1表示失败
 
-protected: 
+protected:
     std::list<int> m_freeConnInfos;                     // 空闲信息表[连接对应idx]
      
     std::vector<std::shared_ptr<ConnType>> m_connectors;           // 所有连接

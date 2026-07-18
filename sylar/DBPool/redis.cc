@@ -12,7 +12,7 @@ static Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 
 // Redis响应封装
-RedisResp::RedisResp(redisReply* reply, IOState::State state, bool is_child){
+RedisResp::RedisResp(redisReply* reply, IOState state, bool is_child){
     M_SYLAR_ASSERT2(reply, "reply is nullptr");
     m_reply = reply;
     m_is_child = is_child;
@@ -193,7 +193,7 @@ retry:
         RedisResp::ptr resp =  m_connectors[connectorIdx]->executeQuery(query);
         RedisResp::ptr resetPtr =  m_connectors[connectorIdx]->executeQuery(finishQuery);
         bool isTimo = (resp->getState() == IOState::TIMEOUT || resetPtr->getState() == IOState::TIMEOUT);
-        if(-1 == returnConnn(connectorIdx, isTimo)) {   // 归还
+        if(-1 == returnConn(connectorIdx, isTimo)) {   // 归还
             M_SYLAR_LOG_ERROR(g_logger) << "failed to return connect source";
         }    
 
@@ -284,7 +284,7 @@ int RedisPoolManager::borrowOneConn() {
 
 }
 
-int RedisPoolManager::returnConnn(int free_idx, bool isTimeOut) {
+int RedisPoolManager::returnConn(int free_idx, bool isTimeOut) {
     std::unique_lock<std::shared_mutex> w_lock(m_ConnectPoolMutex);
     if(!checkRunState() || (free_idx < 0 || free_idx >= m_maxConnector)) {
         return -1;

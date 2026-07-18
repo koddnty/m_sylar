@@ -32,7 +32,6 @@ set(BASIC_SOURCES
     sylar/basic/address.cc
     sylar/basic/socket.cc
     sylar/basic/tool.cc
-
 )
 
 # 协议模块
@@ -69,8 +68,12 @@ set(CORO20_SOURCES
     sylar/coroutine/coro20/taskPool.cc
 )
 
-# 数据库连接池模
+# 中间件支持
+set(MiddleWare
+    sylar/middleware/mq/client.cc
+)
 
+# 数据库连接池模
 set(DBPOOL_SOURCES
     sylar/DBPool/mysql.cc
     sylar/DBPool/redis.cc
@@ -88,7 +91,9 @@ set(TEST_SOURCES
 
 add_definitions(-DSYLAR_USE_CORO20)
 
-set(COROUTINE_SOURCES ${CORO20_SOURCES})
+set(COROUTINE_SOURCES ${CORO20_SOURCES}
+        sylar/middleware/mq/client.cc
+        sylar/middleware/mq/client.hpp)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
