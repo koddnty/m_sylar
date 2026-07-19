@@ -3,7 +3,7 @@
 #include <hiredis/hiredis.h>
 #include "redis.h"
 #include "basic/macro.h"
-#include "database.h"
+#include "database.hpp"
 
 
 namespace m_sylar {
@@ -95,8 +95,9 @@ RedisConn::~RedisConn() {
     }
 }
 
-int RedisConn::connect(const std::string& ip, int port) {
-    m_connect = redisConnect(ip.c_str(), port);
+int RedisConn::connect(ConnectInfoBase& info) {
+    const auto& conn_info = dynamic_cast<RedisConnectInfo&>(info);
+    m_connect = redisConnect(conn_info.host.c_str(), conn_info.port);
     if(m_connect == nullptr || m_connect->err) {
         M_SYLAR_LOG_ERROR(g_logger) << "failed to connect to redis, error: " << (m_connect ? m_connect->errstr : "null");
         return -1;
@@ -155,15 +156,15 @@ RedisPoolManager::~RedisPoolManager() {
     
 }
 
-int RedisPoolManager::init(const std::string& ip, int port) {
+int RedisPoolManager::init(const std::string& host, const int port) {
     // 信息记录
-    m_connectInfo.ip = ip;
+    m_connectInfo.host = host;
     m_connectInfo.port = port;
 
     // 连接
     int rt = 0;
     for(int i = 0; i < m_minConnector && !rt; i++) {
-        rt = m_connectors[i]->connect(ip, port);
+        rt = m_connectors[i]->connect(m_connectInfo);
         m_freeConnInfos.push_back({i});
     }
     if(rt) {    // 错误检查
@@ -182,20 +183,18 @@ Task<std::shared_ptr<RedisResp>> RedisPoolManager::executeQuery(const std::strin
     }
 
     // 获取一个连接
-    int connectorIdx = -1;
-
+    ConnectWrapper<RedisConn, RedisResp>::ptr connect_wrapper = borrowOneConn();
+    int conn_idx = connect_wrapper->getConnIdx();
     // 获取连接并执行
 retry:
-    connectorIdx = borrowOneConn();
-    if(connectorIdx >= 0) {        // 有当前可用连接std::string finishQuery = "RESET SESSION;";
+    if(conn_idx >= 0) {        // 有当前可用连接std::string finishQuery = "RESET SESSION;";
         // std::string finishQuery =   "SET @@session.autocommit = 1; SET @@session.transaction_isolation = 'REPEATABLE-READ';RESET SESSION;"
         std::string finishQuery = "RESET SESSION;";
-        RedisResp::ptr resp =  m_connectors[connectorIdx]->executeQuery(query);
-        RedisResp::ptr resetPtr =  m_connectors[connectorIdx]->executeQuery(finishQuery);
+        RedisResp::ptr resp =  m_connectors[conn_idx]->executeQuery(query);
+        RedisResp::ptr resetPtr =  m_connectors[conn_idx]->executeQuery(finishQuery);
         bool isTimo = (resp->getState() == IOState::TIMEOUT || resetPtr->getState() == IOState::TIMEOUT);
-        if(-1 == returnConn(connectorIdx, isTimo)) {   // 归还
-            M_SYLAR_LOG_ERROR(g_logger) << "failed to return connect source";
-        }    
+        connect_wrapper.reset();
+        conn_idx = -1;
 
         co_return resp;
     }
@@ -215,7 +214,6 @@ retry:
     }
     M_SYLAR_LOG_ERROR(g_logger) << "bad code branch";
     co_return std::make_shared<RedisResp>(nullptr, IOState::FAILED);
-
 }
 
 int RedisPoolManager::registeConnCb(std::function<void()> cb) {
@@ -258,103 +256,5 @@ int RedisPoolManager::tickle() {
     }
     return 0;
 }
-
-int RedisPoolManager::borrowOneConn() {
-    std::unique_lock<std::shared_mutex> w_lock(m_ConnectPoolMutex);
-    if(!checkRunState() || m_state == RedisPoolManager::FULL) {
-        return -1;
-    }
-    if(m_state == READY) {
-        // 获取资源序号
-        if(m_freeConnInfos.size() == 0) {
-            M_SYLAR_LOG_ERROR(g_logger) << "state is not consistent with freeConnInfos[]";
-            return -1;
-        }
-        int connectorIdx = m_freeConnInfos.front();
-        m_freeConnInfos.pop_front();
-        M_SYLAR_ASSERT2(connectorIdx >= 0 && connectorIdx < m_connectorCount, "connector is out of range");
-        m_busyConnCount++;
-        if(m_busyConnCount == m_connectorCount) {
-            m_state = FULL;
-        }
-        return connectorIdx;
-    }
-    M_SYLAR_LOG_WARN(g_logger) << "unknown DBManager State: " << m_state;
-    return -1;
-
-}
-
-int RedisPoolManager::returnConn(int free_idx, bool isTimeOut) {
-    std::unique_lock<std::shared_mutex> w_lock(m_ConnectPoolMutex);
-    if(!checkRunState() || (free_idx < 0 || free_idx >= m_maxConnector)) {
-        return -1;
-    }
-
-    if(isTimeOut) {
-        w_lock.unlock();
-        RedisConn::ptr new_connect = std::make_shared<RedisConn>();
-        int rt = new_connect->connect(m_connectInfo.ip, m_connectInfo.port);
-        if(rt == -1) {
-            M_SYLAR_LOG_ERROR(g_logger) << "failed to connect to database: " << m_connectInfo.ip;
-            m_connectorCount--;
-            m_busyConnCount--;
-            return -1;
-        }
-        m_connectors[free_idx] = new_connect;
-        w_lock.lock();
-    }
-    // 资源归还
-    m_freeConnInfos.push_back({free_idx});
-    m_busyConnCount--;
-    if(m_state == FULL) {
-        m_state = READY;
-    }
-
-    // 唤醒部分等待者
-    w_lock.unlock();
-    tickle();
-    // std::cout << "\n pool state: free:" << m_freeConnInfos.size();
-    return 0;
-}
-
-int RedisPoolManager::expand() {
-    if(!checkRunState()) {
-        M_SYLAR_LOG_ERROR(g_logger) << "failed to expand connector pool, invalid pool state";
-    }
-
-    if(m_maxConnector == m_connectorCount) {
-        M_SYLAR_ASSERT2(m_connectorCount == m_connectors.size(), "connector count is not equals to connectors.size(), bad State");
-        return 0;   // 已到极限
-    }
-    else {
-        std::unique_lock<std::shared_mutex> w_lock(m_ConnectPoolMutex);
-        // 计算增量
-        int increaseNum = REDIS_CONNECT_CREASE_SPEED;
-        int temp = m_maxConnector - m_connectorCount;
-        increaseNum =  (increaseNum < temp) ? increaseNum : temp;
-
-        // 扩容
-        int rt = 0;
-        int max_idx = 0;
-        for(int i = m_connectorCount; i < m_connectorCount + increaseNum && !rt; i++) {
-            rt = m_connectors[i]->connect(m_connectInfo.ip, m_connectInfo.port);
-            max_idx = i;
-            m_freeConnInfos.push_back({i});
-        }
-        if(rt) {    // 错误检查.
-            M_SYLAR_LOG_ERROR(g_logger) << "failed to expand MySQLPoolManager, new connect failed.";
-            m_connectorCount = max_idx;
-            return -1;
-        }
-
-        // 信息设置
-        m_connectorCount = m_connectorCount + increaseNum;
-        if(m_connectorCount > m_busyConnCount) {
-            m_state = RedisPoolManager::READY;
-        }
-        return 0;
-    }
-}
-
 
 }

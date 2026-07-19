@@ -2,7 +2,7 @@
 #include "basic/log.h"
 #include <hiredis/hiredis.h>
 #include <memory>
-#include "database.h"
+#include "database.hpp"
 
 
 namespace m_sylar {
@@ -35,14 +35,19 @@ private:
 
 
 
-class RedisConn {
+
+class RedisConnectInfo : public ConnectInfoBase {
+};
+
+
+class RedisConn{
 public: 
     using ptr = std::shared_ptr<RedisConn>;
 
     RedisConn();
     ~RedisConn();
 
-    int connect(const std::string& ip, int port);
+    int connect(ConnectInfoBase& info);
 
     RedisResp::ptr executeQuery(const std::string& query);
 
@@ -57,24 +62,14 @@ public:
     RedisPoolManager(int min_conn, int max_conn);
     ~RedisPoolManager();
 
-    int init(const std::string& ip, int port);     // 连接池初始化，连接到redis服务器
+    int init(const std::string& host, int port);     // 连接池初始化，连接到redis服务器
 
-    struct RedisConnectInfo {
-        std::string ip;
-        int port;
-    };
 
     Task<std::shared_ptr<RedisResp>> executeQuery(const std::string& query) override;
     int registeConnCb(std::function<void()> cb) override;
     int tickle() override;
 
-protected:
-    int borrowOneConn() override;
-    int returnConn(int free_idx, bool isTimeOut = false) override;
-    int expand() override;
-
-
-private:    
+private:
     std::shared_mutex m_ConnectPoolMutex;        // 连接池锁
     RedisConnectInfo m_connectInfo;
 };

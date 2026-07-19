@@ -7,7 +7,7 @@
 #include "basic/log.h"
 #include "basic/timer/timer.hpp"
 #include "coroutine/corobase.h"
-#include "database.h"
+#include "database.hpp"
 
 
 namespace m_sylar{
@@ -112,7 +112,15 @@ private:
 
 
 
-
+// 数据库连接信息结构体
+class MySQLConnectInfo : public ConnectInfoBase {
+public:
+    using ptr = std::shared_ptr<MySQLConnectInfo>;
+    std::string user;
+    std::string passwd;
+    std::string db;
+    unsigned long clientflag;
+};
 
 
 
@@ -129,22 +137,15 @@ public:
 		TIMO = MYSQL_WAIT_TIMEOUT,
 		INIT = 16
 	};
- 
+
 	MySQLConn();
 	~MySQLConn();
 
-public:
-int connect(const std::string& host,
-						const std::string& user,
-						const std::string& passwd,
-						const std::string& db,
-						unsigned int port,
-						unsigned long clientflag);
 
-Task<MySQLResp::ptr> executeQuery(const std::string& query);
 
-MYSQL* getMYSQL() const {return m_mysql; }
-
+    int connect(ConnectInfoBase& info);
+    Task<MySQLResp::ptr> executeQuery(const std::string& query);
+    [[nodiscard]] MYSQL* getMYSQL() const {return m_mysql; }
 
 private:
 	MYSQL* m_mysql {nullptr};
@@ -158,16 +159,9 @@ public:
 	using ptr = std::shared_ptr<MySQLPoolManager>;
 
 	MySQLPoolManager(int min_conn, int max_conn);
-	~MySQLPoolManager() override = default;
+    ~MySQLPoolManager() override = default;
 
-	struct MySQLConnectInfo {
-		std::string host;
-		std::string user;
-		std::string passwd;
-		std::string db;
-		unsigned int port;
-		unsigned long clientflag;
-	};
+
 
 	Task<MySQLResp::ptr> executeQuery(const std::string& query) override;
 
@@ -176,7 +170,7 @@ public:
 										const std::string& passwd,
 										const std::string& db,
 										unsigned int port,
-										unsigned long clientflag);
+										unsigned long client_flag);
 	// void close();           // 涉及fd的关闭，请勿在绑定的iomanager结束前调用，否则可能会造成其他错误，此函数为阻塞函数
 
 	int registeConnCb(std::function<void()> cb) override;        // 用于awaiter的回调
@@ -186,10 +180,6 @@ public:
 
 
 
-protected:
-	int borrowOneConn() override;               // 线程不安全, 返回空闲连接索引
-	int returnConn(int free_idx, bool isTimeOut) override;              // 线程不安全
-	int expand() override;                               // 线程安全
 
 private:
 	std::shared_mutex m_ConnectPoolMutex;               // 连接获取等使用锁

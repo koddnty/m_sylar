@@ -637,18 +637,10 @@ template<>
 class Awaiter<void>
 {
 public:
-    Awaiter()
-    {
-
-    }
-
-    ~Awaiter()
-    {
-
-    }
-
-    Awaiter(Awaiter& other) = default;
-    Awaiter(Awaiter&& other) = delete;
+    explicit Awaiter() = default;
+    virtual ~Awaiter() = default;
+    explicit Awaiter(Awaiter& other) = default;
+    explicit Awaiter(Awaiter&& other) = delete;
 
 public:
     virtual bool await_ready()

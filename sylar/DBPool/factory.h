@@ -1,7 +1,7 @@
 #pragma once
 #include "mysql.h"
 #include "basic/log.h"
-#include "database.h"
+#include "database.hpp"
 #include "mysql.h"
 #include "redis.h"
 
