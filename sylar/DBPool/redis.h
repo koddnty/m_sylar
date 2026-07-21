@@ -47,7 +47,7 @@ public:
     RedisConn();
     ~RedisConn();
 
-    int connect(ConnectInfoBase& info);
+    int connect(ConnectInfoBase::ptr info);
 
     RedisResp::ptr executeQuery(const std::string& query);
 
@@ -66,12 +66,10 @@ public:
 
 
     Task<std::shared_ptr<RedisResp>> executeQuery(const std::string& query) override;
-    int registeConnCb(std::function<void()> cb) override;
-    int tickle() override;
+
 
 private:
     std::shared_mutex m_ConnectPoolMutex;        // 连接池锁
-    RedisConnectInfo m_connectInfo;
 };
 
 }

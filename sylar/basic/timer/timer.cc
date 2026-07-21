@@ -131,7 +131,7 @@ void TimeManager::onTimerTriggered() {
     M_SYLAR_LOG_DEBUG(g_logger) << "next timer time updated, next_timer_time: " << m_nextTimerTime << ", scheduling expired timer tasks";
     // 调度执行过期的定时器任务
     for(auto& time_task : expired_time_tasks) {
-        M_SYLAR_LOG_DEBUG(g_logger) << "scheduling time task, address: " << time_task.get();
+        // M_SYLAR_LOG_DEBUG(g_logger) << "scheduling time task, address: " << time_task.get();
         m_timerCount--;
         auto t = std::bind(&TimeManager::runTimeTask, shared_from_this(), time_task);
         m_iom->schedule(TaskCoro20::create_coro(t));

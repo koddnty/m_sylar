@@ -95,9 +95,9 @@ RedisConn::~RedisConn() {
     }
 }
 
-int RedisConn::connect(ConnectInfoBase& info) {
-    const auto& conn_info = dynamic_cast<RedisConnectInfo&>(info);
-    m_connect = redisConnect(conn_info.host.c_str(), conn_info.port);
+int RedisConn::connect(ConnectInfoBase::ptr info) {
+    const auto conn_info = std::dynamic_pointer_cast<RedisConnectInfo>(info);
+    m_connect = redisConnect(conn_info->host.c_str(), conn_info->port);
     if(m_connect == nullptr || m_connect->err) {
         M_SYLAR_LOG_ERROR(g_logger) << "failed to connect to redis, error: " << (m_connect ? m_connect->errstr : "null");
         return -1;
@@ -119,36 +119,8 @@ RedisResp::ptr RedisConn::executeQuery(const std::string& query) {
 // redis连接池管理
 
 
-// Manager 用于连接满时协程异步等待
-class RedisGetConnAwaiter : public Awaiter<void>{
-public: 
-    RedisGetConnAwaiter(RedisPoolManager* MySQLMgr) {
-        if(MySQLMgr == nullptr) {
-            M_SYLAR_LOG_ERROR(g_logger) << "MySQLMgr is nullptr, failed to await task";
-        }
-        m_mgr = MySQLMgr;
-    }
-    ~RedisGetConnAwaiter() {}
 
-    void on_suspend()override{
-        if(!m_mgr) {throw std::runtime_error("MySQLMgr is nullptr, failed to await task");}
-
-        m_mgr->registeConnCb([this](){
-            resume();
-        });
-    }
-
-    void before_resume() override {
-    }
-
-private:
-    RedisPoolManager* m_mgr;
-};
-
-
-
-
-RedisPoolManager::RedisPoolManager(int min_conn, int max_conn) 
+RedisPoolManager::RedisPoolManager(int min_conn, int max_conn)
     : m_sylar::DBPool<RedisConn, RedisResp>(min_conn, max_conn) {
 }
 
@@ -158,13 +130,14 @@ RedisPoolManager::~RedisPoolManager() {
 
 int RedisPoolManager::init(const std::string& host, const int port) {
     // 信息记录
-    m_connectInfo.host = host;
-    m_connectInfo.port = port;
+    m_connectorBaseInfo = std::make_shared<RedisConnectInfo>();
+    m_connectorBaseInfo->host = host;
+    m_connectorBaseInfo->port = port;
 
     // 连接
     int rt = 0;
     for(int i = 0; i < m_minConnector && !rt; i++) {
-        rt = m_connectors[i]->connect(m_connectInfo);
+        rt = m_connectors[i]->connect(m_connectorBaseInfo);
         m_freeConnInfos.push_back({i});
     }
     if(rt) {    // 错误检查
@@ -172,7 +145,7 @@ int RedisPoolManager::init(const std::string& host, const int port) {
         M_SYLAR_LOG_ERROR(g_logger) << "failed to init RedisManagePool, connect failed.";
         return -1;
     }
-    m_connectorCount = m_minConnector;
+    m_connectorCount = m_minConnector.load();
     m_state = READY;
     return 0;
 }
@@ -182,17 +155,16 @@ Task<std::shared_ptr<RedisResp>> RedisPoolManager::executeQuery(const std::strin
         co_return std::make_shared<RedisResp>(nullptr, IOState::FAILED);
     }
 
+
+retry:
     // 获取一个连接
     ConnectWrapper<RedisConn, RedisResp>::ptr connect_wrapper = borrowOneConn();
     int conn_idx = connect_wrapper->getConnIdx();
-    // 获取连接并执行
-retry:
+    // 执行
     if(conn_idx >= 0) {        // 有当前可用连接std::string finishQuery = "RESET SESSION;";
         // std::string finishQuery =   "SET @@session.autocommit = 1; SET @@session.transaction_isolation = 'REPEATABLE-READ';RESET SESSION;"
-        std::string finishQuery = "RESET SESSION;";
         RedisResp::ptr resp =  m_connectors[conn_idx]->executeQuery(query);
-        RedisResp::ptr resetPtr =  m_connectors[conn_idx]->executeQuery(finishQuery);
-        bool isTimo = (resp->getState() == IOState::TIMEOUT || resetPtr->getState() == IOState::TIMEOUT);
+        bool isTimo = (resp->getState() == IOState::TIMEOUT);
         connect_wrapper.reset();
         conn_idx = -1;
 
@@ -205,7 +177,7 @@ retry:
         }
         else {  
             // 等待
-            co_await RedisGetConnAwaiter(this);
+            co_await GetConnAwaiter(this);
             if(!checkRunState()) {      // 不在运行，
                 co_return std::make_shared<RedisResp>(nullptr, IOState::FAILED);
             }
@@ -216,45 +188,5 @@ retry:
     co_return std::make_shared<RedisResp>(nullptr, IOState::FAILED);
 }
 
-int RedisPoolManager::registeConnCb(std::function<void()> cb) {
-    if(!checkRunState()) {
-        M_SYLAR_LOG_WARN(g_logger) << "failed to registe Connect callback, connect pool is not running";
-        return -1;
-    }
-    if(!cb) {
-        M_SYLAR_LOG_ERROR(g_logger) << "failed to registe Connect callback, parameter cn is null";
-        return -1;
-    }
-    std::unique_lock<std::shared_mutex> w_lock(m_ConnectPoolMutex);
-    if(m_state != FULL) { // 直接运行
-        IOManager::getInstance()->schedule(TaskCoro20::create_func(cb));
-    }
-    else {
-        m_waitConnCb.push_back(cb);
-    }
-    return 0;
-}
-
-int RedisPoolManager::tickle() {
-    if(m_waitConnCb.empty()) {return 0;}
-
-    std::list<std::function<void()>> temp_tasks;
-
-    std::unique_lock<std::shared_mutex> w_lock(m_ConnectPoolMutex);
-    if(m_state == RedisPoolManager::CLOSING) {
-        temp_tasks.splice(temp_tasks.begin(), m_waitConnCb, m_waitConnCb.begin(), m_waitConnCb.end());
-    }
-    else { 
-        auto task_begin = m_waitConnCb.begin();
-        auto task_final = std::next(task_begin, std::min(m_freeConnInfos.size(), m_waitConnCb.size()) );
-        temp_tasks.splice(temp_tasks.begin(), m_waitConnCb, task_begin, task_final);
-    }
-    w_lock.unlock();
-
-    for(auto it : temp_tasks) {
-        IOManager::getInstance()->schedule(TaskCoro20::create_func(it));            // 可行否？<...>
-    }
-    return 0;
-}
 
 }

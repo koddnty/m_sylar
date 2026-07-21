@@ -255,16 +255,22 @@ MySQLConn::~MySQLConn(){
     }
 }
 
-int MySQLConn::connect(ConnectInfoBase& info) {
+int MySQLConn::connect(ConnectInfoBase::ptr info) {
     // 状态同步
     if (mysql_options(m_mysql, MYSQL_OPT_NONBLOCK, nullptr)) {
         M_SYLAR_LOG_ERROR(g_logger) << "mysql_options failed : " << mysql_error(m_mysql) << std::endl;
     }
 
-    // 获取连接信息并连接
-    const auto& mysql_info = dynamic_cast<MySQLConnectInfo&>(info);
-    const MYSQL* rt = mysql_real_connect(m_mysql, mysql_info.host.c_str(), mysql_info.user.c_str(), mysql_info.passwd.c_str(),
-                                    mysql_info.db.c_str(), mysql_info.port, nullptr, mysql_info.clientflag);
+    // 获取连接信息
+    const auto mysql_info_ptr = std::dynamic_pointer_cast<MySQLConnectInfo>(info);
+    if (mysql_info_ptr == nullptr) {
+        M_SYLAR_LOG_ERROR(g_logger) << "mysql_info_ptr is nullptr";
+        return -1;
+    }
+
+    // 连接
+    const MYSQL* rt = mysql_real_connect(m_mysql, mysql_info_ptr->host.c_str(), mysql_info_ptr->user.c_str(), mysql_info_ptr->passwd.c_str(),
+                                    mysql_info_ptr->db.c_str(), mysql_info_ptr->port, nullptr, mysql_info_ptr->clientflag);
     if(rt == nullptr) {
         M_SYLAR_LOG_ERROR(g_logger) << "connect failed, error: " << mysql_error(m_mysql);
         return -1;
@@ -315,39 +321,8 @@ Task<MySQLResp::ptr> MySQLConn::executeQuery(const std::string& query){
 
 
 
-
-// Manager 用于连接满时协程异步等待
-class MySQLGetConnAwaiter : public Awaiter<void>{
-public: 
-    explicit MySQLGetConnAwaiter(MySQLPoolManager* MySQLMgr) {
-        if(MySQLMgr == nullptr) {
-            M_SYLAR_LOG_ERROR(g_logger) << "MySQLMgr is nullptr, failed to await task";
-        }
-        m_mgr = MySQLMgr;
-    }
-    ~MySQLGetConnAwaiter() override = default;
-
-protected:
-    void on_suspend() override {
-        if(!m_mgr) {throw std::runtime_error("MySQLMgr is nullptr, failed to await task");}
-
-        m_mgr->registeConnCb([this](){
-            resume();
-        });
-    }
-
-    void before_resume() override {
-    }
-
-private:
-    MySQLPoolManager* m_mgr;
-};
-
-
-
 MySQLPoolManager::MySQLPoolManager(int min_conn, int max_conn)
     : m_sylar::DBPool<MySQLConn, MySQLResp>(min_conn, max_conn) {
-
 }
 
 
@@ -357,43 +332,48 @@ Task<MySQLResp::ptr> MySQLPoolManager::executeQuery(const std::string& query) {
         co_return std::make_shared<MySQLResp>(nullptr, IOState::FAILED);
     }
 
-    // 获取一个连接
-    ConnectWrapper<MySQLConn, MySQLResp>::ptr connect_wrapper = borrowOneConn();
 
-    // 获取连接并执行
-retry:
-    if(connect_wrapper->getConnIdx() >= 0) {        // 有当前可用连接std::string finishQuery = "RESET SESSION;";
-        // std::string finishQuery =   "SET @@session.autocommit = 1; SET @@session.transaction_isolation = 'REPEATABLE-READ';RESET SESSION;"
 
-        MySQLResp::ptr resp = co_await connect_wrapper->getConnector()->executeQuery(query);
-        if(resp->getState() != IOState::SUCCESS) {
-            M_SYLAR_LOG_ERROR(g_logger) << "failed to execute query: " << query << " error: " << mysql_error(connect_wrapper->getConnector()->getMYSQL());
-        }
-        resp->co_fetchAll();
+    while (true) {
+        // 获取一个连接
+        ConnectWrapper<MySQLConn, MySQLResp>::ptr connect_wrapper = borrowOneConn();
+        // 执行
+        if(connect_wrapper->getConnIdx() >= 0) {        // 有当前可用连接std::string finishQuery = "RESET SESSION;";
+            // std::string finishQuery =   "SET @@session.autocommit = 1; SET @@session.transaction_isolation = 'REPEATABLE-READ';RESET SESSION;"
 
-        // 回滚所有未提交事务
-        const MySQLResp::ptr resetPtr = co_await connect_wrapper->getConnector()->executeQuery("ROLLBACK;");
-        if(resetPtr->getState() != IOState::SUCCESS) {
-            M_SYLAR_LOG_ERROR(g_logger) << "failed to execute query: ROLLBACK; error: " << mysql_error(connect_wrapper->getConnector()->getMYSQL());
+            MySQLResp::ptr resp = co_await connect_wrapper->getConnector()->executeQuery(query);
+            if(resp->getState() != IOState::SUCCESS) {
+                M_SYLAR_LOG_ERROR(g_logger) << "failed to execute query: " << query << " error: " << mysql_error(connect_wrapper->getConnector()->getMYSQL());
+            }
+            co_await resp->co_fetchAll();
+
+            // 回滚所有未提交事务
+            const MySQLResp::ptr resetPtr = co_await connect_wrapper->getConnector()->executeQuery("ROLLBACK;");
+            if(resetPtr->getState() != IOState::SUCCESS) {
+                M_SYLAR_LOG_ERROR(g_logger) << "failed to execute query: ROLLBACK; error: " << mysql_error(connect_wrapper->getConnector()->getMYSQL());
+            }
+            co_await resetPtr->co_fetchAll();
+            bool isTimo = (resp->getState() == IOState::TIMEOUT || resetPtr->getState() == IOState::TIMEOUT);
+            connect_wrapper.reset();
+            co_return resp;
         }
-        resetPtr->co_fetchAll();
-        bool isTimo = (resp->getState() == IOState::TIMEOUT || resetPtr->getState() == IOState::TIMEOUT);
-        connect_wrapper.reset();
-        co_return resp;
-    }
-    else {  // 正繁忙，无空闲
-        if(m_maxConnector > m_connectorCount) {
-            // 扩列
-            expand();
-        }
-        else {  
-            // 等待
-            co_await MySQLGetConnAwaiter(this);
-            if(!checkRunState()) {      // 不在运行，
-                co_return std::make_shared<MySQLResp>(nullptr, IOState::FAILED);
+        else {  // 正繁忙，无空闲
+            if(m_maxConnector > m_connectorCount) {
+                M_SYLAR_LOG_DEBUG(gdb_logger) << "max connector num: " << m_maxConnector
+                        << " curr connector count: " << m_connectorCount
+                        << " busy connector count: " << m_busyConnCount;
+
+                // 扩列
+                expand();
+            }
+            else {
+                // 等待
+                co_await GetConnAwaiter(this);
+                if(!checkRunState()) {      // 不在运行，
+                    co_return std::make_shared<MySQLResp>(nullptr, IOState::FAILED);
+                }
             }
         }
-        goto retry;
     }
     M_SYLAR_LOG_ERROR(g_logger) << "bad code branch";
     co_return std::make_shared<MySQLResp>(nullptr, IOState::FAILED);
@@ -410,12 +390,14 @@ int MySQLPoolManager::init(const std::string& host,
         m_state = ERROR;
     }   
     // 信息记录
-    m_connectorBaseInfo.host = host;
-    m_connectorBaseInfo.user = user;
-    m_connectorBaseInfo.passwd = passwd;
-    m_connectorBaseInfo.db = db;
-    m_connectorBaseInfo.port = port;
-    m_connectorBaseInfo.clientflag = client_flag;
+    auto info = std::make_shared<MySQLConnectInfo>();
+    info->host = host;
+    info->user = user;
+    info->passwd = passwd;
+    info->db = db;
+    info->port = port;
+    info->clientflag = client_flag;
+    m_connectorBaseInfo = info;
 
     // 连接
     int rt = 0;
@@ -428,52 +410,10 @@ int MySQLPoolManager::init(const std::string& host,
         M_SYLAR_LOG_ERROR(g_logger) << "failed to init MySQLPoolManager, connect failed.";
         return -1;
     }
-    m_connectorCount = m_minConnector;
+    m_connectorCount = m_minConnector.load();
     m_state = READY;
     return 0;
 }
 
 
-
-int MySQLPoolManager::registeConnCb(std::function<void()> cb) {
-    if(!checkRunState()) {
-        M_SYLAR_LOG_WARN(g_logger) << "failed to registe Connect callback, connect pool is not running";
-        return -1;
-    }
-    if(!cb) {
-        M_SYLAR_LOG_ERROR(g_logger) << "failed to registe Connect callback, parameter cn is null";
-        return -1;
-    }
-    std::unique_lock<std::shared_mutex> w_lock(m_ConnectPoolMutex);
-    if(m_state != FULL) { // 直接运行
-        IOManager::getInstance()->schedule(TaskCoro20::create_func(cb));
-    }
-    else {
-        m_waitConnCb.push_back(cb);
-    }
-    return 0;
-}
-
-
-int MySQLPoolManager::tickle() {
-    if(m_waitConnCb.empty()) {return 0;}
-
-    std::list<std::function<void()>> temp_tasks;
-
-    std::unique_lock<std::shared_mutex> w_lock(m_ConnectPoolMutex);
-    if(m_state == MySQLPoolManager::CLOSING) {
-        temp_tasks.splice(temp_tasks.begin(), m_waitConnCb, m_waitConnCb.begin(), m_waitConnCb.end());
-    }
-    else { 
-        auto task_begin = m_waitConnCb.begin();
-        auto task_final = std::next(task_begin, std::min(m_freeConnInfos.size(), m_waitConnCb.size()) );
-        temp_tasks.splice(temp_tasks.begin(), m_waitConnCb, task_begin, task_final);
-    }
-    w_lock.unlock();
-
-    for(auto it : temp_tasks) {
-        IOManager::getInstance()->schedule(TaskCoro20::create_func(it));            // 可行否？<...>
-    }
-    return 0;
-}
 }

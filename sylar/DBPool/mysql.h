@@ -143,7 +143,7 @@ public:
 
 
 
-    int connect(ConnectInfoBase& info);
+    int connect(ConnectInfoBase::ptr info);
     Task<MySQLResp::ptr> executeQuery(const std::string& query);
     [[nodiscard]] MYSQL* getMYSQL() const {return m_mysql; }
 
@@ -173,8 +173,6 @@ public:
 										unsigned long client_flag);
 	// void close();           // 涉及fd的关闭，请勿在绑定的iomanager结束前调用，否则可能会造成其他错误，此函数为阻塞函数
 
-	int registeConnCb(std::function<void()> cb) override;        // 用于awaiter的回调
-	int tickle() override;                                       // 有新连接时的回调, 用于连接耗尽时阻塞控制, 若状态为关闭则全部tickle.
 
 	// bool checkRunState();           // 若当前连接池处于正常可运行状体则返回true;
 
@@ -183,7 +181,6 @@ public:
 
 private:
 	std::shared_mutex m_ConnectPoolMutex;               // 连接获取等使用锁
-	MySQLConnectInfo m_connectorBaseInfo;               // 连接基本信息， 用于扩容。
 };
 
 }

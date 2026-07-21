@@ -6,6 +6,7 @@
 
 // m_sylar::MySQLPoolManager* mysql_pool_mgr = nullptr; 
 std::atomic<int> count = 0;
+static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 
 m_sylar::Task<void, m_sylar::TaskBeginExecuter> testNext () {
@@ -30,10 +31,10 @@ m_sylar::Task<void, m_sylar::TaskBeginExecuter> testNext () {
 }
 
 
-m_sylar::Task<void, m_sylar::TaskBeginExecuter> testMap() {
-    std::string sql = "select * from learn limit 1";
+m_sylar::Task<void, m_sylar::TaskBeginExecuter> testMap(m_sylar::MySQLPoolManager::ptr pool) {
+    const std::string sql = "select * from learn limit 1";
     std::cout << ">" << std::flush;
-    m_sylar::MySQLResp::ptr resp = co_await m_sylar::DB::Mysql::getInstance()->executeQuery(sql);
+    const m_sylar::MySQLResp::ptr resp = co_await pool->executeQuery(sql);
     // std::cout << "--state: " << resp->getState() << std::endl;
     // if(resp->getState() == m_sylar::IOState::SUCCESS) {
     //     resp->formatDate();
@@ -45,7 +46,7 @@ m_sylar::Task<void, m_sylar::TaskBeginExecuter> testMap() {
         std::cout << "o" << std::flush;
     }
     else if(resp->getState() == m_sylar::IOState::SUCCESS) {
-        std::cout << "|" << std::flush;
+        std::cout << "s" << std::flush;
         resp->formatDate();
         std::cout << (*resp)["name"][0] << std::endl;
     }
@@ -54,17 +55,22 @@ m_sylar::Task<void, m_sylar::TaskBeginExecuter> testMap() {
     }
 }
 
-int main(void) {
+int main() {
+    std::string config_path = "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/conf/basic.json";
+    std::cout << "[LoggerManager init] config path: " << config_path << std::endl;
+    m_sylar::ConfigManager::LoadJson(config_path, 0);
+
+
     m_sylar::MySQLPoolManager dbPool(10, 15);
     //dbPool.init("<地址>", "<用户名>", "<数据库密码>", "<数据库名称>", <端口>, 0))
-    m_sylar::DB::createMysqlPool(10, 15);
-    int rt = m_sylar::DB::Mysql::getInstance()->init("localhost", "koddnty", "73256", "KoddntyDB", 3306, 0);
-
+    m_sylar::MySQLPoolManager::ptr mysql_pool = m_sylar::DB::createMysqlPool(10, 15);
+    int rt = mysql_pool->init("localhost", "koddnty", "73256", "KoddntyDB", 3306, 0);
+    M_SYLAR_LOG_DEBUG(g_logger) << "debug mode";
     if(-1 == rt) {
         std::cout << "failed to init dbPool" << std::endl;
     }
     else {
-        std::cout << "init dpPool successed" << std::endl;
+        std::cout << "init dpPool succeed" << std::endl;
     }
 
     m_sylar::IOManager iom("test_dbPool", 1);
@@ -72,10 +78,10 @@ int main(void) {
 
     for(int i = 0; i < 30; i++) {
         // iom.schedule(m_sylar::TaskCoro20::create_coro(testNext));
-        iom.schedule(m_sylar::TaskCoro20::create_coro(testMap));
+        iom.schedule(m_sylar::TaskCoro20::create_coro(std::bind(&testMap, mysql_pool)));
     }
 
-    sleep(30);       // 等待执行到一半的协程任务。
+    sleep(3000);       // 等待执行到一半的协程任务。
     iom.autoStop();
     dbPool.close();
     return 0;

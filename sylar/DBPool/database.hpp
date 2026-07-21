@@ -15,11 +15,12 @@ static Logger::ptr gdb_logger = M_SYLAR_LOG_NAME("system");
 // 连接信息基础类定义 ------------------------------------------------------------
 class ConnectInfoBase {
 public:
+    using ptr = std::shared_ptr<ConnectInfoBase>;
     ConnectInfoBase() = default;
     virtual ~ConnectInfoBase() = default;
 
     std::string host;
-    unsigned int port;
+    unsigned int port {0};
 };
 
 
@@ -33,7 +34,7 @@ public:
 // 连接基本类定义 ------------------------------------------------------------
 // handler类型
 template<typename T>
-concept DBConnectType = requires(T conn, ConnectInfoBase& info) {
+concept DBConnectType = requires(T conn, ConnectInfoBase::ptr info) {
     { conn.connect(info) } -> std::same_as<int>;          // 连接函数, 返回0表示成功, -1表示失败
 };
 
@@ -50,12 +51,54 @@ class DBPool;
 
 
 
+
+
+
+
+
+
+// 连接获取异步等待函数 ------------------------------------------------------------
+template<DBConnectType ConnType, typename RespType>
+class GetConnAwaiter : public Awaiter<void>{
+public:
+    explicit GetConnAwaiter(DBPool<ConnType, RespType>* MySQLMgr) : m_mgr(MySQLMgr) {
+        if(MySQLMgr == nullptr) {
+            M_SYLAR_LOG_ERROR(gdb_logger) << "MySQLMgr is nullptr, failed to await task";
+        }
+    }
+    ~GetConnAwaiter() override = default;
+
+protected:
+    void on_suspend() override {
+        if(!m_mgr) {throw std::runtime_error("MySQLMgr is nullptr, failed to await task");}
+
+        m_mgr->registeConnCb([this](){
+            resume();
+        });
+    }
+
+    void before_resume() override {
+    }
+
+private:
+    DBPool<ConnType, RespType>* m_mgr;
+};
+
+
+
+
+
+
+
+
+
+// 连接包装函数 ------------------------------------------------------------
 template<DBConnectType ConnType, typename RespType>
 class ConnectWrapper : public std::enable_shared_from_this<ConnectWrapper<ConnType, RespType>> {
 public:
     using ptr = std::shared_ptr<ConnectWrapper>;
-    explicit ConnectWrapper(int conn_idx, std::shared_ptr<DBPool<ConnType, RespType>> pool);
-    explicit ConnectWrapper(int conn_idx, DBPool<ConnType, RespType>* pool);
+    explicit ConnectWrapper(int conn_idx, std::shared_ptr<ConnType> conn_ptr, std::shared_ptr<DBPool<ConnType, RespType>> pool);
+    explicit ConnectWrapper(int conn_idx, std::shared_ptr<ConnType> conn_ptr, DBPool<ConnType, RespType>* pool);
     explicit ConnectWrapper(const ConnectWrapper& other) = default;
     explicit ConnectWrapper(ConnectWrapper&& other) noexcept;
     ConnectWrapper& operator=(const ConnectWrapper& other) = delete;
@@ -113,8 +156,9 @@ public:
     }
 
     virtual Task<std::shared_ptr<RespType>> executeQuery(const std::string& query) = 0;
-    virtual int registeConnCb(std::function<void()> cb) = 0;        // 用于awaiter的回调
-    virtual int tickle() = 0;                                       // 有新连接时的回调, 用于连接耗尽时阻塞控制, 若状态为关闭则全部tickle.
+
+    virtual int registeConnCb(const std::function<void()>& cb);        // 用于awaiter的回调
+    virtual int tickle();                                       // 有新连接时的回调, 用于连接耗尽时阻塞控制, 若状态为关闭则全部tickle.
 
 protected:
     virtual ConnectWrapper<ConnType, RespType>::ptr borrowOneConn();                                        // 线程不安全, 返回空闲连接索引
@@ -129,10 +173,10 @@ protected:
     std::list<std::function<void()>> m_waitConnCb;                  // 有新连接可用时会唤醒其中一个任务，优先队列
     std::atomic<int> m_connectorCount = 0;                          // 当前连接数目, 记录所有已连接的连接, 若存在失败连接，会影响此值
     std::atomic<int> m_busyConnCount = 0;
-    int m_minConnector;
-    int m_maxConnector;
+    std::atomic<int> m_minConnector;
+    std::atomic<int> m_maxConnector;
     std::atomic<State> m_state;
-    ConnectInfoBase m_connectorBaseInfo;
+    ConnectInfoBase::ptr m_connectorBaseInfo {nullptr};
     size_t m_increaseNum {1};
 };
 
