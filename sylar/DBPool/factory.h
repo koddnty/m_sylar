@@ -1,8 +1,8 @@
 #pragma once
-#include "mysql.h"
+#include "mysql.hpp"
 #include "basic/log.h"
 #include "database.hpp"
-#include "mysql.h"
+#include "mysql.hpp"
 #include "redis.h"
 
 namespace m_sylar

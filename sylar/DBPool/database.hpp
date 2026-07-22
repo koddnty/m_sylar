@@ -155,12 +155,10 @@ public:
         tickle();       // 唤醒所有回调
     }
 
-    virtual Task<std::shared_ptr<RespType>> executeQuery(const std::string& query) = 0;
 
     virtual int registeConnCb(const std::function<void()>& cb);        // 用于awaiter的回调
     virtual int tickle();                                       // 有新连接时的回调, 用于连接耗尽时阻塞控制, 若状态为关闭则全部tickle.
 
-protected:
     virtual ConnectWrapper<ConnType, RespType>::ptr borrowOneConn();                                        // 线程不安全, 返回空闲连接索引
     virtual int returnConn(int conn_idx, bool isTimeOut);               // 线程不安全
     virtual int expand();                                               // 线程安全, 扩展连接池, 返回扩容后连接数目, -1表示失败

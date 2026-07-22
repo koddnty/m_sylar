@@ -1,4 +1,4 @@
-#include "mysql.h"
+#include "mysql.hpp"
 
 #include <sys/stat.h>
 
@@ -270,7 +270,7 @@ int MySQLConn::connect(ConnectInfoBase::ptr info) {
 
     // 连接
     const MYSQL* rt = mysql_real_connect(m_mysql, mysql_info_ptr->host.c_str(), mysql_info_ptr->user.c_str(), mysql_info_ptr->passwd.c_str(),
-                                    mysql_info_ptr->db.c_str(), mysql_info_ptr->port, nullptr, mysql_info_ptr->clientflag);
+                                    mysql_info_ptr->db.c_str(), mysql_info_ptr->port, nullptr, mysql_info_ptr->client_flag);
     if(rt == nullptr) {
         M_SYLAR_LOG_ERROR(g_logger) << "connect failed, error: " << mysql_error(m_mysql);
         return -1;
@@ -396,7 +396,7 @@ int MySQLPoolManager::init(const std::string& host,
     info->passwd = passwd;
     info->db = db;
     info->port = port;
-    info->clientflag = client_flag;
+    info->client_flag = client_flag;
     m_connectorBaseInfo = info;
 
     // 连接

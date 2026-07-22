@@ -65,7 +65,7 @@ public:
     int init(const std::string& host, int port);     // 连接池初始化，连接到redis服务器
 
 
-    Task<std::shared_ptr<RedisResp>> executeQuery(const std::string& query) override;
+    Task<std::shared_ptr<RedisResp>> executeQuery(const std::string& query);
 
 
 private:
