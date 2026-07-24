@@ -182,9 +182,16 @@ template <typename T>
 inline constexpr bool is_optional_v = is_optional<T>::value;
 
 
+
+
+
 // 类型(到MYSQLBIND)地址转换, MariaDB 将数据写入 value，将 NULL 标记写入 is_null
 template <size_t N>
-struct Text {
+class STMT_Text {
+public:
+    std::string toString() {
+        return TextToString<N>(*this);
+    }
     std::array<char, N> buf{'\0'};
     unsigned long length = 0;   // fetch 之后,这里是实际长度
     my_bool is_null = 0;        // fetch 之后,这一列是否是 NULL
@@ -193,16 +200,55 @@ struct Text {
     std::string_view view() const { return {buf.data(), length}; }
 };
 
+class STMT_INTEGER {
+public:
+    long long value = 0;
+};
+
+class STMT_FLOAT {
+public:
+    double value = 0;
+};
+
+struct STMT_BOOL {
+public:
+    bool value;
+};
+
+struct STMT_NULL {
+public:
+};
+
+
+template<typename T>
+struct is_stmt_type : std::false_type {};
+
+template<> struct is_stmt_type<STMT_INTEGER> : std::true_type {};
+template<> struct is_stmt_type<STMT_FLOAT> : std::true_type {};
+template<size_t N> struct is_stmt_type<STMT_Text<N>> : std::true_type {};
+template<> struct is_stmt_type<STMT_BOOL> : std::true_type {};
+template<> struct is_stmt_type<STMT_NULL> : std::true_type {};
+
+
+// STMT支持类型定义 定义
+template<typename T>
+concept StmtTag = is_stmt_type<std::decay_t<T>>::value;
+
+
+
+
+
+
 template<size_t N>      // text转换到string类型
-std::string TextToString(const Text<N>& text) {
+std::string TextToString(const STMT_Text<N>& text) {
     if (text.is_null) {return {}; }
-    std::string output(text.buf.data(), text.length());
+    std::string output(text.buf.data(), text.length);
     return output;
 }
 template<size_t N>      // string转换到text类型
-Text<N> StringToText(const std::string& str) {
+STMT_Text<N> StringToText(const std::string& str) {
     M_SYLAR_ASSERT2(N, "N(length of a Text) is zero!");
-    Text<N> text;
+    STMT_Text<N> text;
     if (str.length() > N - 1) {
         text.error = 1;
     }
@@ -232,7 +278,7 @@ void TtoBind(T& value, my_bool& is_null, MYSQL_BIND& b) {
     }
 }
 template <size_t N>     // string特化
-void TtoBind(Text<N>& t, my_bool& is_null, MYSQL_BIND& b) {
+void TtoBind(STMT_Text<N>& t, my_bool& is_null, MYSQL_BIND& b) {
     b.buffer_type   = MYSQL_TYPE_STRING;
     b.buffer        = t.buf.data();
     b.buffer_length = N;
@@ -247,7 +293,7 @@ void TtoBind(Text<N>& t, my_bool& is_null, MYSQL_BIND& b) {
 
 
 
-// 封装绑定的参数
+// 封装绑定的参数 ----------------------------------------------------------------------
 template <typename... Args>
 class StmtParams {
 public:
@@ -315,7 +361,7 @@ private:
 
     // 针对 Text<N> 的特殊处理
     template <size_t I, size_t N>
-    void bindOne(Text<N>& t) {
+    void bindOne(STMT_Text<N>& t) {
         MYSQL_BIND& b = binds_[I];
         b.buffer_type   = MYSQL_TYPE_STRING;
         b.buffer        = t.buf.data();
@@ -363,7 +409,7 @@ public:
     }
 
     const std::vector<std::tuple<Cols...>>& getAll() const {return m_rows;};
-    StmtResultRow<Cols...> getCacheRow() const {return m_cache;}
+    StmtResultRow<Cols...>& getCacheRow() {return m_cache;}
 
     const StmtResultRow<Cols...>& operator[](size_t i) const {return m_rows[i];};
 
@@ -372,7 +418,7 @@ public:
 
     [[nodiscard]] size_t size() const {return m_rows.size();};
 
-    void append(std::tuple<Cols...>&& row) { m_rows.emplace_back(std::move(row));}
+    void append(const std::tuple<Cols...>& row) { m_rows.emplace_back(row);}
 
 private:
     StmtResultRow<Cols...> m_cache;
@@ -387,7 +433,7 @@ private:
  *  @brief 对mariaDB stmt查询进行cpp风格的封装,内部包含普通连接wrapper进行连接资源管理,获取普通连接后init构建stmt连接并执行相关操作
  *
  */
-template<typename... Args>
+template<typename... ResultType>
 class MySQLStmt {
 public:
     using ptr = std::shared_ptr<MySQLStmt>;
@@ -406,22 +452,26 @@ public:
 
     Task<IOState> co_prepare(const std::string& query);            // 准备查询语句
 
-    Task<IOState> co_bindAndExecute(Args&&... params);               // 绑定参数并执行
+    template<typename... ParamType>
+    Task<IOState> co_bindAndExecute(ParamType&&... params);               // 绑定参数并执行
 
     Task<IOState> co_storeAll();                // 获取所有数据
 
-    Task<std::optional<std::tuple<Args...>>> co_fetchNext();                // 获取下一行
+    Task<std::optional<std::tuple<ResultType...>>> co_fetchNext();                // 获取下一行
 
     Task<IOState> co_fetchAll();                // 把数据并放到用户内存(m_result)
 
     Task<IOState> co_close();           // 关闭stmt
 
 
+
+    const StmtResult<ResultType...>& getResult() const {return m_result;}
+
 private:
     ConnectWrapper<MySQLConn, MySQLResp>::ptr m_conn_wrapper;
     MYSQL_STMT* m_stmt {nullptr};
     std::atomic<State> m_state {State::INIT};           // 存储当前应当执行的操作
-    StmtResult<Args...> m_result;           // 数据存储位置
+    StmtResult<ResultType...> m_result;           // 数据存储位置
 };
 
 

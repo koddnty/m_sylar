@@ -85,15 +85,16 @@ inline Task<IOState> MySQLStmt<Cols...>::co_prepare(const std::string& query) {
 }
 
 
-template <typename... Args>
-Task<IOState> MySQLStmt<Args...>::co_bindAndExecute(Args&&... params) {
+template <typename... ResultType>
+template <typename... ParamType>
+Task<IOState> MySQLStmt<ResultType...>::co_bindAndExecute(ParamType&&... params) {
     if (m_state != State::PREPARE ) {
         co_return IOState::FAILED;
     }
 
     // 绑定
     // ReSharper disable once CppTooWideScopeInitStatement
-    auto stmt_params = makeParams(std::forward<Args>(params)...);
+    auto stmt_params = makeParams(std::forward<ParamType>(params)...);
     if (mysql_stmt_bind_param(m_stmt, stmt_params.data())) {
         M_SYLAR_LOG_ERROR(gmq_logger)   << "failed to bind mysql_stmt_bind_param, error: "
                                         << mysql_error(m_conn_wrapper->getConnector()->getMYSQL());

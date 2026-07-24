@@ -40,9 +40,9 @@ add_executable(poolmysql_test sql/poolmysql_test.cc)
 add_dependencies(poolmysql_test sylar)
 target_link_libraries(poolmysql_test sylar ${LIB_LIB})
 
-add_executable(mysql_conntest sql/mysql_test.cc)
-add_dependencies(mysql_conntest sylar)
-target_link_libraries(mysql_conntest sylar ${LIB_LIB})
+add_executable(mysql_stmt_test sql/test_mysql_stmt.cc)
+add_dependencies(mysql_stmt_test sylar)
+target_link_libraries(mysql_stmt_test sylar ${LIB_LIB})
 
 add_executable(poolredis_test sql/poolredis_test.cc)
 add_dependencies(poolredis_test sylar)

@@ -27,8 +27,15 @@ m_sylar::Task<void, m_sylar::TaskBeginExecuter> sqlTask(m_sylar::MySQLConn* mysq
 int main(void) {
 
     m_sylar::MySQLConn mysql;
+    m_sylar::MySQLConnectInfo::ptr info = std::make_shared<m_sylar::MySQLConnectInfo>();
+    info->host = std::string("localhost");
+    info->user = std::string("koddnty");
+    info->passwd = std::string("73256");
+    info->db = std::string("KoddntyDB");
+    info->port = 3306;
+    info->client_flag = 0;
     try{
-        mysql.connect("localhost", "koddnty", "73256", "KoddntyDB", 3306, 0);
+        mysql.connect(info);
     } 
     catch(std::exception& e) {
         std::cout << e.what();

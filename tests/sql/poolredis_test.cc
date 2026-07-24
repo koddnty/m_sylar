@@ -17,7 +17,7 @@ m_sylar::Task<void, m_sylar::TaskBeginExecuter> test (m_sylar::RedisPoolManager*
 }
 
 
-int main(void) {
+int main() {
     m_sylar::RedisPoolManager dbPool(10, 15);
     //dbPool.init("<地址>", "<用户名>", "<数据库密码>", "<数据库名称>", <端口>, 0))
     int rt =dbPool.init("localhost", 6379);
