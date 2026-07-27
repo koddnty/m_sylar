@@ -488,6 +488,9 @@ std::ostream& IPv6Address::insert(std::ostream& os) const
                                    &m_addr.sin6_addr, 
                                    buffer, 
                                    sizeof(buffer));
+    if (!result) {
+        M_SYLAR_LOG_ERROR(g_logger) << "inet_ntop converse failed, errno = [" << errno << "] " << strerror(errno);
+    }
     os << "[" << buffer << "]" << ":" << NetByteSwapToHostEndian(m_addr.sin6_port);
     return os;
 }
@@ -522,7 +525,7 @@ UnixAddress::UnixAddress(const std::string& path)
         path_len--;
     }
 
-    if(path_len > MAX_PATH_LEN)
+    if(path_len > static_cast<int>(MAX_PATH_LEN))
     {
         throw std::logic_error("path too long");
     }

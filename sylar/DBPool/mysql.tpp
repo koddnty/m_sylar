@@ -66,7 +66,7 @@ inline Task<IOState> MySQLStmt<Cols...>::co_prepare(const std::string& query) {
         io_state = co_await MysqlAwaiter(m_conn_wrapper->getConnector()->getMYSQL(), status, MYSQL_QUERY_TIMEOUT);
         if(io_state != IOState::SUCCESS) {
             M_SYLAR_LOG_ERROR(gmq_logger)   << "(mysql IO) failed to execute mysql_stmt_execute_cont, error:"
-                                            << mysql_error(m_conn_wrapper->getConnector()->getMYSQL());
+                                            << mysql_stmt_errno(m_stmt);
             co_return io_state;
         }
         status = mysql_stmt_prepare_cont(&ret, m_stmt, status);
@@ -75,7 +75,7 @@ inline Task<IOState> MySQLStmt<Cols...>::co_prepare(const std::string& query) {
     // 返回值检查
     if (ret) {
         M_SYLAR_LOG_ERROR(gmq_logger)   << "(mysql RET) failed to execute mysql_stmt_execute_cont, error:"
-                                        << mysql_error(m_conn_wrapper->getConnector()->getMYSQL());
+                                        << mysql_stmt_errno(m_stmt);
         co_return IOState::FAILED;
     }
 
@@ -87,7 +87,12 @@ inline Task<IOState> MySQLStmt<Cols...>::co_prepare(const std::string& query) {
 
 template <typename... ResultType>
 template <typename... ParamType>
-Task<IOState> MySQLStmt<ResultType...>::co_bindAndExecute(ParamType&&... params) {
+Task<IOState> MySQLStmt<ResultType...>::co_execute(const std::string& query, ParamType&&... params) {
+    if (IOState::SUCCESS != co_await co_prepare(query)) {
+        M_SYLAR_LOG_ERROR(gmq_logger)   << "failed to bind mysql_stmt_bind_param, error: "
+                                        << mysql_stmt_errno(m_stmt);
+        co_return IOState::FAILED;
+    }
     if (m_state != State::PREPARE ) {
         co_return IOState::FAILED;
     }
@@ -97,15 +102,18 @@ Task<IOState> MySQLStmt<ResultType...>::co_bindAndExecute(ParamType&&... params)
     auto stmt_params = makeParams(std::forward<ParamType>(params)...);
     if (mysql_stmt_bind_param(m_stmt, stmt_params.data())) {
         M_SYLAR_LOG_ERROR(gmq_logger)   << "failed to bind mysql_stmt_bind_param, error: "
-                                        << mysql_error(m_conn_wrapper->getConnector()->getMYSQL());
+                                        << mysql_stmt_errno(m_stmt);
         co_return IOState::FAILED;
     }
     // 绑定返回位置
-    if(mysql_stmt_bind_result(m_stmt, m_result.getCacheRow().data())) {
-        M_SYLAR_LOG_ERROR(gmq_logger) << "failed to bind mysql_stmt_bind_result, error: "
-                                        << mysql_error(m_conn_wrapper->getConnector()->getMYSQL());
-        co_return IOState::FAILED;
+    if (sizeof...(ResultType) != 0) {
+        if(mysql_stmt_bind_result(m_stmt, m_result.getCacheRow().data())) {
+            M_SYLAR_LOG_ERROR(gmq_logger) << "failed to bind mysql_stmt_bind_result, error: "
+                                            << mysql_stmt_error(m_stmt);
+            co_return IOState::FAILED;
+        }
     }
+
 
     // 执行
     int ret = 0;
@@ -115,7 +123,7 @@ Task<IOState> MySQLStmt<ResultType...>::co_bindAndExecute(ParamType&&... params)
         io_state = co_await MysqlAwaiter(m_conn_wrapper->getConnector()->getMYSQL(), status, MYSQL_QUERY_TIMEOUT);
         if(io_state != IOState::SUCCESS) {
             M_SYLAR_LOG_ERROR(gmq_logger)   << "(mysql IO) failed to execute mysql_stmt_execute_cont, error:"
-                                            << mysql_error(m_conn_wrapper->getConnector()->getMYSQL());
+                                            << mysql_stmt_error(m_stmt);
             co_return io_state;
         }
         status = mysql_stmt_execute_cont(&ret, m_stmt, status);
@@ -124,7 +132,7 @@ Task<IOState> MySQLStmt<ResultType...>::co_bindAndExecute(ParamType&&... params)
     // 返回值检查
     if (ret) {
         M_SYLAR_LOG_ERROR(gmq_logger)   << "(mysql RET) failed to execute mysql_stmt_execute_cont, error:"
-                                        << mysql_error(m_conn_wrapper->getConnector()->getMYSQL());
+                                        << mysql_stmt_error(m_stmt);
         co_return IOState::FAILED;
     }
 
@@ -149,7 +157,7 @@ Task<IOState> MySQLStmt<Args...>::co_storeAll() {
         io_state = co_await MysqlAwaiter(m_conn_wrapper->getConnector()->getMYSQL(), status, MYSQL_QUERY_TIMEOUT);
         if(io_state != IOState::SUCCESS) {
             M_SYLAR_LOG_ERROR(gmq_logger)   << "(mysql IO) failed to execute mysql_stmt_execute_cont, error:"
-                                            << mysql_error(m_conn_wrapper->getConnector()->getMYSQL());
+                                            << mysql_stmt_error(m_stmt);
             co_return IOState::FAILED;
         }
         status = mysql_stmt_store_result_cont(&ret, m_stmt, status);
@@ -157,7 +165,7 @@ Task<IOState> MySQLStmt<Args...>::co_storeAll() {
 
     if (ret) {
         M_SYLAR_LOG_ERROR(gmq_logger) <<  "(mysql RET) failed to execute mysql_stmt_store_result_cont, error:"
-                                        << mysql_error(m_conn_wrapper->getConnector()->getMYSQL());
+                                        << mysql_stmt_error(m_stmt);
         co_return IOState::FAILED;
     }
 
@@ -181,7 +189,7 @@ Task<std::optional<std::tuple<Args...>>> MySQLStmt<Args...>::co_fetchNext() {
         io_state = co_await MysqlAwaiter(m_conn_wrapper->getConnector()->getMYSQL(), status, MYSQL_QUERY_TIMEOUT);
         if(io_state != IOState::SUCCESS) {
             M_SYLAR_LOG_ERROR(gmq_logger)   << "(mysql IO) failed to fetch mysql_stmt_execute_cont, error:"
-                                            << mysql_error(m_conn_wrapper->getConnector()->getMYSQL());
+                                            << mysql_stmt_error(m_stmt);
             co_return std::nullopt;
         }
         status = mysql_stmt_fetch_cont(&ret, m_stmt, status);
@@ -192,7 +200,7 @@ Task<std::optional<std::tuple<Args...>>> MySQLStmt<Args...>::co_fetchNext() {
     }
     if (ret) {
         M_SYLAR_LOG_ERROR(gmq_logger) <<  "(mysql RET) failed to fetch mysql_stmt_store_result_cont, error:"
-                                        << mysql_error(m_conn_wrapper->getConnector()->getMYSQL());
+                                        << mysql_stmt_error(m_stmt);
         co_return std::nullopt;
     }
 
@@ -223,7 +231,7 @@ Task<IOState> MySQLStmt<Cols...>::co_close() {
         io_state = co_await MysqlAwaiter(m_conn_wrapper->getConnector()->getMYSQL(), status, MYSQL_QUERY_TIMEOUT);
         if(io_state != IOState::SUCCESS) {
             M_SYLAR_LOG_ERROR(gmq_logger)   << "(mysql IO) failed to close mysql_stmt_close_cont, error:"
-                                            << mysql_error(m_conn_wrapper->getConnector()->getMYSQL());
+                                            << mysql_stmt_error(m_stmt);
             co_return IOState::FAILED;
         }
         status = mysql_stmt_close_cont(&ret, m_stmt, status);
@@ -231,7 +239,7 @@ Task<IOState> MySQLStmt<Cols...>::co_close() {
 
     if (ret != 0) {
         M_SYLAR_LOG_ERROR(gmq_logger) <<  "(mysql RET) failed to close mysql_stmt_store_close_cont, error:"
-                                        << mysql_error(m_conn_wrapper->getConnector()->getMYSQL());
+                                        << mysql_stmt_error(m_stmt);
         co_return IOState::FAILED;
     }
 

@@ -12,8 +12,7 @@ static Task<void, TaskBeginExecuter> testStmtText(MySQLPoolManager::ptr pool) {
     auto connection = pool->borrowOneConn();
     const std::string sql = "select name from learn where telephone_num = ?";
     MySQLStmt<STMT_Text<255>> stmt (connection);
-    co_await stmt.co_prepare(sql);
-    co_await stmt.co_bindAndExecute<std::string>("99999999999");
+    co_await stmt.co_execute<std::string>(sql, "99999999999");
     co_await stmt.co_storeAll();
     co_await stmt.co_fetchAll();
     // co_await stmt.co_fetchNext();
@@ -32,9 +31,8 @@ static Task<void, TaskBeginExecuter> testStmtInt(MySQLPoolManager::ptr pool) {
     auto connection = pool->borrowOneConn();
     const std::string sql = "select name from learn where gender = ?";
     MySQLStmt<STMT_Text<255>> stmt (connection);
-    co_await stmt.co_prepare(sql);
-    co_await stmt.co_bindAndExecute<std::string>("0");
-    // co_await stmt.co_storeAll();
+    co_await stmt.co_execute<std::string>(sql, "0");
+    co_await stmt.co_storeAll();
     co_await stmt.co_fetchAll();
     // co_await stmt.co_fetchNext();
 
@@ -42,11 +40,6 @@ static Task<void, TaskBeginExecuter> testStmtInt(MySQLPoolManager::ptr pool) {
     for (auto it : stmt.getResult().getAll()) {
         std::cout << std::get<0>(it).toString() << std::endl;
     }
-    // const auto text = std::get<0>(stmt.getResult().getAll()[0]);
-    // const auto text2 = std::get<0>(stmt.getResult().getAll()[1]);
-    // const std::string resp = TextToString(text) + " " + TextToString(text2);
-    // M_SYLAR_LOG_INFO(g_logger) << "stmt seek sql finished, result: "
-    //         << resp;
     co_await stmt.co_close();
     co_return;
 }

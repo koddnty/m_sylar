@@ -450,10 +450,10 @@ public:
     inline explicit MySQLStmt(std::shared_ptr<ConnectWrapper<MySQLConn, MySQLResp>> conn_wrapper);            // 错误传参默认失败
     inline ~MySQLStmt() = default;
 
-    Task<IOState> co_prepare(const std::string& query);            // 准备查询语句
+
 
     template<typename... ParamType>
-    Task<IOState> co_bindAndExecute(ParamType&&... params);               // 绑定参数并执行
+    Task<IOState> co_execute(const std::string& query, ParamType&&... params);               // 绑定参数并执行
 
     Task<IOState> co_storeAll();                // 获取所有数据
 
@@ -468,6 +468,11 @@ public:
     const StmtResult<ResultType...>& getResult() const {return m_result;}
 
 private:
+    Task<IOState> co_prepare(const std::string& query);            // 准备查询语句
+
+
+
+
     ConnectWrapper<MySQLConn, MySQLResp>::ptr m_conn_wrapper;
     MYSQL_STMT* m_stmt {nullptr};
     std::atomic<State> m_state {State::INIT};           // 存储当前应当执行的操作
