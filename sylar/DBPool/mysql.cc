@@ -353,7 +353,6 @@ Task<MySQLResp::ptr> MySQLPoolManager::executeQuery(const std::string& query) {
                 M_SYLAR_LOG_ERROR(g_logger) << "failed to execute query: ROLLBACK; error: " << mysql_error(connect_wrapper->getConnector()->getMYSQL());
             }
             co_await resetPtr->co_fetchAll();
-            bool isTimo = (resp->getState() == IOState::TIMEOUT || resetPtr->getState() == IOState::TIMEOUT);
             connect_wrapper.reset();
             co_return resp;
         }

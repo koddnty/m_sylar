@@ -164,7 +164,6 @@ retry:
     if(conn_idx >= 0) {        // 有当前可用连接std::string finishQuery = "RESET SESSION;";
         // std::string finishQuery =   "SET @@session.autocommit = 1; SET @@session.transaction_isolation = 'REPEATABLE-READ';RESET SESSION;"
         RedisResp::ptr resp =  m_connectors[conn_idx]->executeQuery(query);
-        bool isTimo = (resp->getState() == IOState::TIMEOUT);
         connect_wrapper.reset();
         conn_idx = -1;
 
