@@ -117,6 +117,7 @@ int WsSession::init() {
                 co_return false;  
             }
             // 检查最近pong帧时间戳，如果超过超时时间，认为连接异常，进入关闭流程
+            uint64_t before = now;
             now = TimeManager::GetCurrentMS();
             const uint64_t recent_pong = self->getRecentFrameTime();
             M_SYLAR_LOG_DEBUG(g_logger) << "ping check,(timeout " << g_ws_pong_timeout->getValue() * 1000 << ") sessionId=" << self->getSessionId() << ", now=" << now << ", recent_pong=" << recent_pong;
@@ -124,8 +125,8 @@ int WsSession::init() {
                 M_SYLAR_LOG_WARN(g_logger) << "current time is smaller than recent pong time, something may be wrong, sessionId=" << self->getSessionId();
                 co_return true;    // 时间异常但不认为连接异常，继续等待
             }
-            if(now > recent_pong && now - recent_pong - 1 > g_ws_pong_timeout->getValue() * 1000) {     // -1避免定时器误差
-                M_SYLAR_LOG_WARN(g_logger) << "ping timeout(" << std::to_string(now - recent_pong ) << " > " << std::to_string(g_ws_pong_timeout->getValue() * 1000) 
+            if(now > recent_pong && now - recent_pong - 100 > g_ws_pong_timeout->getValue() * 1000) {     // -100ms避免定时器误差
+                M_SYLAR_LOG_WARN(g_logger) << "ping timeout( from " << before << " to " << now <<" )(" << std::to_string(now - recent_pong ) << " > " << std::to_string(g_ws_pong_timeout->getValue() * 1000)
                                             << "), close session, sessionId=" << self->getSessionId();
                 co_return false;    // 连接超时，进入关闭流程
             }
@@ -133,18 +134,17 @@ int WsSession::init() {
             co_return true;
         }, 
         [self](TimeTask::ptr time_task)->Task<void>{
-            IOManager::getInstance()->schedule([self]() {
-                if(self->getState() != State::OPEN) {
-                    M_SYLAR_LOG_DEBUG(g_logger) << "timer" << self->getSessionId();
-                    // TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
-                    return;     // 连接未处于OPEN状态，无需处理
-                }
-                // TODO: 实现真正的主动关闭定时器操作
-                M_SYLAR_LOG_DEBUG(g_logger) << "ping timeout callback, close session, sessionId=" << self->getSessionId();
-                self->m_state = State::CLOSED;
-                WsServer::getInstance()->close(self->getSessionId());           // 关闭连接
+            if(self->getState() != State::OPEN) {
+                M_SYLAR_LOG_DEBUG(g_logger) << "timer" << self->getSessionId();
                 // TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
-            });
+                co_return;     // 连接未处于OPEN状态，无需处理
+            }
+            // TODO: 实现真正的主动关闭定时器操作
+            co_await WsHandler::co_onClose(self, 1001, "timeout");
+            M_SYLAR_LOG_DEBUG(g_logger) << "ping timeout callback, close session, sessionId=" << self->getSessionId();
+            self->m_state = State::CLOSED;
+            WsServer::getInstance()->close(self->getSessionId());           // 关闭连接
+            // TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
             co_return;
         }
     );  
@@ -156,7 +156,7 @@ int WsSession::init() {
         return -1;
     }
     m_state = State::OPEN;
-    return 0;
+    return 0;l
 }
 
 Task<int> WsSession::co_recvFrame() {
