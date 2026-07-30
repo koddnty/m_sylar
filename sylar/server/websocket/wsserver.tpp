@@ -12,7 +12,8 @@ Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr fra
         co_return -1;
     }
     int rt = 0;
-    switch(frame->getType()) {
+    try {
+        switch(frame->getType()) {
         case websocket_flags::WS_OP_TEXT:
             M_SYLAR_LOG_DEBUG(ghws_logger) << "WS_OP_TEXT";
             co_await T::co_onMessage(session, frame->getTextPayload());
@@ -39,7 +40,11 @@ Task<int> WsHandler::co_Route(std::shared_ptr<WsSession> session, Frame::ptr fra
             M_SYLAR_LOG_WARN(ghws_logger) << "Received frame with opcode: " << (int)frame->getType() << ", payload length: " << frame->getPayloadLength();
             rt = -1;
             break;
+        }
+    } catch (std::exception& e) {
+        M_SYLAR_LOG_ERROR(ghws_logger) << "unhandled exception in WsHander cbs: " << e.what();
     }
+
     co_return rt;
 }
 

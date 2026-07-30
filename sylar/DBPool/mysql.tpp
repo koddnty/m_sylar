@@ -66,7 +66,7 @@ inline Task<IOState> MySQLStmt<Cols...>::co_prepare(const std::string& query) {
         io_state = co_await MysqlAwaiter(m_conn_wrapper->getConnector()->getMYSQL(), status, MYSQL_QUERY_TIMEOUT);
         if(io_state != IOState::SUCCESS) {
             M_SYLAR_LOG_ERROR(gmq_logger)   << "(mysql IO) failed to execute mysql_stmt_execute_cont, error:"
-                                            << mysql_stmt_errno(m_stmt);
+                                            << mysql_stmt_error(m_stmt);
             co_return io_state;
         }
         status = mysql_stmt_prepare_cont(&ret, m_stmt, status);
@@ -75,7 +75,7 @@ inline Task<IOState> MySQLStmt<Cols...>::co_prepare(const std::string& query) {
     // 返回值检查
     if (ret) {
         M_SYLAR_LOG_ERROR(gmq_logger)   << "(mysql RET) failed to execute mysql_stmt_execute_cont, error:"
-                                        << mysql_stmt_errno(m_stmt);
+                                        << mysql_stmt_error(m_stmt);
         co_return IOState::FAILED;
     }
 
@@ -90,7 +90,7 @@ template <typename... ParamType>
 Task<IOState> MySQLStmt<ResultType...>::co_execute(const std::string& query, ParamType&&... params) {
     if (IOState::SUCCESS != co_await co_prepare(query)) {
         M_SYLAR_LOG_ERROR(gmq_logger)   << "failed to bind mysql_stmt_bind_param, error: "
-                                        << mysql_stmt_errno(m_stmt);
+                                        << mysql_stmt_error(m_stmt);
         co_return IOState::FAILED;
     }
     if (m_state != State::PREPARE ) {
@@ -102,7 +102,7 @@ Task<IOState> MySQLStmt<ResultType...>::co_execute(const std::string& query, Par
     auto stmt_params = makeParams(std::forward<ParamType>(params)...);
     if (mysql_stmt_bind_param(m_stmt, stmt_params.data())) {
         M_SYLAR_LOG_ERROR(gmq_logger)   << "failed to bind mysql_stmt_bind_param, error: "
-                                        << mysql_stmt_errno(m_stmt);
+                                        << mysql_stmt_error(m_stmt);
         co_return IOState::FAILED;
     }
     // 绑定返回位置

@@ -343,6 +343,11 @@ public:
         std::unique_lock<std::mutex> lock(m_mutex);
         m_result = Result<ResultType>(std::current_exception());
         lock.unlock();
+        try {
+            m_result.value().getOrThrow();
+        } catch(std::exception& e) {
+            std::cout << "unhandled_exception : " << e.what() << std::endl;
+        }
         m_completion.notify_all();
         notifyAllCbs();
     }
@@ -898,6 +903,12 @@ public:
         std::unique_lock<std::mutex> lock(m_mutex);
         m_result = Result<void>(std::current_exception());
         lock.unlock();
+        try {
+            m_result.value().getOrThrow();
+        } catch(std::exception& e) {
+            std::cout << "unhandled_exception : " << e.what() << std::endl;
+        }
+
         m_completion.notify_all();
         notifyAllCbs();
     }
