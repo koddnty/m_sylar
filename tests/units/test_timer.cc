@@ -107,6 +107,49 @@ int test_plenty_timer(int thread_num, int timer_count, int target_count, int blo
 
 
 
+int test_prec_timer(int need) {
+    IOManager::ptr iom = std::make_shared<IOManager>("test_prec_timer", 1);
+    TimeManager::ptr tim = std::make_shared<TimeManager>(iom, 10);
+    tim->init();
+    bool timeRange = true;              // 在时间范围内唤醒
+    auto from = GetCurrentTime_ms();
+    std::atomic<int> LoopCount = 0;
+    int target = need * 1000;
+
+
+    for (int i = 0; i < 1000; i++) {
+        const TimeTask::ptr time_task = TimeTask::create(1000, true,
+            [iom](TimeTask::ptr time_task) ->Task<void> {
+                iom->schedule([time_task]() {
+                    time_task->cancel();
+                });
+                co_return ;
+            },
+            [&timeRange, &LoopCount, target, from](TimeTask::ptr task) ->Task<bool> {
+
+                if (LoopCount > target && !(900 <= (GetCurrentTime_ms() - from) % 1000  || (GetCurrentTime_ms() - from) % 1000 <= 100)) {
+                    std::cout << "from "<< from << " to " << GetCurrentTime_ms() << " with " << (GetCurrentTime_ms() - from) % 1000 << std::endl;
+                    timeRange = false;
+                    co_return true;
+                }
+
+                co_return false;
+            },
+            [&LoopCount](TimeTask::ptr)->Task<void>{
+                ++LoopCount;
+                co_return ;
+            }
+    );
+        tim->addConditionTimer(time_task);
+    }
+
+    sleep(need + 5);
+    iom->stop();
+    std::cout << "total timer trigger count: " << LoopCount << std::endl;
+    return timeRange;
+}
+
+
 TEST_CASE("test plenty timer", "[timer]") {
     // 只测代表性的点，不是全排列
     int thread_nums[] = {1, 2, 4, 8};
@@ -135,6 +178,12 @@ TEST_CASE("test condition timer", "[timer]")
     }
 
 
+}
+
+TEST_CASE("test precise timer", "[timer]")
+{
+    // 测试少量条件定时器任务
+    REQUIRE(true == test_prec_timer(20));
 }
 
 

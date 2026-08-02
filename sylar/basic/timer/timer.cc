@@ -74,6 +74,10 @@ int TimeManager::close() {
 // }
 
 void TimeManager::onTimerTriggered() {
+    // 读取timerfd以清除过期计数, EPOLLET边缘触发需要fd从不可读变为可读才会产生新事件
+    // uint64_t expirations;
+    // (void)read(m_timerFd, &expirations, sizeof(expirations));
+
     uint64_t now = GetCurrentMS();              // 加1ms的误差补偿，确保不会漏掉过期的定时器任务
     M_SYLAR_LOG_DEBUG(g_logger) << "timer triggered, now: " << now;
     std::vector<TimerBlock::ptr> expired_tasks;     // 存储过期的定时器任务
@@ -97,33 +101,52 @@ void TimeManager::onTimerTriggered() {
         expired_time_tasks.insert(expired_time_tasks.end(), expired_tasks_in_block.begin(), expired_tasks_in_block.end());
     }
 
-    M_SYLAR_LOG_DEBUG(g_logger) << "total expired timer task count: " << expired_time_tasks.size() << ", cleaning expired timer blocks";
-    // 清空过期的时间块
+    M_SYLAR_LOG_DEBUG(g_logger) << "total expired timer task count: " << expired_time_tasks.size() << ", cleaning empty and expired timer blocks";
+    // 清理空的和过期的时间块, 并设置下一个定时器触发时间
+    // 使用exclusive锁保护整个清理+重设过程:
+    //   1. 删除end_time已过期的时间块 (原逻辑)
+    //   2. 删除已空但未过期的时间块 (修复: 空block留在队首会阻止timerfd重设)
+    //   3. 遍历找到第一个非空block的下一个执行时间以重设timerfd (修复: 避免只看队首)
+    // 同时, exclusive锁阻止并发的insertTimeTask在getAndRemove和清理之间插入新任务到将被删除的block (修复TOCTOU)
     {
         std::unique_lock<std::shared_mutex> wlock(m_mutex);
-        auto it = m_time_blocks.begin();
-        while(it != m_time_blocks.end() && it->second->getEndTime() <= now) {
-            it = m_time_blocks.erase(it);     // 从时间块列表中删除过期的时间块
-        }
-    }
 
-    M_SYLAR_LOG_DEBUG(g_logger) << "expired timer blocks cleaned, total expired timer task count: " << expired_time_tasks.size() << ", update next timer time";
-    // 设置下一个定时器触发时间}
-    {
-        std::shared_lock<std::shared_mutex> rlock(m_mutex);
+        // 删除空的和过期的时间块
+        auto it = m_time_blocks.begin();
+        while(it != m_time_blocks.end()) {
+            if(it->second->getEndTime() <= now || it->second->empty()) {
+                M_SYLAR_LOG_DEBUG(g_logger) << "removing timer block, start: " << it->second->getStartTime()
+                    << ", end: " << it->second->getEndTime() << ", empty: " << it->second->empty();
+                it = m_time_blocks.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        // 找到第一个非空block的下一个执行时间, 重设timerfd
         if(m_time_blocks.empty()) {
             m_nextTimerTime = UINT64_MAX;
-            rlock.unlock();
-        }
-        else {
-            m_nextTimerTime = UINT64_MAX;
-            TimerBlock::ptr block = m_time_blocks.begin()->second;
-            uint64_t next_time = block->getNextExecuteTime();
-            if(next_time != UINT64_MAX) {
-                rlock.unlock(); 
-                if(-1 == updateTimerFd(next_time)) {
-                    //M_SYLAR_LOG_ERROR(g_logger) << "failed to update timerfd time, next_timer_time: ";
+            M_SYLAR_LOG_DEBUG(g_logger) << "no timer blocks left, disarm timerfd";
+        } else {
+            // 遍历所有block, 找到第一个有任务的
+            uint64_t next_time = UINT64_MAX;
+            auto block_it = m_time_blocks.begin();
+            while(block_it != m_time_blocks.end()) {
+                next_time = block_it->second->getNextExecuteTime();
+                if(next_time != UINT64_MAX) {
+                    break;
                 }
+                ++block_it;
+            }
+
+            if(next_time != UINT64_MAX) {
+                m_nextTimerTime = UINT64_MAX;  // 先重置, 确保updateTimerFd会实际设置timerfd
+                wlock.unlock();
+                if(-1 == updateTimerFd(next_time)) {
+                    M_SYLAR_LOG_ERROR(g_logger) << "failed to update timerfd time, next_time: " << next_time;
+                }
+            } else {
+                m_nextTimerTime = UINT64_MAX;
             }
         }
     }

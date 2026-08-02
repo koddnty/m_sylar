@@ -126,7 +126,7 @@ int WsSession::init() {
                 co_return true;    // 时间异常但不认为连接异常，继续等待
             }
             if(now > recent_pong && now - recent_pong - 100 > g_ws_pong_timeout->getValue() * 1000) {     // -100ms避免定时器误差
-                M_SYLAR_LOG_WARN(g_logger) << "ping timeout( from " << before << " to " << now <<" )(" << std::to_string(now - recent_pong ) << " > " << std::to_string(g_ws_pong_timeout->getValue() * 1000)
+                M_SYLAR_LOG_WARN(g_logger) << "ping timeout( from " << before << " to " << now <<" [" << now - before << "] )(" << std::to_string(now - recent_pong ) << " > " << std::to_string(g_ws_pong_timeout->getValue() * 1000)
                                             << "), close session, sessionId=" << self->getSessionId();
                 co_return false;    // 连接超时，进入关闭流程
             }
@@ -240,6 +240,8 @@ Task<int> WsSession::co_sendFrame(const Frame& frame) {
             to_send.pop_front();
         }
     }
+
+
     co_return 0;
 }
 
