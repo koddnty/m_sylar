@@ -99,8 +99,8 @@ public:
     using ptr = std::shared_ptr<ConnectWrapper>;
     explicit ConnectWrapper(int conn_idx, std::shared_ptr<ConnType> conn_ptr, std::shared_ptr<DBPool<ConnType, RespType>> pool);
     explicit ConnectWrapper(int conn_idx, std::shared_ptr<ConnType> conn_ptr, DBPool<ConnType, RespType>* pool);
-    explicit ConnectWrapper(const ConnectWrapper& other) = default;
-    explicit ConnectWrapper(ConnectWrapper&& other) noexcept;
+    ConnectWrapper(const ConnectWrapper& other) = default;
+    ConnectWrapper(ConnectWrapper&& other) noexcept;
     ConnectWrapper& operator=(const ConnectWrapper& other) = delete;
     ConnectWrapper& operator=(ConnectWrapper&& other) noexcept;
     virtual ~ConnectWrapper();

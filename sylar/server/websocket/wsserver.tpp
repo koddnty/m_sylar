@@ -1,5 +1,6 @@
 #pragma once
 
+#include "server/websocket/wsserver.hpp"
 namespace m_sylar :: websocket {
 static Logger::ptr ghws_logger = M_SYLAR_LOG_NAME("system");
 

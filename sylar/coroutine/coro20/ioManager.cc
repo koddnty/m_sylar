@@ -317,13 +317,6 @@ void IOManager::idle()
 
 void IOManager::tickle() 
 {
-//     int value = 1;
-//     if(-1 == write(m_eventFd, &value, sizeof(value)))
-//     {
-//         M_SYLAR_LOG_ERROR(g_logger) << "Failed to write in m_eventFd, errno=" << errno << " error: " << strerror(errno);
-//         throw;
-    // }
-
         int64_t buffer = 1;
         if(-1 == write(m_eventFd, &buffer, sizeof(buffer)))
         {
