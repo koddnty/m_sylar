@@ -8,7 +8,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated  -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations")
 # set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -rdynamic -g -fPIC -ggdb -std=c++20 -Wall -Wno-deprecated -Wno-unused-function -Wno-builtin-macro-redefined -Wno-deprecated-declarations -fsanitize=thread -O1")
 
-
+add_compile_options(-Wno-sign-compare)
 
 option(SYLAR_USE_CORO20 "Use C++20 coroutine implementation, OFF if NOT" ON)       # 底层协程实现配置
 
@@ -32,7 +32,6 @@ set(BASIC_SOURCES
     sylar/basic/address.cc
     sylar/basic/socket.cc
     sylar/basic/tool.cc
-
 )
 
 # 协议模块
@@ -40,6 +39,7 @@ file(GLOB_RECURSE PROTOCOL_SOURCES_FIND
     "sylar/protocol/websocket/*.cc"
     "sylar/protocol/websocket/*.c"
     "sylar/protocol/websocket/*.cpp"
+    "sylar/protocol/http/*.cc"
 )
 set(PROTOCOL_SOURCES
     ${PROTOCOL_SOURCES_FIND}
@@ -68,8 +68,12 @@ set(CORO20_SOURCES
     sylar/coroutine/coro20/taskPool.cc
 )
 
-# 数据库连接池模
+# 中间件支持
+set(MiddleWare
+    sylar/middleware/mq/client.cc
+)
 
+# 数据库连接池模
 set(DBPOOL_SOURCES
     sylar/DBPool/mysql.cc
     sylar/DBPool/redis.cc
@@ -87,7 +91,9 @@ set(TEST_SOURCES
 
 add_definitions(-DSYLAR_USE_CORO20)
 
-set(COROUTINE_SOURCES ${CORO20_SOURCES})
+set(COROUTINE_SOURCES ${CORO20_SOURCES}
+        sylar/middleware/mq/client.cc
+        sylar/middleware/mq/client.hpp)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

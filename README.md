@@ -75,8 +75,9 @@ make
   - [socket封装](./docs/socket/socket.md)
   - http相关
     - [httpServer/serverlet](./docs/http/httpServer.md)
-  - MySQL... 异步数据库连接池
-  - Redis 同步数据库连接池
+  - 数据库连接池
+    - [MySQL 异步数据库连接池](./docs/upBuilds/mysqlConnector.md)
+    - [Redis 数据库连接池](./docs/upBuilds/redisConnector.md)
 
 ## 许可证
 

@@ -15,7 +15,7 @@ int PackedIDAllocator::alloc() {
 
     // 更新下一个可用ID位置
     bool isFound = false;
-    for(int i = m_next_chunk; i < m_bit_map.size(); ++i) {
+    for(uint64_t i = m_next_chunk; i < m_bit_map.size(); ++i) {
         if(m_bit_map[i] != UINT64_MAX) {
             m_next_chunk = i;
             m_next_bit = std::countr_zero(~m_bit_map[i]);  // 找到第一个0位
@@ -39,23 +39,23 @@ int PackedIDAllocator::alloc() {
 
 int PackedIDAllocator::free(int id) {
     std::unique_lock<std::mutex> wlock(m_global_mutex);
-    if(id > getSize()) {
+    if(id > static_cast<int>(getSize())) {
         error_code = ErrorCode::INVALID_ID;
         return -1;
     }
 
-    int chunk_index = id / 64;
-    int bit_index = id % 64;
-    uint64_t mask = 1ULL << bit_index;
+    const int chunk_index = id / 64;
+    const int bit_index = id % 64;
+    const uint64_t mask = 1ULL << bit_index;
     if((m_bit_map[chunk_index] & mask) == 0) {
         error_code = ErrorCode::ALREADY_FREED;
         return -1;
     }
     m_bit_map[chunk_index] &= ~mask;  // 将对应位标记为0，表示已释放
 
-    if(chunk_index < m_next_chunk || (chunk_index == m_next_chunk && bit_index < m_next_bit)) {
+    if(chunk_index < static_cast<int>(m_next_chunk) || (chunk_index == static_cast<int>(m_next_chunk) && bit_index < m_next_bit)) {
         m_next_chunk = chunk_index;
-        m_next_bit = bit_index;
+        m_next_bit = static_cast<int>(bit_index);
     }
     return 0;
 }

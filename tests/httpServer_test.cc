@@ -9,17 +9,19 @@ static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
 m_sylar::Task<void> home_page(m_sylar::http::HttpSession::ptr session)
 {
-    session->getResponse()->append_header("nihao", "110");
+    session->getResponse()->appendHeader("nihao", "110");
     std::string message = "hello world";
-    session->getResponse()->set_body(message);
+    session->getResponse()->setBody(message);
+    co_await session->co_sendResp();
     co_return;
 }
 
 m_sylar::Task<void> rename_func(m_sylar::http::HttpSession::ptr session)
 {
-    session->getResponse()->append_header("nihao", "110");
+    session->getResponse()->appendHeader("nihao", "110");
     std::string message = "没有改名卡口我";
-    session->getResponse()->set_body(message);
+    session->getResponse()->setBody(message);
+    co_await session->co_sendResp();
     co_return;
 }
 

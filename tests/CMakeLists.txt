@@ -1,10 +1,12 @@
-include(FetchContent)
-FetchContent_Declare(
-  Catch2
-  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v3.6.0
-)
-FetchContent_MakeAvailable(Catch2)
+#include(FetchContent)
+#FetchContent_Declare(
+#  Catch2
+#  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+#  GIT_TAG        v3.6.0
+#)
+#FetchContent_MakeAvailable(Catch2)
+
+find_package(Catch2 REQUIRED)
 
 add_executable(unit_tests unit_tests.cpp)
 add_dependencies(unit_tests sylar)
@@ -38,9 +40,9 @@ add_executable(poolmysql_test sql/poolmysql_test.cc)
 add_dependencies(poolmysql_test sylar)
 target_link_libraries(poolmysql_test sylar ${LIB_LIB})
 
-add_executable(mysql_conntest sql/mysql_test.cc)
-add_dependencies(mysql_conntest sylar)
-target_link_libraries(mysql_conntest sylar ${LIB_LIB})
+add_executable(mysql_stmt_test sql/test_mysql_stmt.cc)
+add_dependencies(mysql_stmt_test sylar)
+target_link_libraries(mysql_stmt_test sylar ${LIB_LIB})
 
 add_executable(poolredis_test sql/poolredis_test.cc)
 add_dependencies(poolredis_test sylar)
@@ -115,4 +117,10 @@ target_link_libraries(scheduleCoro20_test sylar ${LIB_LIB})
 add_executable(iomanagerCoro20_test lab_test/iomanagerCoro20_test.cc)
 add_dependencies(iomanagerCoro20_test sylar)
 target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
+
+# 雪花算法测试
+add_executable(snowflak_test tools/Snowflake.cc)
+add_dependencies(snowflak_test sylar)
+target_link_libraries(snowflak_test sylar ${LIB_LIB})
+
 

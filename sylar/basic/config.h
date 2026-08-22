@@ -126,7 +126,7 @@ inline int getJsonValueByPath(const nlohmann::json& json_data, const std::string
         std::string key = path.substr(front_pos, back_pos - front_pos);
         if(std::isdigit(key[0])) {
             int idx = std::stoi(key);
-            if(idx < 0 || idx >= current_node->size()){
+            if(idx < 0 || idx >= static_cast<int>(current_node->size())){
                 return -1;
             }
             current_node = &((*current_node)[idx]);
@@ -145,7 +145,7 @@ inline int getJsonValueByPath(const nlohmann::json& json_data, const std::string
     std::string key = path.substr(front_pos);
     if(std::isdigit(key[0])) {
         int idx = std::stoi(key);
-        if(idx < 0 || idx >= current_node->size()){
+        if(idx < 0 || idx >= static_cast<int>(current_node->size())){
                 return -1;
         }
         current_node = &((*current_node)[idx]);
@@ -170,7 +170,7 @@ public:
 
     ConfigVar (const std::string& path, const ValueType& default_value, const std::string& description, int config_id,
                on_change_cb cb = nullptr)
-            : m_path(path), m_description(description), m_config_id(config_id) {
+            : m_path(path), m_config_id(config_id), m_description(description) {
         // 读取当前配置
         nlohmann::json json_data;
         int rt = getJsonValueByPath(ConfigManager::getConfigData(config_id)->getJsonData(), path, json_data);

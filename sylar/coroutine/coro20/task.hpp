@@ -343,6 +343,11 @@ public:
         std::unique_lock<std::mutex> lock(m_mutex);
         m_result = Result<ResultType>(std::current_exception());
         lock.unlock();
+        try {
+            m_result.value().getOrThrow();
+        } catch(std::exception& e) {
+            std::cout << "unhandled_exception : " << e.what() << std::endl;
+        }
         m_completion.notify_all();
         notifyAllCbs();
     }
@@ -359,8 +364,8 @@ public:
     template<typename _ResultType, typename _Executer>  // co_await协程返回值类型，与ResultType 有所区分
     TaskAwaiter<_ResultType, _Executer> await_transform (Task<_ResultType, _Executer>&& task)   // 用于子协程管理
     {   // 需要控制子任务生命周期
-        // return TaskAwaiter<_ResultType, _Executer>(std::move(task));
-        // auto* m_child_task = std::any_cast<Task<_ResultType, _Executer>>(&task);
+        // return TaskAwaiter<ResultType_, _Executer>(std::move(task));
+        // auto* m_child_task = std::any_cast<Task<ResultType_, _Executer>>(&task);
         Task<_ResultType, _Executer>* task_ptr = new Task<_ResultType, _Executer>(std::move(task));
         m_child_task_ptr.reset(task_ptr);
         TaskAwaiter<_ResultType, _Executer> child_task (task_ptr);
@@ -414,7 +419,7 @@ private:
     std::optional<Result<ResultType>> m_result;
     std::mutex m_mutex;
     std::condition_variable m_completion;
-    Executer* m_executer;
+    Executer* m_executer {nullptr};
     // ITask m_child_task;
     std::unique_ptr<ITask> m_child_task_ptr;
     std::list<std::function<void(Result<ResultType>)>> m_callbacks;
@@ -424,15 +429,13 @@ private:
 
 
 
-template<typename _ResultType>
+template<typename ResultType_>
 class Awaiter
 {   // Awaiter抽象类，用于co_awaiter，并带有自动的句柄管理
 public:
-    Awaiter()
-    {}
+    Awaiter() = default;
 
-    ~Awaiter()
-    {}
+    virtual ~Awaiter() = default;
 
     Awaiter(Awaiter& other)
     {
@@ -448,14 +451,14 @@ public:
         return false;
     }
 
-    // TaskPromise<_ResultType, _Executer>
+    // TaskPromise<ResultType_, _Executer>
     void await_suspend(std::coroutine_handle<> handle)
     {   // 控制协程是否完成后恢复自己
         m_handle = handle;
         on_suspend();
     }
 
-    _ResultType await_resume()
+    ResultType_ await_resume()
     {
         // if (!m_result.has_value()) {
         //     throw std::runtime_error("No result available");
@@ -481,7 +484,6 @@ public:
         }
     }
 
-protected:
     virtual void on_suspend()
     {}
 
@@ -490,9 +492,9 @@ protected:
 
 protected:
     // 结果对子类可见，方便灵活操作
-    std::optional<Result<_ResultType>> m_result{};
+    std::optional<Result<ResultType_>> m_result{};
 
-    void resume(_ResultType value) {
+    void resume(ResultType_ value) {
         bool expect = false;
         if(m_is_resumed.compare_exchange_strong(expect, true))
         {
@@ -502,7 +504,7 @@ protected:
             }
             dispatch([this, value]() {
                 // 将 value 封装到 _result 当中，await_resume 时会返回 value
-                m_result = Result<_ResultType>(static_cast<_ResultType>(value));
+                m_result = Result<ResultType_>(static_cast<ResultType_>(value));
                 if(!m_handle.done())
                 {
                     m_handle.resume();
@@ -526,7 +528,7 @@ protected:
     void resume_exception(std::exception_ptr&& e)
     {
         dispatch([this, e](){
-            m_result = Result<_ResultType>(e);
+            m_result = Result<ResultType_>(e);
 
             m_handle.resume();
         });
@@ -561,7 +563,7 @@ public:
         return false;
     }
 
-    // TaskPromise<_ResultType, _Executer>
+    // TaskPromise<ResultType_, _Executer>
     void on_suspend() override
     {   // 控制子协程是否完成后恢复自己
         // m_task.getExecuter()->execute([handle, this](){
@@ -571,7 +573,7 @@ public:
         // });
     }
 
-    // _ResultType await_resume()
+    // ResultType_ await_resume()
     // {
     //     return m_task->getResult();
     // }
@@ -640,18 +642,10 @@ template<>
 class Awaiter<void>
 {
 public:
-    Awaiter()
-    {
-
-    }
-
-    ~Awaiter()
-    {
-
-    }
-
-    Awaiter(Awaiter& other) = default;
-    Awaiter(Awaiter&& other) = delete;
+    explicit Awaiter() = default;
+    virtual ~Awaiter() = default;
+    explicit Awaiter(Awaiter& other) = default;
+    explicit Awaiter(Awaiter&& other) = delete;
 
 public:
     virtual bool await_ready()
@@ -659,7 +653,7 @@ public:
         return false;
     }
 
-    // TaskPromise<_ResultType, _Executer>
+    // TaskPromise<ResultType_, _Executer>
     void await_suspend(std::coroutine_handle<> handle)
     {   // 控制协程是否完成后恢复自己
         m_handle = handle;
@@ -909,6 +903,12 @@ public:
         std::unique_lock<std::mutex> lock(m_mutex);
         m_result = Result<void>(std::current_exception());
         lock.unlock();
+        try {
+            m_result.value().getOrThrow();
+        } catch(std::exception& e) {
+            std::cout << "unhandled_exception : " << e.what() << std::endl;
+        }
+
         m_completion.notify_all();
         notifyAllCbs();
     }
@@ -929,7 +929,7 @@ public:
         m_child_task_ptr.reset(task_ptr);
         TaskAwaiter<_ResultType, _Executer> child_task (task_ptr);
         return child_task;
-        // return TaskAwaiter<_ResultType, _Executer>(std::move(task));
+        // return TaskAwaiter<ResultType_, _Executer>(std::move(task));
     }
 
     template<typename AwaiterImpl>

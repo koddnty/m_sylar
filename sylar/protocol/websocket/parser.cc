@@ -252,15 +252,13 @@ int Frame::make(std::vector<uint8_t>& data, bool mask) const {
     } else if (len <= 0xFFFF) {
         byte1 |= 126;
         data.push_back(byte1);
-        uint16_t len16 = byteSwapToBigEndian((uint16_t)len);
-        data.push_back((len16 >> 8) & 0xFF);
-        data.push_back(len16 & 0xFF);
+        data.push_back((len >> 8) & 0xFF);
+        data.push_back(len & 0xFF);
     } else {
         byte1 |= 127;
         data.push_back(byte1);
-        uint64_t len64 = byteSwapToBigEndian((uint64_t)len);
         for (int i = 56; i >= 0; i -= 8) {
-            data.push_back((len64 >> i) & 0xFF);
+            data.push_back((len >> i) & 0xFF);
         }
     }
 

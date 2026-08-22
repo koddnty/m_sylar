@@ -45,7 +45,7 @@ public:
 
         // M_SYLAR_LOG_INFO(g_logger) << "FIN=" << FIN << " RSV1=" << RSV1 << " RSV2=" << RSV2 << " RSV3=" << RSV3 << " opcode=" << opcode;
         // M_SYLAR_LOG_INFO(g_logger) << "reply frame, sessionId=" << session->getSessionId() << ", opcode=" << opcode << ", payload length=" << f.getPayloadLength();
-        M_SYLAR_LOG_INFO(g_logger) << "recevied a message: ==============================\n" << msg << "============================================================\n";
+        std::cout << ">>>: ==============================\n" << msg << "\n===================================\n";
 
         // for(int i = 0; i < 1000; i++) {
         //     co_await co_sleep(5);   // 每30ms秒发送一次消息

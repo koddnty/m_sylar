@@ -97,7 +97,7 @@ protected:
     // std::list<TaskCoro20> m_tasks;                                  // 任务队列
     // std::map<std::pair<int, int>, Thread::ptr> m_threads;           //{{线程序号，线程号}， 线程指针}
     std::vector<Thread::ptr> m_threads;
-    std::atomic<int> m_threads_count;                                            // 线程个数
+    std::atomic<size_t> m_threads_count;                                            // 线程个数
     std::atomic<bool> m_autoStop;                                                // 软停止（执行完毕所有任务
     std::atomic<bool> m_stop;                                                    // 直接停止
     std::shared_mutex m_mutex;

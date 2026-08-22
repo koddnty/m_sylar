@@ -13,7 +13,7 @@ ConfigVar<uint32_t>::ptr g_ws_recv_timeout = ConfigManager::LookUp("servers.webs
 ConfigVar<uint32_t>::ptr g_ws_send_timeout = ConfigManager::LookUp("servers.websocket.timeout.send", uint32_t(30), 0, "websocket server send timeout");
 ConfigVar<uint32_t>::ptr g_ws_ping_interval = ConfigManager::LookUp("servers.websocket.interval.ping", uint32_t(20), 0, "websocket server send timeout");
 ConfigVar<uint32_t>::ptr g_ws_pong_timeout = ConfigManager::LookUp("servers.websocket.timeout.pong", uint32_t(15), 0, "websocket server send timeout");
-ConfigVar<uint32_t>::ptr g_ws_buffer_size = ConfigManager::LookUp("servers.websocket.limit.buffer_size", uint32_t(1024), 0, "websocket server parser buffer size");
+ConfigVar<uint32_t>::ptr g_ws_buffer_size = ConfigManager::LookUp("servers.websocket.limit.buffer_size", uint32_t(4096), 0, "websocket server parser buffer size");
 ConfigVar<uint32_t>::ptr g_ws_max_request_size  = ConfigManager::LookUp("servers.websocket.limit.max_request_size", uint32_t(10485760), 0, "websocket server parser buffer size");
 
 
@@ -36,8 +36,7 @@ Task<void> WsHandler::co_onBinary(std::shared_ptr<WsSession> session, const std:
 }
 
 Task<void> WsHandler::co_onClose(std::shared_ptr<WsSession> session, int code, const std::string& reason) {
-    // M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onClose event, sessionId=" << session->getSessionId();
-    co_await session->co_close(code, reason);
+    M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onClose event, sessionId=" << session->getSessionId();
     co_return;
 }
 
@@ -58,6 +57,11 @@ Task<void> WsHandler::co_onPong(std::shared_ptr<WsSession> session, const std::s
 
 Task<void> WsHandler::co_onError(std::shared_ptr<WsSession> session, const std::string& error) {
     M_SYLAR_LOG_INFO(g_logger) << "unhandled websocket onError event, sessionId=" << session->getSessionId();
+    co_return;
+}
+
+Task<void> WsHandler::co_onBadClose(std::shared_ptr<WsSession> session) {
+    M_SYLAR_LOG_WARN(g_logger) << "unhandled websocket onBadClose event, sessionId=" << session->getSessionId();
     co_return;
 }
 
@@ -105,7 +109,7 @@ int WsSession::init() {
             pingFrame->setPingPayload(std::to_string(now));
             co_await self->co_sendFrame(pingFrame);
 
-            co_await co_sleep(g_ws_pong_timeout->getValue() * 1000);   // 等待pong超时
+            co_await co_sleep(g_ws_pong_timeout->getValue() * 1000);   // 等待pong超时时间
             
             // 检查定时器状态
             if(self->getState() != State::OPEN) {
@@ -113,15 +117,16 @@ int WsSession::init() {
                 co_return false;  
             }
             // 检查最近pong帧时间戳，如果超过超时时间，认为连接异常，进入关闭流程
+            uint64_t before = now;
             now = TimeManager::GetCurrentMS();
-            uint64_t recent_pong = self->getRecentFrameTime();
-            M_SYLAR_LOG_INFO(g_logger) << "ping check,(timeout " << g_ws_pong_timeout->getValue() * 1000 << ") sessionId=" << self->getSessionId() << ", now=" << now << ", recent_pong=" << recent_pong;
+            const uint64_t recent_pong = self->getRecentFrameTime();
+            M_SYLAR_LOG_DEBUG(g_logger) << "ping check,(timeout " << g_ws_pong_timeout->getValue() * 1000 << ") sessionId=" << self->getSessionId() << ", now=" << now << ", recent_pong=" << recent_pong;
             if(now < recent_pong) {
                 M_SYLAR_LOG_WARN(g_logger) << "current time is smaller than recent pong time, something may be wrong, sessionId=" << self->getSessionId();
                 co_return true;    // 时间异常但不认为连接异常，继续等待
             }
-            if(now > recent_pong && now - recent_pong > g_ws_pong_timeout->getValue() * 1000) {
-                M_SYLAR_LOG_WARN(g_logger) << "ping timeout(" << std::to_string(now - recent_pong ) << " > " << std::to_string(g_ws_pong_timeout->getValue() * 1000) 
+            if(now > recent_pong && now - recent_pong - 100 > g_ws_pong_timeout->getValue() * 1000) {     // -100ms避免定时器误差
+                M_SYLAR_LOG_WARN(g_logger) << "ping timeout( from " << before << " to " << now <<" [" << now - before << "] )(" << std::to_string(now - recent_pong ) << " > " << std::to_string(g_ws_pong_timeout->getValue() * 1000)
                                             << "), close session, sessionId=" << self->getSessionId();
                 co_return false;    // 连接超时，进入关闭流程
             }
@@ -129,18 +134,17 @@ int WsSession::init() {
             co_return true;
         }, 
         [self](TimeTask::ptr time_task)->Task<void>{
-            IOManager::getInstance()->schedule([self]() {
-                if(self->getState() != State::OPEN) {
-                    M_SYLAR_LOG_DEBUG(g_logger) << "timer" << self->getSessionId();
-                    // TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
-                    return;     // 连接未处于OPEN状态，无需处理
-                }
-                // TODO: 实现真正的主动关闭定时器操作
-                M_SYLAR_LOG_DEBUG(g_logger) << "ping timeout callback, close session, sessionId=" << self->getSessionId();
-                self->m_state = State::CLOSED;
-                WsServer::getInstance()->close(self->getSessionId());           // 关闭连接
+            if(self->getState() != State::OPEN) {
+                M_SYLAR_LOG_DEBUG(g_logger) << "timer" << self->getSessionId();
                 // TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
-            });
+                co_return;     // 连接未处于OPEN状态，无需处理
+            }
+            // TODO: 实现真正的主动关闭定时器操作
+            co_await WsHandler::co_onClose(self, 1001, "timeout");
+            M_SYLAR_LOG_DEBUG(g_logger) << "ping timeout callback, close session, sessionId=" << self->getSessionId();
+            self->m_state = State::CLOSED;
+            WsServer::getInstance()->close(self->getSessionId());           // 关闭连接
+            // TimeManager::getInstance()->cancelTimer(self->m_timer_fd);
             co_return;
         }
     );  
@@ -236,6 +240,8 @@ Task<int> WsSession::co_sendFrame(const Frame& frame) {
             to_send.pop_front();
         }
     }
+
+
     co_return 0;
 }
 
@@ -258,13 +264,8 @@ Task<int> WsSession::co_close(int code, const std::string& reason) {
     auto data = f.make();
     M_SYLAR_LOG_DEBUG(g_logger) << "close data: " << std::string(data.begin(), data.end());
     co_await sendMessage((const char*)data.data(), data.size());   // 发送空消息
-    // 关闭定时器
-    if(m_timer_task) {
-        m_timer_task->cancel();   // 取消定时器
-        m_timer_task = nullptr;
-    }
-    m_state = State::CLOSED;
 
+    m_state = State::CLOSED;
     co_return 0;
 }
 
@@ -273,6 +274,18 @@ int WsSession::upDateSessionOnRecv() {
     m_recent_activate = TimeManager::GetCurrentMS();   // 取消原有定时器
     return 0;
 }
+
+// 清理定时器资源
+int WsSession::clean() {
+    // 关闭定时器
+    if(m_timer_task) {
+        m_timer_task->cancel();   // 取消定时器
+        m_timer_task = nullptr;
+    }
+    m_state = State::CLOSED;
+    return 0;
+}
+
 
 
 
@@ -300,13 +313,12 @@ WsServer::WsServer(http::HttpServer* httpServer, int maxSession)
 }
 
 WsServer::~WsServer() {
-    
 }
 
 Task<int> WsServer::handShake(http::HttpSession::ptr http_session) {
     // 完成握手，建立websocket连接
     // 请求判断
-    std::shared_ptr<protocol::http::parser::request> request = http_session->getRequest();
+    std::shared_ptr<protocol::http::parser::request> request = http_session->getRequest()->get();
 
     std::string request_str = request->raw();
     std::shared_ptr<WebSocket> ws = std::make_shared<WebSocket>();
@@ -371,7 +383,8 @@ WsSession::ptr WsServer::getSession(int sessionId) {
     return m_sessions[sessionId];
 }
 
-WsSession::ptr WsServer::createSession(Socket::ptr client) {
+WsSession::ptr WsServer::createSession(http::HttpSession::ptr http_session) {
+    Socket::ptr client = http_session->getSocket();
     int sessionId = m_sessionIdAllocator->alloc();
     if(sessionId < 0) {
         M_SYLAR_LOG_ERROR(g_logger) << "createSession failed, sessionId alloc failed, error code:" << (int)m_sessionIdAllocator->getErrorCode();
@@ -395,6 +408,8 @@ WsSession::ptr WsServer::createSession(Socket::ptr client) {
         m_sessionIdAllocator->free(sessionId);   // 释放sessionId
         return nullptr;
     }
+
+    session->setRequest(http_session->getRequest());   // 设置握手请求对象
     
     // 将session添加到session列表
     std::unique_lock<std::shared_mutex> w_lock(*m_session_mutexs[sessionId / 64]);
@@ -404,6 +419,7 @@ WsSession::ptr WsServer::createSession(Socket::ptr client) {
     m_sessionCount.fetch_add(1, std::memory_order_relaxed);
     return session;
 }
+
 
 int WsServer::removeSession(int sessionId) {
     if(sessionId < 0 || sessionId >= (int)m_sessions.size()) {

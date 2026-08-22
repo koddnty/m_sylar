@@ -30,9 +30,9 @@ public:
     */
     int free(int id);
 
-    uint64_t getSize() const { return m_bit_map.size() * 64; }
+    [[nodiscard]] size_t getSize() const { return m_bit_map.size() * 64; }
 
-    ErrorCode getErrorCode() const { return error_code; }
+    [[nodiscard]] ErrorCode getErrorCode() const { return error_code; }
 
 
 private:
