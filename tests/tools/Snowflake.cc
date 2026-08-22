@@ -1,9 +1,9 @@
-#include "tools/snowflak.hpp"
+#include "tools/Snowflake.hpp"
 #include "coroutine/corobase.h"
 #include "coroutine/coro20/ioManager.h"
 using namespace m_sylar;
 
-static snowflake<1387063029359> sf;
+static Snowflake<1387063029359> sf;
 static std::vector<std::set<int64_t>> m_results;
 
 

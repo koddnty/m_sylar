@@ -119,7 +119,7 @@ add_dependencies(iomanagerCoro20_test sylar)
 target_link_libraries(iomanagerCoro20_test sylar ${LIB_LIB})
 
 # 雪花算法测试
-add_executable(snowflak_test tools/snowflak.cc)
+add_executable(snowflak_test tools/Snowflake.cc)
 add_dependencies(snowflak_test sylar)
 target_link_libraries(snowflak_test sylar ${LIB_LIB})
 
