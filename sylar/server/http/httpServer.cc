@@ -60,6 +60,8 @@ Task<int> HttpSession::co_recvRequest()
 {
     uint64_t max_request_size = g_http_max_request_size->getValue();
     M_SYLAR_LOG_DEBUG(g_logger) << " max request size=" << max_request_size;
+    m_request->reset();
+    m_response->reset();
     char* buffer = nullptr;     // 输出参数，指向接收数据的起始位置，不要对buffer进行delete操作
     size_t total_length = 0;      // 累计接收字节数
     while(true){
@@ -316,7 +318,7 @@ Task<void, TaskBeginExecuter> HttpServer::handleClient(Socket::ptr client)
     // 协程重调度
     if(is_keep_alive && response_count >= stack_deep)
     {
-        M_SYLAR_LOG_WARN(g_logger) << "WS_Response count has reached the limit, close connection. client:" << client->toString();
+        // M_SYLAR_LOG_WARN(g_logger) << "WS_Response count has reached the limit, close connection. client:" << client->toString();
         auto t = std::bind(&HttpServer::handleClient, std::dynamic_pointer_cast<HttpServer>(shared_from_this()), client);
         getIomanager()->schedule(TaskCoro20::create_coro(t));
     }

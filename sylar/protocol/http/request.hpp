@@ -89,6 +89,19 @@ public:
     /// Returns the raw request headers only (similar to an HTTP HEAD request)
     std::string raw_head() const;
 
+    /// Reset the parser so it can parse a new request
+    /**
+     * Clears the request line, buffer and ready flag in addition to the shared
+     * parser state. Must be called between keep-alive requests.
+     */
+    void reset() {
+        m_ready = false;
+        m_buf = lib::make_shared<std::string>();
+        m_method.clear();
+        m_uri.clear();
+        parser::reset();
+    }
+
     /// Set the HTTP method. Must be a valid HTTP token
     void set_method(std::string const & method);
 

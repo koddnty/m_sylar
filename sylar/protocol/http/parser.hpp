@@ -543,6 +543,20 @@ public:
         m_body_bytes_max = value;
     }
 
+    /// Reset the parser to its initial state so it can parse a new message
+    /**
+     * Clears the version, headers, body and parsing state shared by both
+     * requests and responses.
+     */
+    void reset() {
+        m_version.clear();
+        m_headers.clear();
+        m_header_bytes = 0;
+        m_body.clear();
+        m_body_bytes_needed = 0;
+        m_body_encoding = body_encoding::unknown;
+    }
+
     /// Extract an HTTP parameter list from a string.
     /**
      * @param [in] in The input string.

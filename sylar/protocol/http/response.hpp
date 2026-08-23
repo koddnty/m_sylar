@@ -157,6 +157,20 @@ public:
     const std::string& get_status_msg() const {
         return m_status_msg;
     }
+
+    /// Reset the parser so it can build a new response
+    /**
+     * Clears the response line, buffer, status and state in addition to the
+     * shared parser state. Must be called between keep-alive responses.
+     */
+    void reset() {
+        m_read = 0;
+        m_buf = std::make_shared<std::string>();
+        m_status_msg.clear();
+        m_status_code = status_code::uninitialized;
+        m_state = RESPONSE_LINE;
+        parser::reset();
+    }
 private:
     /// Helper function for consume. Process response line
     void process(std::string::iterator begin, std::string::iterator end);
