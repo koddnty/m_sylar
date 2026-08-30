@@ -7,8 +7,7 @@
 
 static m_sylar::Logger::ptr g_logger = M_SYLAR_LOG_NAME("system");
 
-m_sylar::Task<void> home_page(m_sylar::http::HttpSession::ptr session)
-{
+m_sylar::Task<void> home_page(m_sylar::http::HttpSession::ptr session) {
     session->getResponse()->appendHeader("nihao", "110");
     std::string message = "hello world";
     session->getResponse()->setBody(message);
@@ -16,8 +15,8 @@ m_sylar::Task<void> home_page(m_sylar::http::HttpSession::ptr session)
     co_return;
 }
 
-m_sylar::Task<void> rename_func(m_sylar::http::HttpSession::ptr session)
-{
+
+m_sylar::Task<void> rename_func(m_sylar::http::HttpSession::ptr session) {
     session->getResponse()->appendHeader("nihao", "110");
     std::string message = "没有改名卡口我";
     session->getResponse()->setBody(message);
@@ -25,33 +24,31 @@ m_sylar::Task<void> rename_func(m_sylar::http::HttpSession::ptr session)
     co_return;
 }
 
-void test_http_server(m_sylar::IOManager* iom)
-{
+
+void test_http_server(m_sylar::IOManager* iom) {
+    uint16_t port = 8803;
     m_sylar::http::HttpServer::ptr server(new m_sylar::http::HttpServer(iom));
     m_sylar::Address::ptr addr = m_sylar::Address::LookupAnyIPAddress("0.0.0.0");
-    std::dynamic_pointer_cast<m_sylar::IPv4Address>(addr)->setPort(8803);
+    std::dynamic_pointer_cast<m_sylar::IPv4Address>(addr)->setPort(port);
     server->bind(addr, 6);
     
     server->GET("/home", home_page);
 
     server->POST("/home/rename", rename_func);
     server->start();
-    M_SYLAR_LOG_INFO(g_logger) << "All Gate have been registered, ip:0.0.0.0:8803";
+    M_SYLAR_LOG_INFO(g_logger) << "All Gate have been registered, ip:0.0.0.0:" << port;
     sleep(1000);
     server->stop();
 }
 
-int main(void)
-{
 
+int main(void) {
     std::string config_path = "/home/koddnty/user/projects/sylar/m_sylar/m_sylar/conf/basic.json";
     std::cout << "[LoggerManager init] config path: " << config_path << std::endl;
     m_sylar::ConfigManager::LoadJson(config_path, 0);
 
     m_sylar::IOManager iom("httpServer", 8);    
-    // iom.schedule(test_http_server);
     test_http_server(&iom);
-    // sleep(1000);
     iom.autoStop();
     return 0;
 }
