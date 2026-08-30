@@ -58,13 +58,16 @@ int main(void) {
 
 ### 结果
 
-cpu与资源占用
-![img.png](img.png)
 
-**oha 压测**
+
+### oha 压测
 使用oha进行压力测试,30s 100连接情况下,本地回环请求成功率为100%.P99延迟为6ms左右.性能较为优秀.
 
-命令输出:
+**cpu与资源占用**
+
+![img.png](img.png)
+
+**命令输出:**
 
 ```shell
 ╭─koddnty@koddnty-Legion-Y7000P-IRX9 ~ 
@@ -116,5 +119,32 @@ Status code distribution:
 
 Error distribution:
   [78] aborted due to deadline
+
+```
+
+### 使用wrk压测
+
+cpu与资源占用与oha类似,内存占用更高,与更高的QPS对应.
+
+wrk测试中,QPS达到了20w+,但相对的,P99延迟达到了91.57ms.框架对请求的响应波动较大.
+
+**命令输出** 
+
+``` shell
+╭─koddnty@koddnty-Legion-Y7000P-IRX9 ~ 
+╰─$ wrk -t8 -c100 -d30s --latency http://127.0.0.1:8803/home
+Running 30s test @ http://127.0.0.1:8803/home
+  8 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     6.38ms   17.77ms 309.13ms   93.06%
+    Req/Sec    27.20k    14.82k  113.46k    80.44%
+  Latency Distribution
+     50%   59.00us
+     75%    4.43ms
+     90%   16.08ms
+     99%   91.57ms
+  6503944 requests in 30.08s, 533.43MB read
+Requests/sec: 216229.89
+Transfer/sec:     17.73MB
 
 ```
