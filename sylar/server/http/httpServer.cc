@@ -31,8 +31,9 @@ ConfigVar<uint32_t>::ptr g_http_max_request_size  = ConfigManager::LookUp("serve
 HttpSession::HttpSession(Socket::ptr socket)
     : Session(socket)
 {
-    setRecvTimeOut(g_http_recv_timeout->getValue());
-    setSendTimeOut(g_http_send_timeout->getValue());
+    // 配置项单位为秒, FdCtx中保存的为usec
+    setRecvTimeOut(g_http_recv_timeout->getValue() * 1000000LL);
+    setSendTimeOut(g_http_send_timeout->getValue() * 1000000LL);
     setBufferSize(g_http_buffer_size->getValue());
     m_response.reset(new WS_Response());
     m_request.reset(new WS_Request());
@@ -343,7 +344,14 @@ Task<void, TaskBeginExecuter> HttpServer::startAccept(Socket::ptr sock)
         }
         else 
         {
-            M_SYLAR_LOG_WARN(g_logger) << "accept failed, errno : " << errno << " error : " << strerror(errno);
+            if(errno == ETIMEDOUT)
+            {   // 监听fd等待超时, 无新连接, 循环重新accept
+                M_SYLAR_LOG_DEBUG(g_logger) << "accept timeout, no pending connection, sockfd : " << sock->getFd();
+            }
+            else
+            {
+                M_SYLAR_LOG_WARN(g_logger) << "accept failed, errno : " << errno << " error : " << strerror(errno);
+            }
         }
     }
     // 重新调度accept

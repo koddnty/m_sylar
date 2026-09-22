@@ -62,7 +62,7 @@ public:
     TimeTask::ptr addConditionTimer(TimeTask::ptr time_task);                                           // 添加条件定时器, usec
 
     IOManager& addEventWithTimeout(int fd, FdContext::Event event, TaskCoro20&& task, 
-                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag = 0);        // usec, 1000,000
+                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag = 0);        // ms, 1000,000
     IOManager& addEventWithTimeout(int fd, FdContext::Event event, std::function<void()> cb_func, 
                                             uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag = 0);
 

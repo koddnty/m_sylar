@@ -124,3 +124,9 @@ add_dependencies(snowflak_test sylar)
 target_link_libraries(snowflak_test sylar ${LIB_LIB})
 
 
+# hook层fd事件超时测试
+add_executable(hookTimeoutCoro20_test lab_test/hookTimeoutCoro20_test.cc)
+add_dependencies(hookTimeoutCoro20_test sylar)
+target_link_libraries(hookTimeoutCoro20_test sylar ${LIB_LIB})
+
+

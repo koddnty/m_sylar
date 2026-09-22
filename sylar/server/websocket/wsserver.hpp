@@ -248,8 +248,8 @@ private:
     std::shared_mutex m_mutex;
     http::HttpServer::ptr m_httpServer;                         // 外部http服务器，完成握手升级协议后传入websocket server
     PackedIDAllocator::ptr m_sessionIdAllocator {nullptr};                 // sessionId分配器
-    std::vector<WsSession::ptr> m_sessions;                                  // session列表，存储所有连接的session，索引为sessionId
-    std::vector<std::unique_ptr<std::shared_mutex>> m_session_mutexs;                             // session列表锁，保护session列表的读写
+    std::vector<WsSession::ptr> m_sessions;                                                         // session列表，存储所有连接的session，索引为sessionId
+    std::vector<std::unique_ptr<std::shared_mutex>> m_session_mutexs;                               // session列表锁，保护session列表的读写
     std::atomic<uint32_t> m_sessionCount{0};                             // 当前session数量
 };
 }

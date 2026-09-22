@@ -9,8 +9,9 @@ ConfigVar<uint32_t>::ptr g_basic_buffer_size = ConfigManager::LookUp("servers.ba
 
 
 Session::Session(Socket::ptr socket) : m_socket(socket) {
-    m_socket->setRecvTimeOut(g_basic_recv_timeout->getValue());
-    m_socket->setSendTimeOut(g_basic_send_timeout->getValue());
+    // 配置项单位为秒, FdCtx中保存的为usec
+    m_socket->setRecvTimeOut(g_basic_recv_timeout->getValue() * 1000000LL);
+    m_socket->setSendTimeOut(g_basic_send_timeout->getValue() * 1000000LL);
     int buffer_size = g_basic_buffer_size->getValue();
     m_buffer = new char[buffer_size];
 }

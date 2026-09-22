@@ -255,7 +255,7 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, std:
         [taskwrapper, rtState, iom_fd, iom_event, closeFlag](TimeTask::ptr task) mutable -> Task<void> {
             *rtState = TimeLimitInfo::State::TIMEOUT;
             if(closeFlag) {
-                IOManager::getInstance()->closeWithNoClose(iom_fd);         // 删除事件
+                IOManager::getInstance()->closeWithNoClose(iom_fd);         // 取消事件
             }
             else {
                 IOManager::getInstance()->delEvent(iom_fd, iom_event);      // 完全删除事件

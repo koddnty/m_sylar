@@ -152,7 +152,14 @@ Task<void, TaskBeginExecuter> TcpServer::startAccept(Socket::ptr sock)
         }
         else 
         {
-            M_SYLAR_LOG_WARN(g_logger) << "accept failed, errno : " << errno << " error : " << strerror(errno);
+            if(errno == ETIMEDOUT)
+            {   // 监听fd等待超时, 无新连接, 循环重新accept
+                M_SYLAR_LOG_DEBUG(g_logger) << "accept timeout, no pending connection, sockfd : " << sock->getFd();
+            }
+            else
+            {
+                M_SYLAR_LOG_WARN(g_logger) << "accept failed, errno : " << errno << " error : " << strerror(errno);
+            }
         }
     }
          

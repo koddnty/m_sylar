@@ -71,8 +71,9 @@ Task<void> WsHandler::co_onBadClose(std::shared_ptr<WsSession> session) {
 
 // session分配器，连接列表等后续完善
 WsSession::WsSession(Socket::ptr socket, size_t sessionId) : Session(socket) {
-    setRecvTimeOut(g_ws_recv_timeout->getValue());
-    setSendTimeOut(g_ws_send_timeout->getValue());
+    // 配置项单位为秒, FdCtx中保存的为usec
+    setRecvTimeOut(g_ws_recv_timeout->getValue() * 1000000LL);
+    setSendTimeOut(g_ws_send_timeout->getValue() * 1000000LL);
     setBufferSize(g_ws_buffer_size->getValue());
     m_sessionId = sessionId;
 

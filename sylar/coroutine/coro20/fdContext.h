@@ -137,7 +137,6 @@ private:
     FdContext::Event m_event;
 };
 
-
 class FdContextManager::ADD_TASK : public FdContextManager::RegistedTask
 {
 public:

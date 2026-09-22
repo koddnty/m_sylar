@@ -7,7 +7,7 @@
 
 namespace m_sylar
 {
-#define HOOK_IOAWAIT_TIMEOUT 5000000            // ioawait超时时间
+#define HOOK_IOAWAIT_TIMEOUT 5000               // ioawait 默认超时时间, 单位ms, fd未设置SO_RCVTIMEO/SO_SNDTIMEO时使用
 
     bool is_hook_enable();
     void set_hook_state(bool flags);
@@ -21,38 +21,38 @@ m_sylar::Task<int> co_nanosleep(const struct timespec *duration,
 
 int co_socket(int domain, int type, int protocol);
 
-m_sylar::Task<ssize_t> co_accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen);
+m_sylar::Task<int> co_accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen);
 
 m_sylar::Task<int> co_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 
-m_sylar::Task<ssize_t> co_read(int fd, void* buf, size_t count);
+m_sylar::Task<int> co_read(int fd, void* buf, size_t count);
 
-m_sylar::Task<ssize_t > co_readv(int fd, const struct iovec *iov, int iovcnt);
+m_sylar::Task<int > co_readv(int fd, const struct iovec *iov, int iovcnt);
 
-m_sylar::Task<ssize_t > co_preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset);
+m_sylar::Task<int > co_preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset);
 
-m_sylar::Task<ssize_t> co_preadv2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags);
+m_sylar::Task<int> co_preadv2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags);
 
-m_sylar::Task<ssize_t> co_recv(int sockfd, void* buf, size_t len, int flags);
+m_sylar::Task<int> co_recv(int sockfd, void* buf, size_t len, int flags);
 
-m_sylar::Task<ssize_t> co_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr *  src_addr, socklen_t* addrlen);
+m_sylar::Task<int> co_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr *  src_addr, socklen_t* addrlen);
 
-m_sylar::Task<ssize_t> co_recvmsg(int sockfd, struct msghdr *msg, int flags);
+m_sylar::Task<int> co_recvmsg(int sockfd, struct msghdr *msg, int flags);
 
-m_sylar::Task<ssize_t> co_write(int fd, const void* buf, size_t count);
+m_sylar::Task<int> co_write(int fd, const void* buf, size_t count);
 
-m_sylar::Task<ssize_t> co_writev(int fd, const struct iovec *iov, int iovcnt);
+m_sylar::Task<int> co_writev(int fd, const struct iovec *iov, int iovcnt);
 
-m_sylar::Task<ssize_t> co_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset);
+m_sylar::Task<int> co_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset);
 
-m_sylar::Task<ssize_t> co_pwritev2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags);
+m_sylar::Task<int> co_pwritev2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags);
 
-m_sylar::Task<ssize_t> co_send(int sockfd, const void* buf, size_t len, int flags);
+m_sylar::Task<int> co_send(int sockfd, const void* buf, size_t len, int flags);
 
-m_sylar::Task<ssize_t> co_sendto(int sockfd, const void* buf, size_t len, int flags,
+m_sylar::Task<int> co_sendto(int sockfd, const void* buf, size_t len, int flags,
                const struct sockaddr *dest_addr, socklen_t addrlen);
 
-m_sylar::Task<ssize_t> co_sendmsg(int sockfd, const struct msghdr *msg, int flags);
+m_sylar::Task<int> co_sendmsg(int sockfd, const struct msghdr *msg, int flags);
 
 int co_close(int fd, int mod = 0);
 
