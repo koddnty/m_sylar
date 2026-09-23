@@ -115,16 +115,19 @@ private:
 // template<typename Original_fun>
 
 /**
-    @brief 当前ioAwaiter仅会在有事件的时候唤醒协程，但不会进行读取或对事件处理，且返回值无效
- */
-class io_Awaiter : public Awaiter<int> , public std::enable_shared_from_this<io_Awaiter>
-{   // co_await do_io使用的Awiater,自动注册iomanager并在有信息时恢复协程。
-    // 返回-1代表失败，-2代表应重试
-public:
-    io_Awaiter(int fd, m_sylar::FdContext::Event event, uint64_t timo = -1)
-        : m_fd(fd), m_timo(timo), m_event(event) {}
+    @brief 当前ioAwaiter仅会在有事件的时候唤醒协程，但不会进行读取或对事件处理
 
-    ~io_Awaiter()
+        co_await的结果为TimeLimitInfo::State:
+            TimeLimitInfo::FINISHED 表示fd上的事件已就绪，调用方应重试原io函数
+            TimeLimitInfo::TIMEOUT  表示等待超时，此时addEventWithTimeout已取消fd上的事件监听
+ */
+class io_Awaiter : public Awaiter<TimeLimitInfo::State> , public std::enable_shared_from_this<io_Awaiter>
+{   // co_await do_io使用的Awiater,自动注册iomanager并在有信息时恢复协程。
+public:
+    io_Awaiter(int fd, m_sylar::FdContext::Event event, uint64_t timo_ms = 0)
+        : m_fd(fd), m_timo(timo_ms), m_event(event) {}
+
+    ~io_Awaiter() override
     {
         IOManager::getInstance()->delEvent(m_fd, m_event);
     }
@@ -132,42 +135,28 @@ public:
 
     void on_suspend()override
     {
-        // auto self = shared_from_this();
-        m_sylar::IOManager* iom = m_sylar::IOManager::getInstance();
-        // m_sylar::TimeManager* tim = m_sylar::TimeManager::getInstance();
-        std::shared_ptr<fdTimerInfo> fdtino (new fdTimerInfo);
-        std::weak_ptr<fdTimerInfo> wfdtino (fdtino);
-        TimeLimitInfo::StatePtr timeState = std::make_shared<TimeLimitInfo::State> ();
-        uint64_t timeOut = HOOK_IOAWAIT_TIMEOUT;
-
-
-        iom->addEvent(m_fd, m_event, [this](){  // 回调函数，当有io事件可用或超时时恢复协程
-            resume(m_state);
-            // IOManager::getInstance()->delEvent(m_fd, m_event);
-        });
+        // 超时时间单位ms, 未指定(0)时使用默认值
+        uint64_t timo_ms = m_timo ? m_timo : HOOK_IOAWAIT_TIMEOUT;
+        auto tim = m_sylar::TimeManager::getInstance();
+        tim->addEventWithTimeout(m_fd, m_event, [this](){  // 回调函数，当有io事件可用或超时时恢复协程
+            resume(*m_state);
+        }, timo_ms, m_state);
     }
 
     void before_resume() override
     {
     }
 
-    enum State
-    {
-        UNDEFINED = -2,
-        ERROR = -1,
-        READY = 0,
-        TIMO = 1
-    };
-
 private:
-    int m_state = READY;    // 0 事件可行， 1 超时， -1 出现错误 -2 未定义
+    // 出参,由addEventWithTimeout的条件定时器写入,值域见TimeLimitInfo::State
+    TimeLimitInfo::StatePtr m_state = std::make_shared<TimeLimitInfo::State>(TimeLimitInfo::State::WAITING);
     int m_fd;
-    uint64_t m_timo;
+    uint64_t m_timo;        // ms
     m_sylar::FdContext::Event m_event;
 };
 
 template<typename Original_fun, typename ... Args>
-static Task<ssize_t> do_io(int fd, Original_fun func, const char* fun_name, 
+static Task<int> do_io(int fd, Original_fun func, const char* fun_name,
     uint32_t event, int type, Args&& ... args)
 {   // 文件描述符 原io函数 原函数名称 事件(读/写) 定时器任务类型(读/写) io函数其他参数
     // 对fd状态检查
@@ -189,8 +178,15 @@ static Task<ssize_t> do_io(int fd, Original_fun func, const char* fun_name,
         co_return func(fd, std::forward<Args>(args) ...);
     }
     
-    // 定时器设置
-    uint64_t time_out = fd_ctx->getTimeout(type);       // 获取设定的超时时间
+    // 定时器设置: FdCtx中保存的为usec, 未设置时值为UINT64_MAX
+    uint64_t time_us = fd_ctx->getTimeout(type);
+    uint64_t time_out = (time_us == 0 || time_us == (uint64_t)-1)
+                        ? HOOK_IOAWAIT_TIMEOUT                   // 未设置, 使用默认值(ms)
+                        : (time_us + 999) / 1000;                // usec -> ms, 向上取整
+    if(time_out == 0)
+    {
+        time_out = 1;
+    }
 
 retry:
     int n = func(fd, std::forward<Args>(args)...);
@@ -201,8 +197,19 @@ retry:
 
     if(n == -1 && errno == EAGAIN)
     {
-        int rt = co_await io_Awaiter(fd, (m_sylar::FdContext::Event)event, time_out);      // 恢复时代表fd可进行event操作或者由于超时返回
-        goto retry;
+        TimeLimitInfo::State time_limit = co_await io_Awaiter(fd, (m_sylar::FdContext::Event)event, time_out);      // 恢复时代表fd可进行event操作或者由于超时返回
+        if (time_limit == TimeLimitInfo::FINISHED) {
+            goto retry;                                         // fd事件已就绪, 重试原io函数
+        }
+        else if (time_limit == TimeLimitInfo::TIMEOUT) {
+            // 超时, 此时addEventWithTimeout已取消fd上的事件监听
+            M_SYLAR_LOG_DEBUG(g_logger) << fun_name << " timeout, fd = " << fd << " timeout = " << time_out << "ms";
+            errno = ETIMEDOUT;
+            co_return -1;
+        }
+        // 未知状态, 按失败处理
+        errno = EIO;
+        co_return -1;
     }
 
     co_return n;
@@ -275,20 +282,27 @@ int co_socket(int domain, int type, int protocol)
     return fd;
 }
 
-m_sylar::Task<ssize_t> co_accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen)
+m_sylar::Task<int> co_accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen)
 {
     auto result = co_await do_io(sockfd, accept, "accept", m_sylar::FdContext::READ, SO_RCVTIMEO, addr, addrlen);
     if(result == -1)
     {
         // m_sylar::FdMgr::GetInstance()->del(sockfd);
-        M_SYLAR_LOG_ERROR(m_sylar::g_logger) << "accept failed, sockfd=" << sockfd;
+        if(errno == ETIMEDOUT)
+        {   // 监听fd空闲导致的超时, 由调用方重新accept, 不作为错误上报
+            M_SYLAR_LOG_DEBUG(g_logger) << "accept timeout, no pending connection, sockfd=" << sockfd;
+        }
+        else
+        {
+            M_SYLAR_LOG_ERROR(g_logger) << "accept failed, sockfd=" << sockfd << " errno=" << errno;
+        }
     }
     co_return result;
 }
 
 m_sylar::Task<int> co_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 {   
-    uint64_t us_sleep = m_sylar::g_tcp_connect_timeout->getValue();
+    uint64_t connect_timo = m_sylar::g_tcp_connect_timeout->getValue();     // ms
     
     m_sylar::FdCtx::ptr fd_ctx = m_sylar::FdMgr::GetInstance()->get(sockfd, false);
     if(!fd_ctx || fd_ctx->is_closed() || !fd_ctx->is_init())
@@ -313,16 +327,19 @@ m_sylar::Task<int> co_connect(int sockfd, const struct sockaddr *addr, socklen_t
     }
 
     // 使用定时器和iomanager进行connectfd的监听
-    auto state = co_await m_sylar::io_Awaiter(sockfd, m_sylar::FdContext::WRITE, us_sleep);
-    if(state == io_Awaiter::TIMO)
+    auto state = co_await m_sylar::io_Awaiter(sockfd, m_sylar::FdContext::WRITE, connect_timo);
+    if(state == TimeLimitInfo::TIMEOUT)
     {
-        M_SYLAR_LOG_INFO(g_logger) << "connect time out, sockfd:" << sockfd << " timo:" << us_sleep;
+        M_SYLAR_LOG_INFO(g_logger) << "connect time out, sockfd:" << sockfd << " timo:" << connect_timo << "ms";
         errno = ETIMEDOUT;
         co_return -1;
     }
-    else if(state != io_Awaiter::READY)
+    else if(state != TimeLimitInfo::FINISHED)
     {
-        co_return connect(sockfd, addr, addrlen);
+        M_SYLAR_LOG_ERROR(g_logger) << "connect failed, unexpected io await state, sockfd:" << sockfd
+                                    << " state:" << (int)state;
+        errno = EIO;
+        co_return -1;
     }
 
 
@@ -345,43 +362,43 @@ m_sylar::Task<int> co_connect(int sockfd, const struct sockaddr *addr, socklen_t
 }
 
 // read
-m_sylar::Task<ssize_t> co_read(int fd, void* buf, size_t count)
+m_sylar::Task<int> co_read(int fd, void* buf, size_t count)
 {
     co_return co_await do_io(fd, read, "read", m_sylar::FdContext::READ, SO_RCVTIMEO,
                  buf, count);
 }
 
-m_sylar::Task<ssize_t > co_readv(int fd, const struct iovec *iov, int iovcnt)
+m_sylar::Task<int > co_readv(int fd, const struct iovec *iov, int iovcnt)
 {
     co_return co_await do_io(fd, readv, "readv", m_sylar::FdContext::READ, SO_RCVTIMEO,
                  iov, iovcnt);
 }
 
-m_sylar::Task<ssize_t > co_preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)
+m_sylar::Task<int > co_preadv(int fd, const struct iovec *iov, int iovcnt, off_t offset)
 {
     co_return co_await do_io(fd, preadv, "preadv", m_sylar::FdContext::READ, SO_RCVTIMEO,
                  iov, iovcnt, offset);
 }
 
-m_sylar::Task<ssize_t> co_preadv2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
+m_sylar::Task<int> co_preadv2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
 {
     co_return co_await do_io(fd, preadv2, "preadv2", m_sylar::FdContext::READ, SO_RCVTIMEO,
                  iov, iovcnt, offset, flags);
 }
 
-m_sylar::Task<ssize_t> co_recv(int sockfd, void* buf, size_t len, int flags)
+m_sylar::Task<int> co_recv(int sockfd, void* buf, size_t len, int flags)
 {
     co_return co_await do_io(sockfd, recv, "recv", m_sylar::FdContext::READ, SO_RCVTIMEO,
                 buf, len, flags);
 }
 
-m_sylar::Task<ssize_t> co_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr *  src_addr, socklen_t* addrlen)
+m_sylar::Task<int> co_recvfrom(int sockfd, void* buf, size_t len, int flags, struct sockaddr *  src_addr, socklen_t* addrlen)
 {
     co_return co_await do_io(sockfd, recvfrom, "recvfrom", m_sylar::FdContext::READ, SO_RCVTIMEO,
                 buf, len, flags, src_addr, addrlen);
 }
 
-m_sylar::Task<ssize_t> co_recvmsg(int sockfd, struct msghdr *msg, int flags)
+m_sylar::Task<int> co_recvmsg(int sockfd, struct msghdr *msg, int flags)
 {
     co_return co_await do_io(sockfd, recvmsg, "recvmsg", m_sylar::FdContext::READ, SO_RCVTIMEO,
                 msg, flags);   
@@ -389,44 +406,44 @@ m_sylar::Task<ssize_t> co_recvmsg(int sockfd, struct msghdr *msg, int flags)
 
 
 // write
-m_sylar::Task<ssize_t> co_write(int fd, const void* buf, size_t count)
+m_sylar::Task<int> co_write(int fd, const void* buf, size_t count)
 {
     co_return co_await do_io(fd, write, "write", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
                 buf, count); 
 }
 
-m_sylar::Task<ssize_t> co_writev(int fd, const struct iovec *iov, int iovcnt)
+m_sylar::Task<int> co_writev(int fd, const struct iovec *iov, int iovcnt)
 {
     co_return co_await do_io(fd, writev, "writev", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
                 iov, iovcnt); 
 }
     
-m_sylar::Task<ssize_t> co_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
+m_sylar::Task<int> co_pwritev(int fd, const struct iovec *iov, int iovcnt, off_t offset)
 {
     co_return co_await do_io(fd, pwritev, "pwritev", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
                 iov, iovcnt, offset); 
 }
 
-m_sylar::Task<ssize_t> co_pwritev2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
+m_sylar::Task<int> co_pwritev2(int fd, const struct iovec *iov, int iovcnt, off_t offset, int flags)
 {
     co_return co_await do_io(fd, pwritev2, "pwritev2", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
                 iov, iovcnt, offset, flags); 
 }
 
-m_sylar::Task<ssize_t> co_send(int sockfd, const void* buf, size_t len, int flags)
+m_sylar::Task<int> co_send(int sockfd, const void* buf, size_t len, int flags)
 {
     co_return co_await do_io(sockfd, send, "send", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
                 buf, len, flags); 
 }
     
-m_sylar::Task<ssize_t> co_sendto(int sockfd, const void* buf, size_t len, int flags,
+m_sylar::Task<int> co_sendto(int sockfd, const void* buf, size_t len, int flags,
                const struct sockaddr *dest_addr, socklen_t addrlen)
 {
     co_return co_await do_io(sockfd, sendto, "sendto", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
                 buf, len, flags, dest_addr, addrlen); 
 }
 
-m_sylar::Task<ssize_t> co_sendmsg(int sockfd, const struct msghdr *msg, int flags)
+m_sylar::Task<int> co_sendmsg(int sockfd, const struct msghdr *msg, int flags)
 {
     co_return co_await do_io(sockfd, sendmsg, "sendmsg", m_sylar::FdContext::WRITE, SO_SNDTIMEO,
                 msg, flags); 

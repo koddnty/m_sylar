@@ -255,7 +255,7 @@ public:
 
     Task& then(std::function<void(Result<ResultType>)> cb)
     {
-        m_handler.promise().setCompleteCb(cb);
+        m_handler.promise().setCompleteCb(std::move(cb));
         return *this;
     }
 
@@ -376,7 +376,6 @@ public:
     AwaiterImpl await_transform(AwaiterImpl awaiter)
     {   // 为传入的awaiter设置调度器
         awaiter.install_executor(m_executer);
-
         return awaiter;
     }
 
@@ -815,7 +814,7 @@ public:
 
     Task& then(std::function<void(Result<void>)> cb)
     {
-        m_handler.promise().setCompleteCb(cb);
+        m_handler.promise().setCompleteCb(std::move(cb));
         return *this;
     }
 
@@ -1016,8 +1015,4 @@ public:
 private:
     Task<void, _Executer>* m_task;       // 子协程任务
 };
-
-
-
-
 }

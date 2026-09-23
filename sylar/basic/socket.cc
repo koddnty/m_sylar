@@ -140,7 +140,7 @@ int64_t Socket::getSendTimeOut()
 }
 
 void Socket::setSendTimeOut(int64_t time)
-{
+{   // time单位为usec, 与fdManager中FdCtx的约定一致
     FdCtx::ptr fd_ctx = FdMgr::GetInstance()->get(m_sock_fd);
     if(fd_ctx)
     {
@@ -159,7 +159,7 @@ int64_t Socket::getRecvTimeOut()
 }
 
 void Socket::setRecvTimeOut(int64_t time)
-{
+{   // time单位为usec, 与fdManager中FdCtx的约定一致
     FdCtx::ptr fd_ctx = FdMgr::GetInstance()->get(m_sock_fd);
     if(fd_ctx)
     {
@@ -203,9 +203,17 @@ Task<Socket::ptr> Socket::accept()
     int new_sock_fd = co_await co_accept(m_sock_fd, nullptr, nullptr);
     if(new_sock_fd == -1)
     {
-        M_SYLAR_LOG_ERROR(g_logger) << "accept failed, errno = " << errno
-                                    << "   error : " << strerror(errno)
-                                    << "   m_sock_fd = " << m_sock_fd;
+        if(errno == ETIMEDOUT)
+        {   // 监听fd等待超时, 无新连接, 由调用方重新accept
+            M_SYLAR_LOG_DEBUG(g_logger) << "accept timeout, no pending connection"
+                                        << "   m_sock_fd = " << m_sock_fd;
+        }
+        else
+        {
+            M_SYLAR_LOG_ERROR(g_logger) << "accept failed, errno = " << errno
+                                        << "   error : " << strerror(errno)
+                                        << "   m_sock_fd = " << m_sock_fd;
+        }
         co_return nullptr;
     }
     if(new_sock->init(new_sock_fd)){

@@ -62,9 +62,28 @@ public:
     TimeTask::ptr addConditionTimer(TimeTask::ptr time_task);                                           // 添加条件定时器, usec
 
     IOManager& addEventWithTimeout(int fd, FdContext::Event event, TaskCoro20&& task, 
-                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag = 0);        // usec, 1000,000
+                                            uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag = 0);        // ms, 1000,000
     IOManager& addEventWithTimeout(int fd, FdContext::Event event, std::function<void()> cb_func, 
                                             uint64_t timeout, std::shared_ptr<TimeLimitInfo::State> rtState, int closeFlag = 0);
+
+
+    /**
+        @brief 普通任务(非IO)限时执行, 与addEventWithTimeout对称
+
+            任务在timeout(ms)内结束 -> rtState为FINISHED, 并取消超时定时器
+            先触发超时            -> rtState为TIMEOUT, 并执行timeout_cb(若不为空)
+            注意: 协程无法被强制终止, 超时后任务仍会继续运行(协作式), 是否终止由timeout_cb自行处理
+        @param task/func    待执行的任务, 需处于未开始状态(如TaskCoro20::create_coro的产物)
+        @param timeout      超时时间, 单位ms
+        @param rtState      出参, 用于获取最终执行原因, 可为nullptr(表示不关心)
+        @param timeout_cb   超时回调, 可为nullptr(仅记录DEBUG日志), 在iomanager线程中执行
+    */
+    IOManager& addTaskWithTimeout(TaskCoro20&& task, uint64_t timeout,
+                                            std::shared_ptr<TimeLimitInfo::State> rtState = nullptr,
+                                            std::function<void()> timeout_cb = nullptr);
+    IOManager& addTaskWithTimeout(std::function<void()> func, uint64_t timeout,
+                                            std::shared_ptr<TimeLimitInfo::State> rtState = nullptr,
+                                            std::function<void()> timeout_cb = nullptr);
 
 
 
@@ -90,6 +109,15 @@ private:
     int insertTimeTask(TimeTask::ptr time_task);                                       // 插入定时器任务到时间片中
 
     int updateTimerFd(uint64_t execute_time);                             // 更新timerfd的触发时间
+
+    /** @brief 为普通任务创建"限时执行"的条件定时器: 任务未结束时超时, 置rtState并执行timeout_cb */
+    TimeTask::ptr createTaskTimeoutTimer(uint64_t timeout_ms, TimeLimitInfo::ptr exeInfo,
+                                            std::shared_ptr<TimeLimitInfo::State> rtState,
+                                            std::function<void()> timeout_cb);
+    /** @brief 任务结束: 抢占FINISHED状态(抢到说明未超时), 置rtState并取消超时定时器 */
+    static void markTaskFinished(TimeLimitInfo::ptr exeInfo,
+                                            std::shared_ptr<TimeLimitInfo::State> rtState,
+                                            TimeTask::ptr time_task);
 
 private:
     std::atomic<uint64_t> m_nextTimerTime {0xFFFFFFFFFFFFFFFF};                                                   // 下一个定时器触发时间，单位ms

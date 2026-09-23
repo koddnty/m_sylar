@@ -146,7 +146,6 @@ protected:
     std::shared_mutex m_rwMutex;           // 读写锁
     LogLevel::Level m_level = LogLevel::UNKNOWN;        // appender独有日志级别
     LogFormatter::ptr m_formatter = nullptr;            // appender独有输出格式
-
 };
 
 
