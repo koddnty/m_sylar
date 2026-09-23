@@ -32,6 +32,7 @@ set(BASIC_SOURCES
     sylar/basic/address.cc
     sylar/basic/socket.cc
     sylar/basic/tool.cc
+    sylar/basic/lock.cc
 )
 
 # 协议模块

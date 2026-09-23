@@ -134,4 +134,6 @@ add_executable(taskTimeoutCoro20_test lab_test/taskTimeoutCoro20_test.cc)
 add_dependencies(taskTimeoutCoro20_test sylar)
 target_link_libraries(taskTimeoutCoro20_test sylar ${LIB_LIB})
 
+# 协程锁测试见 tests/units/test_coMutex.cc, 由 unit_tests 聚合运行
+
 

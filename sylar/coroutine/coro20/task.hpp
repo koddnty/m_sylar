@@ -663,7 +663,11 @@ public:
     void await_resume()
     {
         before_resume();
-        m_result->getOrThrow();
+        // await_ready()返回true时不会经过resume(), m_result仍是空optional, 需容忍
+        if(m_result.has_value())
+        {
+            m_result->getOrThrow();
+        }
     }
 
     void install_executor(AbstractExecuter* executer)
