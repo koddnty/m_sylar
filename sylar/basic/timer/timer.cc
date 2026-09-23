@@ -292,6 +292,96 @@ IOManager& TimeManager::addEventWithTimeout(int fd, FdContext::Event event, std:
 }
 
 
+TimeTask::ptr TimeManager::createTaskTimeoutTimer(uint64_t timeout_ms, TimeLimitInfo::ptr exeInfo,
+                                            std::shared_ptr<TimeLimitInfo::State> rtState,
+                                            std::function<void()> timeout_cb) {
+    if(timeout_ms < 1) {
+        M_SYLAR_LOG_WARN(g_logger) << "task timeout is too short, may cause unexpected behavior";
+    }
+
+    return TimeTask::create(timeout_ms, false,
+        // 超时分支: 任务未在限定时间内结束
+        [rtState, timeout_cb](TimeTask::ptr) -> Task<void> {
+            if(rtState) {
+                *rtState = TimeLimitInfo::State::TIMEOUT;
+            }
+            if(timeout_cb) {
+                timeout_cb();
+            }
+            else {
+                M_SYLAR_LOG_DEBUG(g_logger) << "task timeout, but no timeout callback";
+            }
+            co_return;
+        },
+        // 抢占执行权: 任务已结束(exeInfo为FINISHED)则不执行超时逻辑
+        [exeInfo](TimeTask::ptr) -> Task<bool> {
+            co_return 0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::TIMEOUT);
+        },
+        [](TimeTask::ptr) -> Task<void> { co_return; });
+}
+
+
+void TimeManager::markTaskFinished(TimeLimitInfo::ptr exeInfo,
+                                            std::shared_ptr<TimeLimitInfo::State> rtState,
+                                            TimeTask::ptr time_task) {
+    if(0 == exeInfo->setState(TimeLimitInfo::WAITING, TimeLimitInfo::FINISHED)) {
+        // 抢到FINISHED说明未超时, 置出参并取消超时定时器
+        if(rtState) {
+            *rtState = TimeLimitInfo::State::FINISHED;
+        }
+        if(time_task) {
+            time_task->cancel();
+        }
+    }
+    // 未抢到说明已超时, 保持TIMEOUT状态, 由超时分支负责后续处理
+}
+
+
+IOManager& TimeManager::addTaskWithTimeout(TaskCoro20&& task, uint64_t timeout,
+                                            std::shared_ptr<TimeLimitInfo::State> rtState,
+                                            std::function<void()> timeout_cb) {
+    std::shared_ptr<TimeLimitInfo> exeInfo = std::make_shared<TimeLimitInfo>();
+    TimeTask::ptr time_task = createTaskTimeoutTimer(timeout, exeInfo, rtState, std::move(timeout_cb));
+
+    // 任务结束(正常返回或异常结束)后标记完成并取消超时定时器, 需在任务被调度前注册
+    task.then([exeInfo, rtState, time_task](Result<void> result) {
+        (void)result;
+        markTaskFinished(exeInfo, rtState, time_task);
+    });
+
+    addConditionTimer(time_task);
+    m_iom->schedule(std::move(task));
+    return *m_iom;
+}
+
+
+IOManager& TimeManager::addTaskWithTimeout(std::function<void()> func, uint64_t timeout,
+                                            std::shared_ptr<TimeLimitInfo::State> rtState,
+                                            std::function<void()> timeout_cb) {
+    std::shared_ptr<TimeLimitInfo> exeInfo = std::make_shared<TimeLimitInfo>();
+    TimeTask::ptr time_task = createTaskTimeoutTimer(timeout, exeInfo, rtState, std::move(timeout_cb));
+
+    // 普通函数任务没有完成回调, 由包装函数在结束时标记(异常也需标记, 否则会被误判为超时)
+    TaskCoro20 task = TaskCoro20::create_func(
+        [func = std::move(func), exeInfo, rtState, time_task]() {
+            try {
+                func();
+            }
+            catch(std::exception& e) {
+                M_SYLAR_LOG_ERROR(g_logger) << "task with timeout throw exception: " << e.what();
+            }
+            catch(...) {
+                M_SYLAR_LOG_ERROR(g_logger) << "task with timeout throw unknown exception";
+            }
+            markTaskFinished(exeInfo, rtState, time_task);
+        });
+
+    addConditionTimer(time_task);
+    m_iom->schedule(std::move(task));
+    return *m_iom;
+}
+
+
 
 
 

@@ -129,4 +129,9 @@ add_executable(hookTimeoutCoro20_test lab_test/hookTimeoutCoro20_test.cc)
 add_dependencies(hookTimeoutCoro20_test sylar)
 target_link_libraries(hookTimeoutCoro20_test sylar ${LIB_LIB})
 
+# 普通任务限时执行测试
+add_executable(taskTimeoutCoro20_test lab_test/taskTimeoutCoro20_test.cc)
+add_dependencies(taskTimeoutCoro20_test sylar)
+target_link_libraries(taskTimeoutCoro20_test sylar ${LIB_LIB})
+
 

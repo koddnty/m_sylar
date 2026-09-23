@@ -255,7 +255,7 @@ public:
 
     Task& then(std::function<void(Result<ResultType>)> cb)
     {
-        m_handler.promise().setCompleteCb(cb);
+        m_handler.promise().setCompleteCb(std::move(cb));
         return *this;
     }
 
@@ -814,7 +814,7 @@ public:
 
     Task& then(std::function<void(Result<void>)> cb)
     {
-        m_handler.promise().setCompleteCb(cb);
+        m_handler.promise().setCompleteCb(std::move(cb));
         return *this;
     }
 

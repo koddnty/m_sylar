@@ -83,6 +83,7 @@ Task<void, TaskBeginExecuter> testConditionTimer() {
 | [cancelTimer(TimeTask::ptr)](#canceltimertimetaskptr)        | 取消一个定时器任务             | TimeManager   | 用户   |
 | [getTimerCount()](#gettimercount)                            | 获取当前活跃的定时器任务数量   | TimeManager   | 用户   |
 | [addEventWithTimeout(...)](#addeventwithtimeout)             | 为 IO 事件添加超时限制         | TimeManager   | 用户   |
+| [addTaskWithTimeout(...)](#addtaskwithtimeout)               | 让普通任务在限定时间内执行     | TimeManager   | 用户   |
 | [getInstance()](#getinstance)                                | 获取线程局部的 TimeManager 实例 | TimeManager  | 用户   |
 | [GetCurrentMS()](#getcurrentms)                              | 获取当前时间戳（毫秒）         | TimeManager   | 用户   |
 | [printInfo()](#printinfo)                                    | 打印调试信息（状态诊断）       | TimeManager   | 开发者 |
@@ -250,6 +251,53 @@ IOManager& addEventWithTimeout(int fd, FdContext::Event event, std::function<voi
 - `closeFlag`：超时时是否同时 close fd。`0` 仅删除事件监听；非 `0` 则调用 `closeWithNoClose()`。
 
 **描述：** 为指定的 IO 事件添加超时限制。内部创建条件定时器，同时监听 IO 事件和超时事件——谁先完成谁先通过 CAS 抢占执行权，确保回调仅执行一次。这是实现带超时的 `co_accept`、`co_read` 等 hook 函数的基础。
+
+**返回值：** 当前 IOManager 的引用，用于链式调用。
+
+---
+
+#### addTaskWithTimeout()
+
+**函数：**
+
+```cpp
+// 协程任务版本
+IOManager& addTaskWithTimeout(TaskCoro20&& task, uint64_t timeout,
+                              std::shared_ptr<TimeLimitInfo::State> rtState = nullptr,
+                              std::function<void()> timeout_cb = nullptr);
+
+// 普通函数版本
+IOManager& addTaskWithTimeout(std::function<void()> func, uint64_t timeout,
+                              std::shared_ptr<TimeLimitInfo::State> rtState = nullptr,
+                              std::function<void()> timeout_cb = nullptr);
+```
+
+**参数：**
+- `task` / `func`：待执行的普通任务（非 IO 任务）。`task` 需处于未开始状态，通常是 `TaskCoro20::create_coro(...)` 的产物。
+- `timeout`：超时时间，单位**毫秒**。
+- `rtState`：出参，用于获取最终执行原因。值为 `TimeLimitInfo::State::FINISHED`（任务先结束）或 `TimeLimitInfo::State::TIMEOUT`（超时先触发）。可为 `nullptr`（表示不关心结果）。
+- `timeout_cb`：超时回调，可为 `nullptr`（此时只记录 DEBUG 日志）。在 iomanager 线程中执行。
+
+**描述：** 让普通任务在限定时间内执行，与 `addEventWithTimeout` 对称：内部创建条件定时器，任务结束与超时谁先完成谁先通过 CAS 抢占执行权，因此超时回调最多执行一次，出参只会被写成 `FINISHED` 或 `TIMEOUT` 其中之一。任务先结束时会把状态置为 `FINISHED` 并取消超时定时器。
+
+**注意（协作式取消）：** C++ 协程无法被强制终止，任务超时后**仍会继续运行**直到自身结束（`rtState` 不会被改写回 `FINISHED`）。是否终止任务由 `timeout_cb` 自行处理，例如设置取消标志、关闭其占用的 fd，或唤醒等待中的协程。
+
+**示例：**
+
+```cpp
+TimeManager::ptr tim = TimeManager::getInstance();          // iomanager线程内
+auto state = std::make_shared<TimeLimitInfo::State>();
+
+tim->addTaskWithTimeout(
+    TaskCoro20::create_coro([]() -> Task<void, TaskBeginExecuter> {
+        co_await co_sleep(3000);
+        co_return;
+    }),
+    1000, state, []() { std::cout << "task timeout" << std::endl; });
+
+// 任务在1s内结束 -> *state == TimeLimitInfo::FINISHED
+// 否则           -> *state == TimeLimitInfo::TIMEOUT, 且超时回调被执行
+```
 
 **返回值：** 当前 IOManager 的引用，用于链式调用。
 

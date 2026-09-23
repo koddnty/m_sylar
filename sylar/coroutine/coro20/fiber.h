@@ -217,6 +217,13 @@ public:
         m_task.finally(std::move(func));
     }
 
+    /** @brief 任务结束后的回调, 与finally的区别是任务以异常结束时回调依然会被调用(仅协程任务有效) */
+    void then(std::function<void(Result<void>)>&& func)
+    {
+        std::shared_lock<std::shared_mutex> rlock(m_mutex);
+        m_task.then(std::move(func));
+    }
+
 public:
 
     static TaskCoro20 create_coro(std::function<Task<void, TaskBeginExecuter>()> task)     // 协程任务
