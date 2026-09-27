@@ -1,16 +1,14 @@
 #pragma once
 #include "coroutine/corobase.h"
-
+#include "basic/noncopyable.h"
 
 namespace m_sylar {
 
-// 锁
-class LockAwaiter;
-
-class CoMutex {
+// 独占锁
+class CoMutex : public Noncopyable{
 public:
     Task<void> lock();
-    Task<void> unlock();
+    void unlock();
 
 
     // 当且仅当下面两个函数都返回true时，才可认为注册的认为会被唤醒
@@ -26,7 +24,21 @@ private:
 };
 
 
+// 独占锁
+class CoUniqueLock : public Noncopyable, public Nonmoveable{
+public:
+    CoUniqueLock(CoMutex& mutex) : m_mutex(mutex) { }
+    ~CoUniqueLock();
 
+    Task<void> lock();
+    void unlock();
+
+private:
+    CoMutex& m_mutex;
+    bool m_locked {false};
+};
+
+// 锁恢复与挂起awaiter
 class LockAwaiter : public m_sylar::Awaiter<void> {
 public:
     explicit LockAwaiter(CoMutex* mutex) : m_mutex(mutex) {}

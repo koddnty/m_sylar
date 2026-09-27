@@ -9,7 +9,6 @@ Task<void> CoMutex::lock() {
     bool acquired = false;
     {
         // 只能在作用域内持锁: 若把unique_lock留在协程帧中, 它会一直持有到挂起之后,
-        // 导致挂起路径上的tryAcquire()在同一线程上二次加锁而自死锁
         std::unique_lock<std::mutex> lk(m_mutex);
         if (!m_locked) {
             m_locked = true;
@@ -22,7 +21,7 @@ Task<void> CoMutex::lock() {
     co_return;
 }
 
-Task<void> CoMutex::unlock() {
+void CoMutex::unlock() {
     std::function<void()> waiter;
     {
         std::unique_lock<std::mutex> lk(m_mutex);
@@ -40,7 +39,6 @@ Task<void> CoMutex::unlock() {
     if (waiter) {
         IOManager::getInstance()->schedule(waiter);
     }
-    co_return;
 }
 
 
@@ -65,4 +63,37 @@ bool CoMutex::appendWaiter(std::function<void()> waiter) {       // 注意确保
     m_waiters.push_back(waiter);
     return true;
 }
+
+
+
+// unique_lock ----------
+CoUniqueLock::~CoUniqueLock() {
+    if (m_locked) {
+        m_mutex.unlock();
+        m_locked = false;
+    }
+}
+
+Task<void> CoUniqueLock::lock() {
+    if (m_locked) {
+        co_return;                          // 已持有, 重复lock不做事
+    }
+    else {
+        // 必须co_await: CoMutex::lock()是协程, 不await只会创建出一个未执行的task,
+        // 内层真正挂起等待时本函数已继续执行, 会谎报m_locked=true(互斥失效, 计数丢失)
+        co_await m_mutex.lock();
+        m_locked = true;                    // 取到锁后才标记持有
+        co_return;
+    }
+}
+
+void CoUniqueLock::unlock() {
+    if (m_locked) {
+        m_locked = false;
+        m_mutex.unlock();
+    }
+}
+
+
+
 }
