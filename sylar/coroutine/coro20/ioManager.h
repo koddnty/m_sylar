@@ -18,6 +18,7 @@ enum class IOState {
     FAILED = 2,             // IO请求失败
     UNKNOWN = 3,            // 未知问题
     INIT = 4,               // 初始化的状态
+    CLOSED = 5              // 连接关闭
 };
 
 

@@ -134,7 +134,7 @@ FdCtx::ptr FdManager::get(int fd, bool auto_create)
     //     {
     //         return nullptr;
     //     }
-    // } 
+    // }
     // else
     // {
     //     if(m_fdCtxs[fd])
@@ -162,11 +162,17 @@ FdCtx::ptr FdManager::get(int fd, bool auto_create)
     // M_SYLAR_LOG_DEBUG(g_logger) << "create a new fdctx, fd=" << fd;
     FdCtx::ptr new_ctx (new FdCtx(fd));
     std::unique_lock<std::shared_mutex> wlock(m_rwMutex);
-    if (fd < static_cast<int>(m_fdCtxs.size()) && m_fdCtxs[fd])
-    {   // 重新检查
-        return m_fdCtxs[fd];
+    if (fd < static_cast<int>(m_fdCtxs.size())) {   // 重新检查
+        if (m_fdCtxs[fd]) {
+            return m_fdCtxs[fd];
+        }
+        else {
+            m_fdCtxs[fd] = new_ctx;
+            return m_fdCtxs[fd];
+        }
     }
-    m_fdCtxs.resize(fd * 1.5);          // 扩容
+
+    m_fdCtxs.resize(std::max((int)m_fdCtxs.size(), (int)(fd * 1.5) + 2));          // 扩容
     m_fdCtxs[fd] = new_ctx;
     return new_ctx;
 }

@@ -37,7 +37,6 @@ public:
 
     const Socket::ptr getSocket() const { return m_socket; }
 
-
     int close() {
         return m_socket->close();
     }

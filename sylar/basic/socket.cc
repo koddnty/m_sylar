@@ -197,8 +197,6 @@ bool Socket::setOption(int level, int option, const void* value, socklen_t len)
 
 Task<Socket::ptr> Socket::accept()
 {
-
-
     Socket::ptr new_sock {new Socket(m_family, m_type, m_protocol)};
     int new_sock_fd = co_await co_accept(m_sock_fd, nullptr, nullptr);
     if(new_sock_fd == -1)
@@ -307,7 +305,7 @@ bool Socket::bind(const Address::ptr addr)
     return true;
 }
 
-bool Socket::connect(const Address::ptr addr, uint64_t timeOut)
+Task<int> Socket::connect(const Address::ptr addr, uint64_t timeOut)
 {
     if(!isValid())
     {
@@ -316,27 +314,28 @@ bool Socket::connect(const Address::ptr addr, uint64_t timeOut)
         {
             M_SYLAR_LOG_ERROR(g_logger) << "failed to create a new socket in socket::bind, errno = " << errno
                                         << "   e.what()" << strerror(errno);
-            return false;
+            co_return -1;
         }
     }
     if(addr->getFamily() != m_family)
     {
         M_SYLAR_LOG_ERROR(g_logger) << "family does not match between sockaddr(" << addr->getFamily() 
                                     << ") and Scoket.m_family(" << m_family << ")";
-        return false;
+        co_return -1;
     }
-    
-    if(::connect(m_sock_fd, addr->getAddr(), addr->getAddrLen()))
+
+    int rt =  co_await co_connect(m_sock_fd, addr->getAddr(), addr->getAddrLen());
+    if(rt)
     {
-        M_SYLAR_LOG_ERROR(g_logger) << "failed to connect to (address)" << addr->toString()
+        M_SYLAR_LOG_DEBUG(g_logger) << "failed to connect to (address)" << addr->toString()
                                     << "    errno = " << errno << "   error : " << strerror(errno);
-        return false;
+        co_return rt;
     }
 
     m_isConnected = true;
     getRemoteAddress();
     getLocalAddress();
-    return true;
+    co_return rt;
 }
 
 bool Socket::listen(int backlog)

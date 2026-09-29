@@ -14,6 +14,7 @@ Session::Session(Socket::ptr socket) : m_socket(socket) {
     m_socket->setSendTimeOut(g_basic_send_timeout->getValue() * 1000000LL);
     int buffer_size = g_basic_buffer_size->getValue();
     m_buffer = new char[buffer_size];
+    m_buffer_size = buffer_size;
 }
 
 Session::~Session() {

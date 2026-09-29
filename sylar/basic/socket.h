@@ -80,7 +80,7 @@ public:
     bool bind(const Address::ptr addr);
     bool listen(int backlog = SOMAXCONN);
     Task<Socket::ptr> accept();
-    bool connect(const Address::ptr addr, uint64_t timeOut = -1);       // client
+    Task<int> connect(const Address::ptr addr, uint64_t timeOut = -1);       // client
     bool close();
 
     Task<int> send(const void* buffer, size_t length, int flags = 0);

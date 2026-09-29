@@ -12,6 +12,10 @@ public:
         c.init();
         return &c;
     }
+    static T* GetInstanceWithOutInit () {
+        static T c;
+        return &c;
+    }
 };
 
 template <typename T, typename X, int N = 0>
@@ -21,6 +25,10 @@ public:
         static std::shared_ptr<T> v(new T);
         v->init();
         return v;
+    }
+    static T* GetInstanceWithOutInit () {
+        static T c;
+        return &c;
     }
 };
 

@@ -79,13 +79,11 @@ void TimeManager::onTimerTriggered() {
     // (void)read(m_timerFd, &expirations, sizeof(expirations));
 
     uint64_t now = GetCurrentMS();              // 加1ms的误差补偿，确保不会漏掉过期的定时器任务
-    M_SYLAR_LOG_DEBUG(g_logger) << "timer triggered, now: " << now;
     std::vector<TimerBlock::ptr> expired_tasks;     // 存储过期的定时器任务
     {
         std::unique_lock<std::shared_mutex> rlock(m_mutex);
         auto it = m_time_blocks.begin();
         while(it != m_time_blocks.end() && it->first <= now) {
-            M_SYLAR_LOG_DEBUG(g_logger) << "found expired timer block, block_start_time: " << it->second->getStartTime() << ", block_end_time: " << it->second->getEndTime();
             expired_tasks.push_back(it->second);     // 将可能的时间块加入到过期任务列表中
             it++;
         }
@@ -96,12 +94,10 @@ void TimeManager::onTimerTriggered() {
     for(auto& timer_block : expired_tasks) {
         auto expired_tasks_in_block = timer_block->getAndRemove(now);     // 获取并删除过期的定时器任务
         for(auto& it : expired_tasks_in_block) {
-            M_SYLAR_LOG_DEBUG(g_logger) << "found expired timer task, execute_time: " << it->getExecuteTime() << ", is_cycle: " << it->getIsCycle();
         }
         expired_time_tasks.insert(expired_time_tasks.end(), expired_tasks_in_block.begin(), expired_tasks_in_block.end());
     }
 
-    M_SYLAR_LOG_DEBUG(g_logger) << "total expired timer task count: " << expired_time_tasks.size() << ", cleaning empty and expired timer blocks";
     // 清理空的和过期的时间块, 并设置下一个定时器触发时间
     // 使用exclusive锁保护整个清理+重设过程:
     //   1. 删除end_time已过期的时间块 (原逻辑)
@@ -115,8 +111,6 @@ void TimeManager::onTimerTriggered() {
         auto it = m_time_blocks.begin();
         while(it != m_time_blocks.end()) {
             if(it->second->getEndTime() <= now || it->second->empty()) {
-                M_SYLAR_LOG_DEBUG(g_logger) << "removing timer block, start: " << it->second->getStartTime()
-                    << ", end: " << it->second->getEndTime() << ", empty: " << it->second->empty();
                 it = m_time_blocks.erase(it);
             } else {
                 ++it;
@@ -151,7 +145,6 @@ void TimeManager::onTimerTriggered() {
         }
     }
 
-    M_SYLAR_LOG_DEBUG(g_logger) << "next timer time updated, next_timer_time: " << m_nextTimerTime << ", scheduling expired timer tasks";
     // 调度执行过期的定时器任务
     for(auto& time_task : expired_time_tasks) {
         // M_SYLAR_LOG_DEBUG(g_logger) << "scheduling time task, address: " << time_task.get();
@@ -409,8 +402,6 @@ std::shared_ptr<TimeManager> TimeManager::getInstance() {
 }
 
 Task<void, TaskBeginExecuter> TimeManager::runTimeTask(TimeTask::ptr timetask) {
-    M_SYLAR_LOG_DEBUG(g_logger) << "execute timer task, is canceled: " << timetask->getIsCanceled() << ", execute_time: " << timetask->getExecuteTime() << ", is_cycle: " << timetask->getIsCycle()
-                << " address: " << timetask.get();
     co_await timetask->runner();       // 运行后会自动更新时间戳
     if(!timetask->getIsCanceled() && timetask->getIsCycle()) {
         // 重新插入定时器
@@ -497,8 +488,6 @@ int TimeManager::insertTimeTask(TimeTask::ptr time_task) {
         return -1;
     }
 
-    M_SYLAR_LOG_DEBUG(g_logger) << "inserting time task, execute_time: " << execute_time << ", current_time: " << now
-        << ", block_start: " << timer_block->getStartTime() << ", block_end: " << timer_block->getEndTime();
     // 计算时间限制
     if(execute_time < timer_block->getStartTime() || execute_time >= timer_block->getEndTime()) {       // 时间不合法，超出时间片范围
         M_SYLAR_LOG_ERROR(g_logger) << "execute_time is out of timer block range, execute_time: " << execute_time
@@ -510,13 +499,9 @@ int TimeManager::insertTimeTask(TimeTask::ptr time_task) {
     timer_block->insert(time_task);
 
     // timerfd时间调整
-    M_SYLAR_LOG_DEBUG(g_logger) << "checking if need to update timerfd time, execute_time: " << execute_time << ", current_time: " << now
-        << ", next_timer_time: " << m_nextTimerTime.load();
     if(execute_time < m_nextTimerTime.load()) {   // 需更新timerfd的时间
-        M_SYLAR_LOG_DEBUG(g_logger) << "updating timerfd time, execute_time: " << execute_time << ", current_time: " << now
-            << ", next_timer_time: " << m_nextTimerTime.load();
         if(-1 == updateTimerFd(execute_time) ) {
-            M_SYLAR_LOG_ERROR(g_logger) << "failed to update timerfd time, execute_time: " << execute_time; 
+            M_SYLAR_LOG_ERROR(g_logger) << "failed to update timerfd time, execute_time: " << execute_time;
             return -1;
         }
     }
@@ -541,11 +526,8 @@ int TimeManager::updateTimerFd(uint64_t execute_time) {
 
 
     std::unique_lock<std::shared_mutex> wlock {m_timerFd_mutex};
-    M_SYLAR_LOG_DEBUG(g_logger) << "updating timerfd time, execute_time: " << execute_time << ", current_time: " << now
-        << ", next_timer_time: " << m_nextTimerTime.load();
     if(execute_time >= m_nextTimerTime) {
-        M_SYLAR_LOG_DEBUG(g_logger) << "no need to update timerfd time, execute_time: " << execute_time << ", next_timer_time: " << m_nextTimerTime.load();
-        return 0; 
+        return 0;
     }
     if (timerfd_settime(m_timerFd, 0, &new_value, nullptr) == -1) {
         M_SYLAR_LOG_ERROR(g_logger) << "failed to set timerfd(timer fd = " << m_timerFd << ") time, error code: " << errno << ": " << strerror(errno);
